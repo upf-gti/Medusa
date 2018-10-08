@@ -1,0 +1,42 @@
+:root{
+    --background-color: #404B4E;
+    --button-primary-color: #30383A;
+}
+
+body {
+    -webkit-transition: all .5s ease-in-out;
+    -moz-transition: all .5s ease-in-out;
+    -ms-transition: all .5s ease-in-out;
+    -o-transition: all .5s ease-in-out;
+    transition: all .5s ease-in-out;
+}
+.litegui.wrap .fullscreen{
+
+}
+
+
+/* custom Litegraph stylesheet -------------------------------------------------------------------------------*/
+#main-area{
+    background-color: var(--background-color);
+}
+
+/* MENU style modification */
+.litemenubar ul{
+    margin: 0 6px;
+}
+.litemenubar li{
+    background-color: var(--button-primary-color);
+    line-height: 33px;
+    margin: 4px 1px;
+}
+
+.inspector .wcontent button.single {
+    padding: 0;
+}
+
+/* Player */
+#player-area{
+  /* q  background-color: rgb(52, 103, 128); */
+}
+
+/* ------------------------------------------------------------------------------- custom Litegraph stylesheet */

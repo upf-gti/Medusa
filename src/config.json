@@ -1,0 +1,15 @@
+
+{
+    "default_scene":"src/assets/scene.json",
+    "resources": [     
+        "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.7.1/gl-matrix-min.js",
+        "https://cdn.rawgit.com/jagenjo/litegl.js/master/build/litegl.js",
+        "https://cdn.rawgit.com/jagenjo/litegraph.js/master/build/litegraph.js",
+        "https://cdn.rawgit.com/jagenjo/litescene.js/master/build/litescene.js",
+        "https://cdn.rawgit.com/jagenjo/litegui.js/master/build/litegui.js",
+        "https://cdn.rawgit.com/jagenjo/litegui.js/master/build/litegui.css",
+        "src/css/allfiles.php",
+        "src/modules/allfiles.php"
+    ]
+}
