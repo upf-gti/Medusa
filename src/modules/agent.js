@@ -28,27 +28,42 @@ var AgentManager = {
         if(!agent.inspector){
             var inspector = agent.inspector = new LiteGUI.Inspector(),
                 properties = agent.properties,
-                dialog = agent.dialog;
+                dialog = agent.dialog,
+                uid = agent.uid;
             inspector.on_refresh = function(){
 
                 inspector.clear();
                     for(var p in properties){
+                        let widget = null;
                         switch(properties[p].constructor.name){
-                            case "Number" : inspector.addNumber( p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v } } );    break;
+                            case "Number" : widget = inspector.addNumber( p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v } } );    break;
                             case "String" : { 
-                                inspector.addString( p, properties[p], { key: p, callback: function(v){ 
+                                widget = inspector.addString( p, properties[p], { key: p, callback: function(v){ 
 
-                                    if(this.options.key == "name"){
-                                        dialog.root.querySelector(".panel-header").innerText = "Agent: "+v;
-                                        CORE.GUI.menu.findMenu( "Agent/"+properties[this.options.key]).name = v;
-                                    }
+                                //Updates name reference in menu
+                                if(this.options.key == "name"){
+                                    dialog.root.querySelector(".panel-header").innerText = "Agent: "+v;
+                                    CORE.GUI.menu.findMenu( "Agent/"+properties[this.options.key]).name = v;
+                                }
+                                properties[this.options.key] = v;
 
-                                    properties[this.options.key] = v 
-                                } } );    break;
+                                }});    break;
                             }
-                            case "Boolean": inspector.addCheckbox( p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v } } );    break;
-                            default:        console.warn( "parameter type from parameter "+p+" in agent "+ uid + " was not recognised");
+                            case "Boolean":  widget = inspector.addCheckbox( p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v } } );    break;
+                            case "Float32Array": 
+                                switch(properties[p].length){
+                                    case 2:  widget = inspector.addVector2(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
+                                    case 3:  widget = inspector.addVector3(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
+                                    case 4:  widget = inspector.addVector4(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
+                                }break;
+                            default:    
+                            debugger;   
+                             console.warn( "parameter type from parameter "+p+" in agent "+ uid + " was not recognised");
                         }
+                        if(!widget) continue;
+                        widget.addEventListener("dragstart", function(a){ a.dataTransfer.setData("text", a.srcElement.children[0].title); });
+                        widget.setAttribute("draggable", true);
+
                     }
     
                     inspector.addSeparator();
@@ -90,15 +105,28 @@ class Agent{
 
     constructor(){
         var uid = this.uid = AgentManager.agents.length;
-        
+        var random =vec3.random(vec3.create(), 100);
+
         var properties = this.properties = {
             age: 35,
             name: "paquitaso",
-            ubrella: "closed"
+            ubrella: "closed",
+            position: vec3.add(vec3.create(), vec3.create(), vec3.fromValues(random[0], 0, random[2]))
         }
+
+        var skeleton = new Skeleton("skeleton1" + Math.random(), "src/assets/Walking.dae", properties.position, false);
+        var animator1 = new Animator();
+        animator1.animations = animations;
+        animators.push( animator1 );
+
+        var character = new Character("Billy" + Math.random(), skeleton, animator1);
+        character.state = this.properties;
+        characters.push(character);
     
         //Store agents 
         AgentManager.agents.push(this);
+
+
     }
 }
 

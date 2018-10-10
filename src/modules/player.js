@@ -9,26 +9,64 @@ class Player{
     preInit(){
         this.panel = new LiteGUI.Area({id:"player-area"});
         CORE.GUI.root.add( this.panel );
+
+        var buttons = this.buttons = document.createElement("ul");
+        buttons.id = "player-buttons";
+        CORE.GUI.menu.panel.content.appendChild(buttons);
+        window.state = STOP;
+        
+        this.addButton( "<div id='play-btn' class='' >&#x25b6</div>", (e)=>{
+            switch(window.state){
+                case PLAYING: 
+                    window.state = STOP;
+                    e.currentTarget.children[0].innerHTML = "&#x25b6";
+                    e.currentTarget.children[0].classList.remove("play");
+                    break;
+                case STOP: 
+                    window.state = PLAYING;
+                    e.currentTarget.children[0].innerHTML = "&#9724";
+                    e.currentTarget.children[0].classList.add("play");
+                    break;
+            }
+        });
     }
 
     init(){
 
-       this.player = new LS.Player( CORE.config.player || { 
-            alpha: true,
-            premultipliedAlpha: false,
-            container: this.panel.content,         
-            "width":"100%", "height":"100%",
-            "resources": "resources/",
-            "shaders": "data/shaders.xml" 
-        } );
-
         CORE.GUI.root.addEventListener("split_moved", this.resize.bind(this));
         window.addEventListener("resize", this.resize.bind(this));
 
-        if( CORE.config.default_scene )
-            this.player.loadScene( CORE.config.default_scene );
+        //CORE.GUI.menu.panel.content.innerHTML += "<div>HolaCaracola</div>";
 
-        this.player.play();
+
+
+        // this.player = new LS.Player( CORE.config.player || { 
+        //     alpha: true,
+        //     premultipliedAlpha: false,
+        //     container: this.panel.content,         
+        //     "width":"100%", "height":"100%",
+        //     "resources": "resources/",
+        //     "shaders": "data/shaders.xml" 
+        // } );
+
+
+
+        // if( CORE.config.default_scene )
+        //     this.player.loadScene( CORE.config.default_scene );
+
+        // this.player.play();
+    }
+
+    addButton( html, callback){
+        var button = document.createElement("li");
+        button.innerHTML = html;
+        button.addEventListener("click", callback);
+        this.buttons.appendChild(button);
+    }
+
+    postInit(){
+        this.player = GFX.renderer;
+        CORE.Player.resize();
     }
 
     resize() {

@@ -7,11 +7,12 @@ class GUI{
         var main_area = this.root = new LiteGUI.Area({id:"main-area"});
         LiteGUI.add(main_area);
 
-        main_area.split("vertical",["40.67px", null] );
+        main_area.split("vertical",["0px", null] );
 
         var menu = this.menu = new LiteGUI.Menubar("menu");
+        this.menu.panel = main_area.getSection(0);
+        this.menu.panel.content.parentElement.id = "menu-panel";
         main_area.getSection(0).add(menu);
-
 
 
         this.root = main_area.getSection(1);
