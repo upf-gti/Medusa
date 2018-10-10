@@ -3,13 +3,34 @@
     "default_scene":"src/assets/scene.json",
     "resources": [     
         "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js",
-        "https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.7.1/gl-matrix-min.js",
+        "src/davidcode/extra/gl-matrix-min.js",
+
+        "https://cdn.rawgit.com/jagenjo/collada.js/master/src/collada.js",
         "https://cdn.rawgit.com/jagenjo/litegl.js/master/build/litegl.js",
-        "https://cdn.rawgit.com/jagenjo/litegraph.js/master/build/litegraph.js",
+        "https://cdn.rawgit.com/jagenjo/rendeer.js/master/build/rendeer.min.js",
         "https://cdn.rawgit.com/jagenjo/litescene.js/master/build/litescene.js",
         "https://cdn.rawgit.com/jagenjo/litegui.js/master/build/litegui.js",
         "https://cdn.rawgit.com/jagenjo/litegui.js/master/build/litegui.css",
+        "https://cdn.rawgit.com/jagenjo/litegraph.js/master/build/litegraph.js",
+        "https://cdn.rawgit.com/jagenjo/Canvas2DtoWebGL/master/src/Canvas2DtoWebGL.js",
+
+      
+        "src/davidcode/extra/path.js",
+        "src/davidcode/extra/tinyxml.js",
+        "src/davidcode/extra/patches.js",
+        "src/davidcode/animator.js",
+        "src/davidcode/character.js",
+        "src/davidcode/skeleton.js",
+        "src/davidcode/btree.js",
+        "src/davidcode/btEditor.js",
+        "src/davidcode/blackboard.js",
+        "src/davidcode/gfx.js",
+        "src/davidcode/genNode.js",
+        "src/davidcode/app.js",
+
+
         "src/css/allfiles.php",
         "src/modules/allfiles.php"
+
     ]
 }

@@ -1,0 +1,99 @@
+\shaders
+
+basic basic.vs basic.fs
+phong_shadow basic.vs phong_shadow.fs
+phong_texture_shadow basic.vs phong_shadow.fs { "USE_TEXTURE":"" }
+
+\basic.vs 
+
+	precision highp float;
+	attribute vec3 a_vertex;
+	attribute vec3 a_normal;
+	attribute vec2 a_coord;
+
+	varying vec3 v_wPosition;
+	varying vec3 v_wNormal;
+	varying vec2 v_coord;
+
+	uniform mat4 u_viewprojection;
+	uniform mat4 u_model;
+
+	void main() {
+		vec3 vertex = a_vertex;
+
+		v_wPosition = (u_model * vec4(vertex,1.0)).xyz;
+		v_wNormal = (u_model * vec4(a_normal,0.0)).xyz;
+		v_coord = a_coord;
+
+		gl_Position = u_viewprojection * vec4( v_wPosition, 1.0 );
+		gl_PointSize = 2.0;
+	}
+
+\basic.fs 
+
+	precision highp float;
+
+	uniform vec4 u_color;
+
+	void main() {
+		gl_FragColor = u_color;
+	}
+
+\phong_shadow.fs
+
+	precision highp float;
+
+	varying vec3 v_wPosition;
+	varying vec3 v_wNormal;
+	varying vec2 v_coord;
+
+	uniform vec3 u_camera_position;
+	uniform vec3 u_background_color;
+	uniform vec3 u_ambient_light;
+	uniform vec3 u_light_color;
+	uniform vec3 u_light_position;
+
+	uniform vec4 u_color;
+	uniform float u_specular;
+	uniform float u_glossiness;
+	uniform float u_fresnel;
+
+	#ifdef USE_TEXTURE
+		uniform sampler2D u_color_texture;
+		uniform vec2 u_tiling;
+	#endif
+
+	void main() {
+
+		vec3 N = normalize( v_wNormal );
+
+		//compute material
+		vec4 material = u_color;
+
+		#ifdef USE_TEXTURE
+			material *= texture2D( u_color_texture, v_coord * u_tiling );
+		#endif
+
+		//compute light
+		vec3 light_vector = normalize( v_wPosition - u_light_position );
+		float NdotL = max( dot( N, -light_vector ), 0.0 );
+		vec3 light = u_ambient_light;
+		float shadow = 1.5;
+
+		light += (shadow * 0.2) * u_light_color * NdotL;
+
+		vec3 E = normalize(v_wPosition - u_camera_position);
+		vec3 R = reflect(E,N);
+		float specular_factor = u_specular * pow( abs(dot(N,R)), u_glossiness );
+		float fresnel_factor = u_fresnel * pow( 1.0 - abs(dot(N,R)), 1.1 );
+
+		//final
+		vec3 final_color = material.xyz * light;
+		final_color += specular_factor * light;
+
+		//fresnel
+		vec3 bg_color = mix( u_background_color, u_background_color * 0.5, max(0.0,-R.y) );
+		final_color = mix( final_color, vec3(0.05,0.05,0.05), fresnel_factor );
+
+		gl_FragColor = vec4(final_color, material.a);
+	}
