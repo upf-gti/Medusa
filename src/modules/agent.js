@@ -21,7 +21,11 @@ var AgentManager = {
         
         if(!agent.dialog){
             var dialog = agent.dialog = new LiteGUI.Dialog( { id:"Settings", title:'Agent: '+ ((agent.properties && agent.properties.name)? agent.properties.name : agent.uid), close: true, minimize: false, width: 300, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
-            CORE.GUI.menu.add("Agent/" + ((agent.properties && agent.properties.name)? agent.properties.name : agent.uid), {callback: function() { dialog.show('fade'); } });
+            agent.dialog.setPosition(10,70);
+            CORE.GUI.menu.add("Agent/" + ((agent.properties && agent.properties.name)? agent.properties.name : agent.uid), {callback: function() { 
+                dialog.show('fade');             
+                agent.dialog.setPosition(10,70);
+            } });
             CORE.GUI.menu.remove("Agent/+ new Agent");
             CORE.GUI.menu.add("Agent/+ new Agent", () => new Agent() );
         }
@@ -61,6 +65,7 @@ var AgentManager = {
                              console.warn( "parameter type from parameter "+p+" in agent "+ uid + " was not recognised");
                         }
                         if(!widget) continue;
+                        widget.classList.add("draggable-item");
                         widget.addEventListener("dragstart", function(a){ a.dataTransfer.setData("text", a.srcElement.children[0].title); });
                         widget.setAttribute("draggable", true);
 
@@ -91,6 +96,8 @@ var AgentManager = {
 
             agent.dialog.add(inspector);
             inspector.refresh();
+
+            CORE.Player.renderStats();
         }
 
     }
@@ -103,15 +110,17 @@ CORE.registerModule( AgentManager );
 
 class Agent{
 
-    constructor(){
-        var uid = this.uid = AgentManager.agents.length;
+    constructor( position ){
         var random =vec3.random(vec3.create(), 100);
-
+        position = position || vec3.add(vec3.create(), vec3.create(), vec3.fromValues(random[0], 0, random[2]));
+        var uid = this.uid = AgentManager.agents.length;
+       
+        var that = this;
         var properties = this.properties = {
             age: 35,
-            name: "paquitaso",
+            name: "Billy-" + guidGenerator(),
             ubrella: "closed",
-            position: vec3.add(vec3.create(), vec3.create(), vec3.fromValues(random[0], 0, random[2]))
+            // position: position
         }
 
         var skeleton = new Skeleton("skeleton1" + Math.random(), "src/assets/Walking.dae", properties.position, false);
@@ -121,12 +130,13 @@ class Agent{
 
         var character = new Character("Billy" + Math.random(), skeleton, animator1);
         character.state = this.properties;
+        // console.log(character);
         characters.push(character);
+        this.character = character;
+        this.characters = characters;
     
         //Store agents 
         AgentManager.agents.push(this);
-
-
     }
 }
 

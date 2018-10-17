@@ -14,6 +14,11 @@ class Player{
         buttons.id = "player-buttons";
         CORE.GUI.menu.panel.content.appendChild(buttons);
         window.state = STOP;
+
+        var stats = this.stats = document.createElement("div");
+        stats.className = "stats";
+        CORE.Player.panel.content.appendChild(stats);
+        // CORE.GUI.menu.panel.content.appendChild(current_cont)
         
         this.addButton( "<div id='play-btn' class='' >&#x25b6</div>", (e)=>{
             switch(window.state){
@@ -86,6 +91,17 @@ class Player{
         }
     }
 
+    renderStats(){
+        if(!this.stats)
+            throw "stats div not created / ready yet";
+
+        var text = "";
+
+        text += "Agents: " + CORE.AgentManager.agents.length;
+        text += " | Zones: " + 2;//TODO
+
+        this.stats.innerText = text;
+    }
 
 }
 

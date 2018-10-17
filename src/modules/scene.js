@@ -10,6 +10,12 @@ class Scene{
                 this.toggleSceneProperties()
             }).bind(this) 
         });
+        // CORE.GUI.menu.add("Tools/  - Switch create Agent onClick",{ 
+        //     callback:( ()=>{ 
+        //         creation_mode = !creation_mode;
+        //     }).bind(this) 
+        // });
+
        
     }
 
@@ -21,8 +27,22 @@ class Scene{
         
         window.blackboard2 = this.addZone("zone2" ,new Blackboard());
         window.blackboard2.setArea(0,-2500,2500,2500);
-        window.blackboard2.rain = 1.5;
+        window.blackboard2.rain = 100;
 
+        // CORE.GUI.menu.add("Save",{ 
+        //     callback:( ()=>{ 
+        //         // BTreeToJSON(BT);
+        //         var saved_tree = JSON.stringify(BT.rootnode);
+        //         console.log(saved_tree);
+        //     }).bind(this) 
+        // });
+        // CORE.GUI.menu.add("Load",{ 
+        //     callback:( ()=>{ 
+        //         //cargarlo de servidor
+        //         //funcion reconstruir arbol GRAFICO (estructura se parsea y se mete en BT.rootnode)
+                
+        //     }).bind(this) 
+        // });
     }
 
     addZone( zoneID, properties ){
@@ -36,6 +56,8 @@ class Scene{
     toggleSceneProperties(){
         if(!this.dialog){
             var dialog = this.dialog = new LiteGUI.Dialog( { id:"Settings", title:'Scene Properties', close: true, minimize: false, width: 300, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
+            this.dialog.setPosition(10,270);
+
         }
         var dlg = this.dialog;
 
@@ -62,6 +84,7 @@ class Scene{
                         }
 
                         if(!widget) continue;
+                        widget.classList.add("draggable-item");
                         widget.addEventListener("dragstart", function(a){ a.dataTransfer.setData("text", a.srcElement.children[0].title); });
                         widget.setAttribute("draggable", true);
 
@@ -92,6 +115,7 @@ class Scene{
         }
 
         this.dialog.show('fade');
+        this.dialog.setPosition(10,270);
 
     }
 }

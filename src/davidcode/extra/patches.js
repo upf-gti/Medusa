@@ -5,10 +5,10 @@ LGraphNode.prototype.connect = function( slot, target_node, target_slot )
 	//THIS IS FOR BTREE MADE BY DAVID
 
 	if(this.children)
-		this.children.push(target_node);
+		this.children.push(target_node.id);
 	else if(!this.children)
-		this.children = [target_node];
-	target_node.parent = this;
+		this.children = [target_node.id];
+	target_node.parent = this.id;
 	//********************************/
 
 	//seek for the output slot

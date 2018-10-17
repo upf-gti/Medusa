@@ -38,6 +38,8 @@ BehaviourTree.prototype.addRootNode = function()
     let node = new Node();
     node.id = 1;
     node.type = "root";
+    node.boxcolor = "#fff";
+
     this.node_pool.push(node);
     return node;
 }
@@ -49,6 +51,8 @@ BehaviourTree.prototype.addConditionalNode = function(id,title, property_to_comp
     let node = new Node();
     node.properties = {};
     node.id = id;
+    node.boxcolor = "#fff";
+
     node.title = title;
     node.type = "conditional";
     node.tree = this.id;
@@ -106,6 +110,7 @@ BehaviourTree.prototype.addBooleanConditionalNode = function(id, property_to_com
     let node = new Node();
     node.id = id;
     node.type = "bool_conditional";
+    node.boxcolor = "#fff";
     node.tree = this.id;
     node.children = [];
     node.blackboard = blackboard;
@@ -161,10 +166,11 @@ BehaviourTree.prototype.addInTargetNode = function(id, threshold )
 
     node.isInTarget = function(agent)
     {
-        var state = agent.state;
-        if(agent.inTarget(state.target, this.threshold))
+        // var state = agent.state;
+        // debugger;
+        if(agent.inTarget(agent.target, this.threshold))
         {
-            agent.state.in_target = true;
+            agent.in_target = true;
             // console.log("In target!");
             for(var n in this.children){
                 let child = this.children[n];
@@ -172,7 +178,10 @@ BehaviourTree.prototype.addInTargetNode = function(id, threshold )
                 //Value debería ser success, fail, o running
                 //De momento true o false
                 if(value)
+                {
+
                     return value;
+                }
             }
             return true;
         }
@@ -183,9 +192,9 @@ BehaviourTree.prototype.addInTargetNode = function(id, threshold )
 
     node.tick = function(agent)
     {
-        if(this.isIntarget && this.isInTarget(agent))
+        if(this.isInTarget && this.isInTarget(agent))
         {
-            console.log("Agent in target");
+            // console.log("Agent in target");
             return true;
         }
         else
@@ -251,10 +260,11 @@ BehaviourTree.prototype.addAnimationNode = function(id, anims, speed, motion )
 
     node.tick = function(agent)
     {
+
+
         if(this.action)
             return this.action(agent);
     }
     this.node_pool.push(node);
     return node;
 }
-

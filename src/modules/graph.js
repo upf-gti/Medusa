@@ -18,6 +18,11 @@ var GraphManager = {
         this.panel = CORE.GUI.root.getSection(1);
         CORE.GraphManager.panel.content.id = "graph-canvas";
         CORE.GUI.root = CORE.GUI.root.getSection(0);
+
+        var stats = this.stats = document.createElement("div");
+        stats.className = "stats";
+        stats.innerText = "jkwdhvfjwev";
+        CORE.GraphManager.panel.content.appendChild(stats);
     },
 
     init(){
@@ -25,40 +30,69 @@ var GraphManager = {
         CORE.GUI.root.addEventListener("split_moved", this.resize.bind(this));
         window.addEventListener("resize", this.resize.bind(this));
 
-        CORE.GUI.menu.add("Graphs/+ new Graph", () => new Graph() );
+        CORE.GUI.menu.add("Graphs/+ new Graph", () => console.log("On developement") );
 
 
-        CORE.GUI.menu.add("Actions", (()=>{
+        CORE.GUI.menu.add("Nodes", (()=>{
 
             //Actions dialog
             this.actions = this.actions || {
                 "Running" : "Running",
                 "Walking" : "Walking",
-                "Idle": "Idle"
+                "Idle": "Idle", 
+                "Old_Man_Walk": "Old_Man_Walk"
             };
+            this.generic_nodes = this.generic_nodes || {
+                "InTarget" : "InTarget"
+            }
 
             if(!this.dialog){
     
-                this.dialog = new LiteGUI.Dialog({id:"Actions", title:"Actions", close: true, minimize: false, width: 300, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
+                this.dialog = new LiteGUI.Dialog({id:"Nodes", title:"Nodes", close: true, minimize: false, width: 300, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
                 var inspector = this.inspector = new LiteGUI.Inspector(),
                    properties = this.actions,
+                   properties2 = this.generic_nodes,
                        dialog = this.dialog,
                           uid = this.uid;
 
                 inspector.on_refresh = function(){
                     inspector.clear();
-                    for( var p in properties ){
+                    inspector.addSection("Actions", {collapsed: false})
+                    for( var p in properties )
+                    {
                         let widget = null;
-                        switch(properties[p].constructor.name){
+                        switch(properties[p].constructor.name)
+                        {
                             case "String" : widget = inspector.addInfo( p, null, { key: p, callback: function(v){ properties[ this.options.key ] = v;  } });    break;
                         }
                         if(!widget) continue;
-                        widget.addEventListener("dragstart", function(a){  
+                        widget.addEventListener("dragstart", function(a)
+                        {  
                             a.dataTransfer.setData("text", a.srcElement.children[0].title);
                             a.dataTransfer.setData("type", "action"); 
                         });
                         widget.setAttribute("draggable", true);
                     }
+                    inspector.endCurrentSection();
+
+                    inspector.addSection("Generic nodes", {collapsed: false})
+                    for( var t in properties2)
+                    {
+                        let widget2 = null;
+                        switch(properties2[t].constructor.name)
+                        {
+                            case "String" : widget2 = inspector.addInfo( t, null, { key: t, callback: function(v){ properties2[ this.options.key ] = v;  } });    break;
+                        }
+                        if(!widget2) continue;
+                        widget2.addEventListener("dragstart", function(a)
+                        {  
+                            a.dataTransfer.setData("text", a.srcElement.children[0].title);
+                            a.dataTransfer.setData("type", "intarget"); 
+                        });
+                        widget2.setAttribute("draggable", true);
+                    }
+                    inspector.endCurrentSection();
+
                     dialog.adjustSize();
                 };
                 this.dialog.add(inspector);
@@ -66,6 +100,7 @@ var GraphManager = {
             }
 
             this.dialog.show('fade');
+
 
         }).bind(this));
 
@@ -119,6 +154,18 @@ var GraphManager = {
           this.graphcanvas.canvas.height = displayHeight;
         }
         
+    },
+    renderStats(){
+        if(!this.stats)
+            throw "stats div not created / ready yet";
+
+        var text = "";
+
+        if(agent_selected == null)
+            text = "No agent selected"
+        else
+            text += "Current agent: " + agent_selected;
+        this.stats.innerText = text;
     }
 }
 CORE.registerModule( GraphManager );

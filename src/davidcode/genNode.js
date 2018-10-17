@@ -20,7 +20,7 @@ class Node{
                     return value;
                 }
             }
-            console.log("Ninguna rama ha tenido exito");
+            // console.log("Ninguna rama ha tenido exito");
             return false; //placeholder hasta que lo pensemos bien
         }
     }

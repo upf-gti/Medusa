@@ -6,8 +6,8 @@
 :root{
     --background-color: #404B4E;
     --button-primary-color: #30383A;
+    overflow: hidden;
 }
-
 body {
     -webkit-transition: all .5s ease-in-out;
     -moz-transition: all .5s ease-in-out;
@@ -18,15 +18,15 @@ body {
     background-image: cover;
     background-size:100% auto;
 
-    background: #232526;  /* fallback for old browsers */
-    background: -webkit-linear-gradient(to top, #414345, #232526);  /* Chrome 10-25, Safari 5.1-6 */
-    background: linear-gradient(to top, #414345, #232526); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
-
+    
+    background: #141E30;  /* fallback for old browsers */
+    background: -webkit-linear-gradient(to top, rgb(57, 69, 85), rgb(0, 0, 0));  /* Chrome 10-25, Safari 5.1-6 */
+    background: linear-gradient(to top,  rgb(57, 69, 85), rgb(0, 0, 0)); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+    
 }
 .litegui-wrap {
     background: transparent !important;
 }
-
 
 /* custom Litegraph stylesheet -------------------------------------------------------------------------------*/
 #main-area{
@@ -36,7 +36,7 @@ body {
 #player-area{
 }
 #graph-canvas{
-    background-color: rgba(55,55,55,0.0);
+    background-color: rgba(55,55,55,0.5);
 }
 
 /* MENU style modification */
@@ -104,6 +104,20 @@ body {
     color:white;
     background: rgb(153, 86, 74);
 }
+
+.stats{
+    position: absolute;
+    width: auto;
+    height: 2.5em;
+    bottom: 1em;
+    left: 0px;
+    line-height: 1.5em;
+    padding: 0.5em 1em;
+    text-shadow: 0 0 1px black;
+    background: rgba(0,0,0,0.4);
+    margin: 0em 1em;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
  
 /*Dialog*/
 .litepanel .panel-header, .litedialog .panel-header {
@@ -139,4 +153,9 @@ body {
     position: absolute;
     z-index: 1;
 }
+
+.draggable-item{
+    cursor: pointer;
+}
+
 /* ------------------------------------------------------------------------------- custom Litegraph stylesheet */

@@ -63,6 +63,11 @@ var last_message_id = 0;
 var creation_mode = false;
 var path_mode = false;
 
+var agent_selected = null;
+
+//stats
+var num_agents = 0;
+
 
 function appinit()
 {
@@ -122,6 +127,9 @@ function appinit()
 
   // cond_node = new ConditionalNode(123, BT, blackboard, BT.tree, "is_raining?", "rain", 0);
   createDefaultAreas();
+
+  CORE.Player.renderStats()
+  CORE.GraphManager.renderStats();
 }
 function resize()
 {
@@ -187,6 +195,7 @@ function update(dt)
     if(!setting_done)
       return;
     
+    
     if(!DEBUG)
     {
       /************************************** Controling BillyBoy **************************************************/
@@ -212,7 +221,8 @@ function update(dt)
 
     var anim = character_.animator.getMergeAnim("Idle");
     // if(anim && (anim.target_weight > 0))
-    //   anim.target_weight = 0;         
+    //   anim.target_weight = 0;     
+    // debugger;    
     BT.rootnode.tick(character_);
 
     if(character_.inTarget(character_.current_waypoint.pos, 150))
@@ -220,12 +230,13 @@ function update(dt)
       character_.current_waypoint.visited = true;
       if(character_.path.indexOf(character_.current_waypoint) == character_.path.length-1)
       {
-        console.log("Vuelve al primero");
+        // console.log("Vuelve al primero");
         character_.restorePath();
       }
       character_.getNextWaypoint();
     }
-    character_.moveTo(character_.current_waypoint.pos);
+    // console.log(dt);
+    character_.moveTo(character_.current_waypoint.pos, dt);
     animator.clearMergeAnims();
 
     animator.animate(skeleton, dt, SIMPLE, weight_of_merge);
@@ -286,6 +297,20 @@ function updateTargetPos()
   // target_node.updateMatrices();
 }
 
+String.prototype.capitalize = function() {
+  return this.charAt(0).toUpperCase() + this.slice(1);
+}
+
+function disselectCharacter()
+{
+  for(var i in characters)
+  {
+    var char = characters[i];
+    char.is_selected = false;
+    char.changeColor();
+  }
+}
+
 function createDefaultAreas()
 {
   area1 = new RD.SceneNode();
@@ -293,8 +318,9 @@ function createDefaultAreas()
   area1.mesh = "planeXZ";
   area1.position = [2500, 0, 0];
   area1.blend_mode = RD.BLEND_ALPHA;
+  area1.flags.depth_test = false;
   area1.scale([5000, 1, 10000]);
-  area1.color = [0,0.8,1,0.05];
+  area1.color = [0,1,1,0.05];
   GFX.scene.root.addChild(area1);
 
   area2 = new RD.SceneNode();
@@ -302,9 +328,40 @@ function createDefaultAreas()
   area2.mesh = "planeXZ";
   area2.position = [-2500, 0, 0];
   area2.blend_mode = RD.BLEND_ALPHA;
+  area2.flags.depth_test = false;
   area2.scale([5000, 1, 10000]);
-  area2.color = [0,1,0,0.05];
+  area2.color = [0.25,1,0,0.05];
   GFX.scene.root.addChild(area2);
+
+  area3 = new RD.SceneNode();
+  area3.name = "area3";
+  area3.mesh = "planeXZ";
+  area3.texture = "sunny.png";
+  area3.position = [-300, 2, 0];
+  area3.blend_mode = RD.BLEND_ALPHA;
+  area3.flags.depth_test = false;
+  area3.scale([500, 1, 500]);
+  area3.rotate(90*DEG2RAD, [0,-1,0]);
+  GFX.scene.root.addChild(area3);
+
+  area4 = new RD.SceneNode();
+  area4.name = "area4";
+  area4.mesh = "planeXZ";
+  area4.scale([500, 1, 500]);
+  area4.blend_mode = RD.BLEND_ALPHA;
+  area4.flags.depth_test = false;
+  area4.texture = "rainy.png";
+  area4.position = [300, 0, 0];
+  area4.rotate(90*DEG2RAD, [0,1,0]);
+  GFX.scene.root.addChild(area4);
 }
 
 //init();
+
+function guidGenerator() {
+  var S4 = function() {
+     return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
+  };
+  return (S4()+S4());//+"-"+S4());//+"-"+S4() +"-"+S4());
+}
+

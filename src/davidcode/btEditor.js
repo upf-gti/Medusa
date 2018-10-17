@@ -26,6 +26,10 @@ BTEditor.prototype.init = function()
     bteditor_cont.appendChild(this.canvas2D);
 
     this.graph = new LGraph();
+    this.graph.onNodeAdded = function(node)
+    {
+        //  console.log(node);
+    }
 
     this.graph_canvas = new LGraphCanvas(this.canvas2D , this.graph);
 
@@ -45,22 +49,35 @@ BTEditor.prototype.init = function()
                 params = {motion:0, speed:1}
             else if(property == "Walking")
                 params = {motion:3, speed:1}
-            else    
+            else if(property == "Running")
                 params = {motion:5, speed:1.25}
+            else    
+                params = {motion:1, speed:0.9}
             node_leaf.properties["params"] = params;
             node_editor.graph.add(node_leaf);
             var n = BT.addAnimationNode(node_leaf.id, [{anim:property,weight:1}], params.speed,params.motion);
         }
-        else
+        else if(type == "intarget")
         {            
+            var property = data.dataTransfer.getData("text");
+            var node_cond = LiteGraph.createNode("btree/intarget");
+            node_cond.title = "In Target?";
+            node_cond.pos = [data.canvasX,data.canvasY];
+            node_editor.graph.add(node_cond);
+            var node = BT.addInTargetNode(node_cond.id, 200 );
+            // console.log("intarget entered");
+            return data;
+        }
+        else
+        {
             var property = data.dataTransfer.getData("text");
             var node_cond = LiteGraph.createNode("btree/conditional");
             node_cond.title = property + " cond.";
             node_cond.pos = [data.canvasX,data.canvasY];
-            node_cond.properties["limit_value"] = 1;
+            node_cond.properties["limit_value"] = 50;
             node_cond.properties["property_to_compare"] = property;
             node_editor.graph.add(node_cond);
-            var node = BT.addConditionalNode(node_cond.id, node_cond.title, property, 1 );
+            var node = BT.addConditionalNode(node_cond.id, node_cond.title, property, 50 );
             console.log(node);
             return data;
         }
@@ -72,21 +89,53 @@ BTEditor.prototype.init = function()
     console.log(this.graph_canvas);
 }
 
-BTEditor.prototype.updateTree = function(gnode)
+BTEditor.prototype.updateTree = function(gnode_id)
 {
-    var g_node = gnode;
+    var g_node = node_editor.graph.getNodeById(gnode_id);
     if(g_node.children && g_node.children.length > 0) 
     {
-        var bt_node = BT.getNodeById(g_node.id);
+        var bt_node = BT.getNodeById(gnode_id);
         if(BT.rootnode.children.length == 0)
             BT.rootnode.children.push(bt_node);
         for(var i = 0; i < g_node.children.length; i++)
         {   
-            bt_node.children[i] = BT.getNodeById(g_node.children[i].id);
+            bt_node.children[i] = BT.getNodeById(g_node.children[i]);
             var new_gnode = g_node.children[i];
             this.updateTree(new_gnode);
         }
     }
+}
+
+BTEditor.prototype.bTreeFromJSON = function( obj )
+{
+    var type = obj.type;
+    var node;
+    if(type == "root")
+    {
+
+    }
+    else if(type == "conditional")
+    {
+
+    }
+    else if(type == "intarget")
+    {
+
+    }
+    else if(type == "animation")
+    {
+
+    }
+
+    if(obj.children)
+    {
+        for(var i in children)
+        {
+            var child = this.bTreeFromJSON(children);
+            // node.connect();
+        }
+    }
+    return obj;
 }
 
 BTEditor.prototype.getBTNodeById = function( id )
@@ -125,12 +174,13 @@ LiteGraph.registerNodeType("btree/root", RootNode);
 
 RootNode.prototype.onConnectInput = function()
 {
-    node_editor.updateTree(node_editor.root_node);
+    node_editor.updateTree(node_editor.root_node.id);
 }
 
 function Conditional()
 {
     this.shape = 2;
+    // this.boxcolor = "#ff0000";
     this.addInput("",0);
 	this.addOutput("","number");
 	this.addProperty( "value", 1.0 );
@@ -147,16 +197,16 @@ Conditional.prototype.onSelected = function()
     //GUI.node_inspector.refresh();
 }
 
-Conditional.prototype.onRemoved = function()
-{
-    if(this.parent)
-        removeChild(this);
-    node_editor.updateTree(node_editor.root_node);
+// Conditional.prototype.onRemoved = function()
+// {
+//     if(this.parent)
+//         removeChild(this);
+//     node_editor.updateTree(node_editor.root_node.id);
 
-}
+// }
 Conditional.prototype.onConnectInput = function()
 {
-    node_editor.updateTree(node_editor.root_node);
+    node_editor.updateTree(node_editor.root_node.id);
 }
 
 LiteGraph.registerNodeType("btree/conditional", Conditional);
@@ -181,11 +231,13 @@ InTarget.prototype.onSelected = function()
 
 InTarget.prototype.onRemoved = function()
 {
-
+    if(this.parent)
+        removeChild(this);
+    node_editor.updateTree(node_editor.root_node.id);
 }
 InTarget.prototype.onConnectInput = function()
 {
-    node_editor.updateTree(node_editor.root_node);
+    node_editor.updateTree(node_editor.root_node.id);
 }
 
 LiteGraph.registerNodeType("btree/intarget", InTarget);
@@ -212,26 +264,27 @@ Leaf.prototype.onRemoved = function()
 {
     if(this.parent)
         removeChild(this);
-    node_editor.updateTree(node_editor.root_node);
+    node_editor.updateTree(node_editor.root_node.id);
 }
 
 Leaf.prototype.onConnectInput = function()
 {
-    node_editor.updateTree(node_editor.root_node);
+    node_editor.updateTree(node_editor.root_node.id);
 }
 
 LiteGraph.registerNodeType("btree/leaf", Leaf);
 
 function removeChild(node)
 {
-    for(var i = 0; i< node.parent.children.length; i++)
+    var parent = node_editor.graph.getNodeById(node.parent);
+    for(var i = 0; i< parent.children.length; i++)
     {
-        var children = node.parent.children[i];
+        var children = parent.children[i];
         if(children.id == node.id)
         {
-            var index = node.parent.children.indexOf(children);
+            var index = parent.children.indexOf(children);
             if (index !== -1) {
-                node.parent.children.splice(index, 1);
+                parent.children.splice(index, 1);
             }
         }
     }

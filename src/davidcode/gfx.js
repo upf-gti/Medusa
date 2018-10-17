@@ -60,6 +60,8 @@ var GFX = {
     this.renderer._uniforms['u_glossiness'] = 20;
     this.renderer._uniforms['u_fresnel'] = 0.9;
 
+    // gl.lineWidth(5);
+
     //
 
     this.background_color = vec3.fromValues(1,1,1);
@@ -108,21 +110,62 @@ var GFX = {
       GFX.onmouse(e);
     }
     this.renderer.context.onmousedown= function(e){
-      if(creation_mode)
+      if(e.rightButton)
       {
-        console.log(e);
         var x = e.canvasx;
         var y = e.canvasy;
+          //testRay with that spheres
+        var agent = GFX.getAgentFromTestCollision(x,y);
+        // console.log(agent);
+        if(!agent){
+          disselectCharacter();
+          agent_selected = null;
+          CORE.GraphManager.renderStats();
+          return;
 
-        var position = GFX.testCollision(x, y);
-        var skeleton = new Skeleton("skeleton1" + Math.random(), "assets/Walking.dae", position, false);
-        var animator1 = new Animator();
-        animator1.animations = animations;
-        animators.push( animator1 );
-        var character = new Character("Billy" + Math.random(), skeleton, animator1);
-        character.state["age"] = 20;
-        characters.push(character);
+        }
+        disselectCharacter();
+        for(var i in characters)
+        {
+          var char = characters[i];
+          char.changeColor();
+        }
+        agent.character.is_selected = true;
+        agent_selected = agent.properties.name;
+        // console.log(agent.character);
+        agent.character.changeColor();
+        var agents = CORE.AgentManager.agents;
+        for(var i in agents)
+        {
+            var ag = agents[i];
+            ag.dialog.close();
+        }
+        agent.dialog.show();
+        agent.dialog.setPosition(10,70);
+
+        CORE.GraphManager.renderStats();
+
+
+        //delete spheres
       }
+      // if(creation_mode && e.leftButton)
+      // {
+      //   console.log(e);
+      //   var x = e.canvasx;
+      //   var y = e.canvasy;
+
+      //   var position = GFX.testCollision(x, y);
+      //   // var skeleton = new Skeleton("skeleton1" + Math.random(), "src/assets/Walking.dae", position, false);
+      //   // var animator1 = new Animator();
+      //   // animator1.animations = animations;
+      //   // animators.push( animator1 );
+      //   // var character = new Character("Billy" + Math.random(), skeleton, animator1);
+      //   // character.state["age"] = 20;
+      //   // characters.push(character);
+
+      //   var agent = new Agent( position );
+        
+      // }
 
       else if(path_mode)
       {
@@ -281,5 +324,31 @@ var GFX = {
 
           // GFX.scene.root.addChild(node);
         }
+  }, 
+  getAgentFromTestCollision : function(x,y)
+  {
+    var result = vec3.create();
+    var ray = GFX.camera.getRay( x, y );
+    return GFX.testRayWithSpheres(ray, 70);
+  },
+
+  testRayWithSpheres : function( ray, radius )
+  {
+    var agents = CORE.AgentManager.agents;
+    // console.log(agents);
+    for(var i in agents)
+    {
+      var agent = agents[i];
+      var center = agent.character.skeleton.skeleton_container.getGlobalPosition();
+      center[1] = 100;
+      var collision = ray.testSphere(center, radius, 10000);
+      // console.log(collision);
+
+      if(collision)
+      {
+        // console.log(agent);
+        return agent;
+      }
+    }
   }
 }

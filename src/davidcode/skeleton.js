@@ -19,6 +19,8 @@ function Skeleton(name, path, root_pos, only_animation)
 Skeleton.prototype._ctor = function()
 {
   this.name = null;
+  this.line_color = [0,1,1,1];
+  this.line_node = null;
   this.path = null;
   this.anim = null;
   this.uid = Skeleton.uid++;
@@ -156,19 +158,20 @@ Skeleton.prototype.addLines = function( points )
     this.lines_mesh = GL.Mesh.load({ vertices: vertices_ });
 
     GFX.renderer.meshes[skeleton_line_mesh] = this.lines_mesh;
-    var linea = new RD.SceneNode();
-    linea.name = "Lines";
-    linea.flags.ignore_collisions = true;
-    linea.primitive = gl.LINES;
-    linea.mesh = skeleton_line_mesh;
-    linea.color = [0,1,1,1];
+    this.line_node = new RD.SceneNode();
+    this.line_node.name = "Lines";
+    this.line_node.flags.ignore_collisions = true;
+    this.line_node.primitive = gl.LINES;
+    this.line_node.mesh = skeleton_line_mesh;
+    this.line_node.color = this.line_color;
     //linea.flags.depth_test = true;
     //linea.render_priority = RD.PRIORITY_HUD;
-    GFX.scene.root.addChild(linea);
+    GFX.scene.root.addChild(this.line_node);
   }
   else{
     this.lines_mesh.getBuffer("vertices").data.set( vertices_ );
     this.lines_mesh.getBuffer("vertices").upload( GL.STREAM_DRAW );
+    this.line_node.color = this.line_color;
   }
 }
 
