@@ -5,14 +5,14 @@
         "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js",
         "src/davidcode/extra/gl-matrix-min.js",
 
-        "https://cdn.rawgit.com/jagenjo/collada.js/master/src/collada.js",
-        "https://cdn.rawgit.com/jagenjo/litegl.js/master/build/litegl.js",
-        "https://cdn.rawgit.com/jagenjo/rendeer.js/master/build/rendeer.min.js",
-        "https://cdn.rawgit.com/jagenjo/litescene.js/master/build/litescene.js",
-        "https://cdn.rawgit.com/jagenjo/litegui.js/master/build/litegui.js",
-        "https://cdn.rawgit.com/jagenjo/litegui.js/master/build/litegui.css",
-        "https://cdn.rawgit.com/jagenjo/litegraph.js/master/build/litegraph.js",
-        "https://cdn.rawgit.com/jagenjo/Canvas2DtoWebGL/master/src/Canvas2DtoWebGL.js",
+        "https://cdn.jsdelivr.net/gh/jagenjo/collada.js@efa050d42ad5d2dd3623f4f8ccaff7d0fd1878f8/src/collada.js",
+        "https://cdn.jsdelivr.net/gh/jagenjo/litegl.js@15e49a6c817907296fa6c6af70404aab9939a7bd/build/litegl.js",
+        "https://cdn.jsdelivr.net/gh/jagenjo/rendeer.js@f30925c840c25ef8e7b7c56f6c967081c71ebcce/build/rendeer.min.js",
+        "https://cdn.jsdelivr.net/gh/jagenjo/litescene.js@97f22f5f3b292bfe66545f135c97a1236aabd4a8/build/litescene.js",
+        "https://cdn.jsdelivr.net/gh/jagenjo/litegui.js@9178e3148f751f29c92cc5e4b79d4ab8d22912c0/build/litegui.js",
+        "https://cdn.jsdelivr.net/gh/jagenjo/litegui.js@9178e3148f751f29c92cc5e4b79d4ab8d22912c0/build/litegui.css",
+        "https://cdn.jsdelivr.net/gh/jagenjo/litegraph.js@c69e8ca5d5de219890800da3d8d96178d8f08461/build/litegraph.js",
+        "https://cdn.jsdelivr.net/gh/jagenjo/Canvas2DtoWebGL@436433f81f8559dc5f321aafd9e622a0ed034fda/src/Canvas2DtoWebGL.js",
 
       
         "src/davidcode/extra/path.js",
