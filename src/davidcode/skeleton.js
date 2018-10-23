@@ -74,7 +74,35 @@ Skeleton.prototype.onParsed = function(path, only_animation)
   else
     this.drawSkeleton(this.scene);
 }
+Skeleton.prototype.getTableSamples = function(animation, table){
+  //console.log(animation);
+  var tracks = animation.takes["default"].tracks;
+  var dt = tracks[0].data[11];
+  
+  var table = {
+      dt: dt,
+      data: []
+  };
+ 
+  for(var i = 0; i<tracks.length; i++){
+      var track = tracks[i];
+      var id = skeleton.name + "/" + track._property_path[0];
+      var obj={}; 
+      var idx =0;
+      for(var t=0; t<animation.takes["default"].duration; t+=dt){
 
+          var sample = track.getSample( t , LS.LINEAR );
+          obj[id] = sample;
+          if(i == 0)
+              table.data.push(obj);
+          else
+              table.data[idx][id] = sample
+              //table.data[idx].addChild(obj)
+          idx++;
+      }
+  }
+  return table;
+}
 Skeleton.prototype.drawSkeleton = function(skeleton)
 {
   this.skeleton_container = new RD.SceneNode();
@@ -146,6 +174,8 @@ Skeleton.prototype.updateLinesVertices = function( parentbone )
 		}
 	}
 }
+
+
 
 Skeleton.prototype.addLines = function( points )
 {

@@ -32,7 +32,7 @@ var GFX = {
     this.context.onmouse = this.onmouse.bind(this)
     this.camera = new RD.Camera();
     //pos, target, ?
-    this.camera.lookAt([200,130,500],[0,70,0],[0,1,0]);
+    this.camera.lookAt([0,130,500],[0,70,0],[0,1,0]);
     this.camera.perspective(45, this.context.canvas.width / this.context.canvas.height, 0.1,20000);
 
     floor = new RD.SceneNode();
@@ -49,6 +49,7 @@ var GFX = {
       assets_folder: "src/assets/",
       shaders_file: "shaders.txt",
       // autoload_assets: true //default
+      
     });
 
     // declare uniforms
@@ -211,6 +212,7 @@ var GFX = {
       
        
     }
+
   },
 
   onmouse : function( e )

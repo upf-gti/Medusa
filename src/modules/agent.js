@@ -138,5 +138,6 @@ class Agent{
         //Store agents 
         AgentManager.agents.push(this);
     }
+
 }
 

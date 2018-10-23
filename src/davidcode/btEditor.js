@@ -26,12 +26,37 @@ BTEditor.prototype.init = function()
     bteditor_cont.appendChild(this.canvas2D);
 
     this.graph = new LGraph();
-    this.graph.onNodeAdded = function(node)
-    {
-        //  console.log(node);
-    }
+    // this.graph.onNodeAdded = function(node)
+    // {
+    //      console.log(node);
+    // }
+
+    // this.graph.onNodeRemoved = function(node)
+    // {
+    //     console.log(node);
+    //     //Check if has children and disconnect
+    //     //Check if has parent and disconnect
+    // }
+    // var dos = 2;
+    // debugger;
+    // this.graph.onNodeConnectionChange = function( type , node, slot, target_node, target_slot )
+    // {
+    //     debugger;
+    //     // console.log(node);
+    // }
+
 
     this.graph_canvas = new LGraphCanvas(this.canvas2D , this.graph);
+
+    // this.graph_canvas.onNodeSelected = function(node)
+    // {
+    //     console.log(node);
+    // }
+
+    // this.graph_canvas.onNodeDeselected = function(node)
+    // {
+    //     console.log(node);
+    // }
 
     this.graph_canvas.onDropItem = function( data )
     { 
@@ -164,12 +189,12 @@ function RootNode()
 RootNode.title = "Root";
 RootNode.desc = "Testing own nodes";
 
-RootNode.prototype.onSelected = function()
-{
-    // console.log(this);
-    //GUI.current_node_id = this.id;  
-    //GUI.node_inspector.refresh();
-}
+// RootNode.prototype.onSelected = function()
+// {
+//     // console.log(this);
+//     //GUI.current_node_id = this.id;  
+//     //GUI.node_inspector.refresh();
+// }
 LiteGraph.registerNodeType("btree/root", RootNode);
 
 RootNode.prototype.onConnectInput = function()
@@ -190,12 +215,12 @@ function Conditional()
 Conditional.title = "Conditional";
 Conditional.desc = "Testing own nodes";
 
-Conditional.prototype.onSelected = function()
-{
-    console.log(this);
-    //GUI.current_node_id = this.id;  
-    //GUI.node_inspector.refresh();
-}
+// Conditional.prototype.onSelected = function()
+// {
+//     console.log(this);
+//     //GUI.current_node_id = this.id;  
+//     //GUI.node_inspector.refresh();
+// }
 
 // Conditional.prototype.onRemoved = function()
 // {
@@ -222,12 +247,12 @@ function InTarget()
 
 InTarget.title = "InTarget";
 InTarget.desc = "Testing own nodes";
-InTarget.prototype.onSelected = function()
-{
-    // console.log(this);
-    //GUI.current_node = this;
-    //GUI.node_inspector.refresh();
-}
+// InTarget.prototype.onSelected = function()
+// {
+//     // console.log(this);
+//     //GUI.current_node = this;
+//     //GUI.node_inspector.refresh();
+// }
 
 InTarget.prototype.onRemoved = function()
 {
@@ -253,12 +278,12 @@ function Leaf()
 Leaf.title = "Leaf";
 Leaf.desc = "Testing own nodes";
 
-Leaf.prototype.onSelected = function()
-{
-    // console.log(this);
-    //GUI.current_node_id = this.id;
-    //GUI.node_inspector.refresh();
-}
+// Leaf.prototype.onSelected = function()
+// {
+//     // console.log(this);
+//     //GUI.current_node_id = this.id;
+//     //GUI.node_inspector.refresh();
+// }
 
 Leaf.prototype.onRemoved = function()
 {
