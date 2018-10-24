@@ -106,7 +106,6 @@ BTEditor.prototype.init = function()
             node_cond.pos = [data.canvasX,data.canvasY];
             node_cond.properties["limit_value"] = 50;
             node_cond.properties["property_to_compare"] = property;
-            debugger;
             node_editor.graph.add(node_cond);
 
             var node = BT.addConditionalNode(node_cond.id, node_cond.title, property, 50 );

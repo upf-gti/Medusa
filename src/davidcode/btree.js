@@ -73,6 +73,9 @@ BehaviourTree.prototype.addConditionalNode = function(id,title, property_to_comp
 
         if(agent.blackboard[property] != null)
         {
+            // console.log("Agent", agent);
+            // console.log("Param", agent.blackboard[property]);
+
             if(agent.blackboard[property] > this.limit_value)
                 return true;
             else    
@@ -253,6 +256,7 @@ BehaviourTree.prototype.addAnimationNode = function(id, anims, speed, motion )
         behaviour.params = this.params;
         behaviour.type = "mixing";
         behaviour.author = "manuel";
+        console.log("Action", behaviour.animations_to_merge);
         LEvent.trigger( agent, "applyBehaviour", behaviour);
 
         return true;

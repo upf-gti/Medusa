@@ -143,6 +143,10 @@ class Agent{
         AgentManager.agents[this.uid] = this;
 
         this.visualizePath();//whe should remove this
+
+        LEvent.bind(this, "applyBehaviour", (function(e,p){
+            this.animator.applyBehaviour(p);
+        }).bind(this)); 
     }
     
     render(){
