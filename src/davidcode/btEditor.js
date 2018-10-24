@@ -47,6 +47,10 @@ BTEditor.prototype.init = function()
 
 
     this.graph_canvas = new LGraphCanvas(this.canvas2D , this.graph);
+    this.root_node = LiteGraph.createNode("btree/root");
+    this.root_node.pos = [200,200];
+    this.graph.add(this.root_node);
+    console.log(this.root_node);
 
     // this.graph_canvas.onNodeSelected = function(node)
     // {
@@ -97,21 +101,21 @@ BTEditor.prototype.init = function()
         {
             var property = data.dataTransfer.getData("text");
             var node_cond = LiteGraph.createNode("btree/conditional");
+            console.log(node_cond);
             node_cond.title = property + " cond.";
             node_cond.pos = [data.canvasX,data.canvasY];
             node_cond.properties["limit_value"] = 50;
             node_cond.properties["property_to_compare"] = property;
+            debugger;
             node_editor.graph.add(node_cond);
+
             var node = BT.addConditionalNode(node_cond.id, node_cond.title, property, 50 );
             console.log(node);
             return data;
         }
     }
     
-    this.root_node = LiteGraph.createNode("btree/root");
-    this.root_node.pos = [200,200];
-    this.graph.add(this.root_node);
-    console.log(this.graph_canvas);
+
 }
 
 BTEditor.prototype.updateTree = function(gnode_id)

@@ -36,7 +36,7 @@ BehaviourTree.prototype.run = function( character, scene )
 BehaviourTree.prototype.addRootNode = function()
 {
     let node = new Node();
-    node.id = 1;
+    node.id = 2;
     node.type = "root";
     node.boxcolor = "#fff";
 
@@ -78,9 +78,9 @@ BehaviourTree.prototype.addConditionalNode = function(id,title, property_to_comp
             else    
                 return false;
         }
-        else if(agent.state[property])
+        else if(agent.properties[property])
         {
-            if(agent.state[property] > this.limit_value)
+            if(agent.properties[property] > this.limit_value)
                 return true;
             else    
                 return false;
@@ -128,9 +128,9 @@ BehaviourTree.prototype.addBooleanConditionalNode = function(id, property_to_com
             else    
                 return false;
         }
-        else if(agent.state[this.property_to_compare])
+        else if(agent.properties[this.property_to_compare])
         {
-            if(agent.state[this.property_to_compare])
+            if(agent.properties[this.property_to_compare])
                 return true;
             else    
                 return false;

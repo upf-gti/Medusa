@@ -153,11 +153,11 @@ function update(dt)
   if(enable_update_camera)
     GFX.updateCamera();
 
-  for(var i = 0; i < characters.length; i++)
+  for(var c in AgentManager.agents)
   {
-    var character_ = characters[i]; 
-    var animator = characters[i].animator;
-    var skeleton = characters[i].skeleton;
+    var character_ = AgentManager.agents[c]; 
+    var animator = character_.animator;
+    var skeleton = character_.skeleton;
 
     //  ULTRAMEGAREQUETESUPERHARDCODEADO --> HACER GESTION DE ZONAS Y BLACKBOARDS
     // checkZone(character_);

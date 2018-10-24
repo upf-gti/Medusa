@@ -4,6 +4,11 @@ function Animator()
 	 throw("You must use new to create an Animator");
 	this._ctor();
 }
+Animator.animations = {};
+Animator.addAnimation = function( animation ){
+  Animator.animations[animation.name] = animation;
+}
+
 
 Animator.prototype._ctor = function()
 {
