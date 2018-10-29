@@ -69,25 +69,32 @@ class Scene{
             /**
              * SUPER TODO
              */
-            inspector.on_refresh = function(){
+            inspector.on_refresh = function()
+            {
                 inspector.clear();
-
-                for(var z in zones){
+                for(let z in zones)
+                {
                     inspector.addTitle(z);
                     inspector.addSeparator();
-                    for(var p in zones[z].bbvariables){
+                    for(let p in zones[z].bbvariables)
+                    {
                         var key = zones[z].bbvariables[p];
                         var widget = null;
-                        switch(zones[z][key].constructor.name){
+                        switch(zones[z][key].constructor.name)
+                        {
                             case "Number": widget = inspector.addNumber(key, zones[z][key], { key: key, callback: function(v){ zones[z][this.options.key] = v } });break;
                             case "String": widget = inspector.addString(key, zones[z][key], { key: key, callback: function(v){ zones[z][this.options.key] = v } }); break;
                         }
 
                         if(!widget) continue;
                         widget.classList.add("draggable-item");
-                        widget.addEventListener("dragstart", function(a){ a.dataTransfer.setData("text", a.srcElement.children[0].title); });
+                        widget.addEventListener("dragstart", function(a)
+                        {
+                            var obj = {name:a.srcElement.children[0].title, property_to_compare:a.srcElement.children[0].title, limit_value:50};
+                            obj = JSON.stringify(obj);
+                            a.dataTransfer.setData("obj", obj); 
+                        });
                         widget.setAttribute("draggable", true);
-
                     }
                     inspector.addSeparator();
                     inspector.widgets_per_row = 3;
@@ -96,7 +103,8 @@ class Scene{
                     _z = JSON.parse(JSON.stringify(z));
                     inspector.addString(null, "",  { width:"45%", placeHolder:"param name...",  callback: v => _k = v });
                     inspector.addString(null, "",  { width:"45%", placeHolder:"value...",       callback: v => _v = v });
-                    inspector.addButton(null, "+", { zone: z, width:"10%", callback: function(e){
+                    inspector.addButton(null, "+", { zone: z, width:"10%", callback: function(e)
+                    {
                     if(!_k || !_v)return;
                         try{  _v = JSON.parse('{ "v":'+_v+'}').v; }catch(e){ }
                         zones[this.options.zone].bbvariables.push(_k.toLowerCase()); 

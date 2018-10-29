@@ -68,6 +68,12 @@ var agent_selected = null;
 //stats
 var num_agents = 0;
 
+var tmp = {
+  vec : vec3.create(),
+  axis : vec3.create(),
+  axis2 : vec3.create(),
+  inv_mat : mat4.create()
+}
 
 function appinit()
 {
@@ -105,8 +111,8 @@ function appinit()
   // createTree2();
   
   
-  node_editor = new BTEditor();
-  BT = new BehaviourTree(node_editor);
+  BT = new BehaviourTree();
+  node_editor = new BTEditor(BT);
   BT_list.push(BT);
   
   node_editor.init();
@@ -176,55 +182,20 @@ function update(dt)
     if(animator.current_animation == null){
       var anim_name = skeleton.anim_name.split("/");
       animator.current_animation = getAnimationByName(anim_name[2].slice(0, -4));
-      //GUI.current_animation_name = animator.current_animation.name;
-      //GUI.tools_inspector.refresh();
     }
   
     if(!animator.base_animation)
     {
-      // debugger;
       var anim_name = skeleton.anim_name.split("/");
       animator.base_animation = getAnimationByName(anim_name[2].slice(0, -4));
       animator.merge_animations = [];
-      // animator.addAnimToMerge("Walking", 0.0);
-      // animator.addAnimToMerge("Walking_Backwards", 0.0);
-      // animator.addAnimToMerge("Running", 0.0);
       setting_done = true;
     }
   
     if(!setting_done)
       return;
-    
-    
-    if(!DEBUG)
-    {
-      /************************************** Controling BillyBoy **************************************************/
-        if((MOVE&UP) > 0)
-          animator.moveSkeleton(skeleton, animator.weight_of_blend, animator.previous_speed, animator.current_speed);
-      
-        else if((MOVE&RUN) > 0)
-          animator.moveSkeleton(skeleton, animator.weight_of_blend, animator.previous_speed, animator.current_speed);
-      
-        if( (MOVE&ROTATE_RIGHT) > 0 )
-          skeleton.skeleton_container.rotate(-1*DEG2RAD, [0,1,0], true);
-        
-        if( (MOVE&ROTATE_LEFT) > 0 )
-          skeleton.skeleton_container.rotate(1*DEG2RAD, [0,1,0], true);
-      
-        else if( MOVE == IDLE)
-          animator.moveSkeleton(skeleton, animator.weight_of_blend, animator.previous_speed, animator.current_speed, true);
-      
-        skeleton.skeleton_container.updateMatrices();
-      
-      /***********************************************************************************************************/
-    }
 
-    var anim = character_.animator.getMergeAnim("Idle");
-    // if(anim && (anim.target_weight > 0))
-    //   anim.target_weight = 0;     
-    // debugger;    
     BT.rootnode.tick(character_);
-
     if(character_.inTarget(character_.current_waypoint.pos, 150))
     {
       character_.current_waypoint.visited = true;

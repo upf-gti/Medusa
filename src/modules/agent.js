@@ -37,40 +37,44 @@ var AgentManager = {
             inspector.on_refresh = function(){
 
                 inspector.clear();
-                    for(var p in properties){
-                        let widget = null;
-                        switch(properties[p].constructor.name){
-                            case "Number" : widget = inspector.addNumber( p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v } } );    break;
-                            case "String" : { 
-                                widget = inspector.addString( p, properties[p], { key: p, callback: function(v){ 
+                for(let p in properties){
+                    let widget = null;
+                    switch(properties[p].constructor.name){
+                        case "Number" : widget = inspector.addNumber( p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v } } );    break;
+                        case "String" : { 
+                            widget = inspector.addString( p, properties[p], { key: p, callback: function(v){ 
 
-                                //Updates name reference in menu
-                                if(this.options.key == "name"){
-                                    dialog.root.querySelector(".panel-header").innerText = "Agent: "+v;
-                                    CORE.GUI.menu.findMenu( "Agent/"+properties[this.options.key]).name = v;
-                                }
-                                properties[this.options.key] = v;
-
-                                }});    break;
+                            //Updates name reference in menu
+                            if(this.options.key == "name"){
+                                dialog.root.querySelector(".panel-header").innerText = "Agent: "+v;
+                                CORE.GUI.menu.findMenu( "Agent/"+properties[this.options.key]).name = v;
                             }
-                            case "Boolean":  widget = inspector.addCheckbox( p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v } } );    break;
-                            case "Array":
-                            case "Float32Array": 
-                                switch(properties[p].length){
-                                    case 2:  widget = inspector.addVector2(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
-                                    case 3:  widget = inspector.addVector3(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
-                                    case 4:  widget = inspector.addVector4(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
-                                }break;
-                            default:    
-                            debugger;   
-                             console.warn( "parameter type from parameter "+p+" in agent "+ uid + " was not recognised");
-                        }
-                        if(!widget) continue;
-                        widget.classList.add("draggable-item");
-                        widget.addEventListener("dragstart", function(a){ a.dataTransfer.setData("text", a.srcElement.children[0].title); });
-                        widget.setAttribute("draggable", true);
+                            properties[this.options.key] = v;
 
+                            }});    break;
+                        }
+                        case "Boolean":  widget = inspector.addCheckbox( p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v } } );    break;
+                        case "Array":
+                        case "Float32Array": 
+                            switch(properties[p].length){
+                                case 2:  widget = inspector.addVector2(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
+                                case 3:  widget = inspector.addVector3(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
+                                case 4:  widget = inspector.addVector4(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
+                            }break;
+                        default:    
+                        debugger;   
+                            console.warn( "parameter type from parameter "+p+" in agent "+ uid + " was not recognised");
                     }
+                    if(!widget) continue;
+                    widget.classList.add("draggable-item");
+                    widget.addEventListener("dragstart", function(a){ 
+                        var obj = {name:a.srcElement.children[0].title, property_to_compare:a.srcElement.children[0].title, limit_value:50}
+                        obj = JSON.stringify(obj);
+                        a.dataTransfer.setData("obj", obj); 
+                    });
+                    widget.setAttribute("draggable", true);
+
+                }
     
                     inspector.addSeparator();
                     inspector.widgets_per_row = 3;
@@ -119,16 +123,16 @@ class Agent{
         this.btree = null;
         this.blackboard = blackboard;
 
-        this.path = [{pos:[0,0,0],visited:false}, {pos: [-100,0,1400],visited:false}, {pos:[1400,0,1000],visited:false},{pos:[2000,0,800],visited:false},{pos:[2600,0,1400],visited:false}, {pos:[1800,0,1400],visited:false}, {pos:[1600,0,-800],visited:false}, {pos:[-1200,0,-1000],visited:false}, {pos:[-400,0,0],visited:false}];
+        this.path = [{pos:[0,0,100],visited:false}, {pos: [-100,0,1400],visited:false}, {pos:[1400,0,1000],visited:false},{pos:[2000,0,800],visited:false},{pos:[2600,0,1400],visited:false}, {pos:[1800,0,1400],visited:false}, {pos:[1600,0,-800],visited:false}, {pos:[-1200,0,-1000],visited:false}, {pos:[-400,0,0],visited:false}];
         this.current_waypoint = this.path[0];
 
         var random = vec3.random(vec3.create(), 100);
-        position = position || vec3.add(vec3.create(), vec3.create(), vec3.fromValues(random[0], 0, random[2]));
+          position= position || vec3.add(vec3.create(), vec3.create(), vec3.fromValues(random[0], 0, random[2]));
         
         this.properties = {
             age: 35,
             name: "Billy-" + guidGenerator(),
-            ubrella: "closed",
+            umbrella: "closed",
             // position: position
             target: this.path[this.path.length-1].pos
             
@@ -223,7 +227,7 @@ class Agent{
         if(this.animator.motion_speed < 0.1)
             return;
         var motion_to_apply = this.animator.motion_speed * (dt/0.0169);
-        this.orientCharacter(this.skeleton.skeleton_container, target);
+        this.orientCharacter(this.skeleton.skeleton_container, target, dt);
         var direction = GFX.rotateVector(this.skeleton.skeleton_container.getGlobalMatrix(), [0,0,1]);
         direction = vec3.multiply(direction, direction, [this.animator.speed*motion_to_apply, this.animator.speed*motion_to_apply, this.animator.speed*motion_to_apply]);
         vec3.add(this.skeleton.skeleton_container.position, this.skeleton.skeleton_container.position, direction);
@@ -231,31 +235,12 @@ class Agent{
     }
 
     orientCharacter( skeleton, target )
-    {
-        // this.tmp_vec = vec3.create();
-        tmp.vec = vec3.subtract( tmp.vec, skeleton.getGlobalPosition(), target );
-        tmp.vec = vec3.normalize( tmp.vec, tmp.vec );
-        var front = GFX.rotateVector(skeleton._global_matrix, RD.BACK);
-        var dot = vec3.dot( front, tmp.vec );
-        Math.clamp(dot, -0.999, 0.999);
-        
-        var degree = Math.acos(dot);
-        
-        tmp.axis = vec3.cross(tmp.axis, tmp.vec, front);
-        vec3.normalize(tmp.axis, tmp.axis);
-        // console.log(tmp.axis);
-        
-        // var mat = mat4.clone( skeleton._global_matrix );    
-        // tmp.inv_mat = mat4.invert(tmp.inv_mat, mat);
-        // if(tmp.inv_mat == null){
-        //     throw("Matrix affected");
-        // }
-        // tmp.axis2 = GFX.rotateVector(tmp.inv_mat, tmp.axis);
-
-        //rotate de gl-matrix es el rotateLocal
-        skeleton.rotate( 0.02, tmp.axis );
-        // skeleton.rotate( 0.02, [0,tmp.axis[1],0] )
-        // console.log("Despues de asignar fromMatrix", skeleton.getGlobalMatrix());
+    {         
+        var tmpMat4 = mat4.create(), tmpQuat = quat.create();
+        mat4.lookAt(tmpMat4, target, skeleton.getGlobalPosition(), [0,1,0]);
+        quat.fromMat4(tmpQuat, tmpMat4);
+        quat.slerp(tmpQuat, tmpQuat, skeleton.rotation, 0.975);
+        skeleton._rotation = tmpQuat;
     }
 
     inTarget( target, threshold)

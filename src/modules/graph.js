@@ -37,13 +37,13 @@ var GraphManager = {
 
             //Actions dialog
             this.actions = this.actions || {
-                "Running" : "Running",
-                "Walking" : "Walking",
-                "Idle": "Idle", 
-                "Old_Man_Walk": "Old_Man_Walk"
+                "Running" : {name:"Running", anims:[{anim:"Running",weight: 1}] , motion:5, speed:1.25},
+                "Walking" : {name:"Walking",  anims:[{anim:"Walking",weight: 1}], motion:3, speed:1},
+                "Idle" : {name:"Idle", anims:[{anim:"Idle",weight: 1}], motion:0, speed:0.5},
+                "Old Walk" : {name:"Old_Man_Walk", anims:[{anim:"Old_Man_Walk",weight: 1}], motion:1, speed:0.9},
             };
             this.generic_nodes = this.generic_nodes || {
-                "InTarget" : "InTarget"
+                "InTarget" : {name:"InTarget", threshold:200}
             }
 
             if(!this.dialog){
@@ -58,17 +58,21 @@ var GraphManager = {
                 inspector.on_refresh = function(){
                     inspector.clear();
                     inspector.addSection("Actions", {collapsed: false})
-                    for( var p in properties )
+                    console.log(properties);
+                    for( let p in properties )
                     {
                         let widget = null;
-                        switch(properties[p].constructor.name)
+                        switch(properties[p].name.constructor.name)
                         {
                             case "String" : widget = inspector.addInfo( p, null, { key: p, callback: function(v){ properties[ this.options.key ] = v;  } });    break;
                         }
                         if(!widget) continue;
                         widget.addEventListener("dragstart", function(a)
                         {  
-                            a.dataTransfer.setData("text", a.srcElement.children[0].title);
+                            console.log(a);
+                            var obj = properties[p];
+                            obj = JSON.stringify(obj);
+                            a.dataTransfer.setData("obj", obj);
                             a.dataTransfer.setData("type", "action"); 
                         });
                         widget.setAttribute("draggable", true);
@@ -79,14 +83,17 @@ var GraphManager = {
                     for( var t in properties2)
                     {
                         let widget2 = null;
-                        switch(properties2[t].constructor.name)
+                        switch(properties2[t].name.constructor.name)
                         {
                             case "String" : widget2 = inspector.addInfo( t, null, { key: t, callback: function(v){ properties2[ this.options.key ] = v;  } });    break;
                         }
                         if(!widget2) continue;
                         widget2.addEventListener("dragstart", function(a)
                         {  
-                            a.dataTransfer.setData("text", a.srcElement.children[0].title);
+                            var obj = properties2[t];
+                            obj = JSON.stringify(obj);
+                            console.log(obj);
+                            a.dataTransfer.setData("obj", obj);
                             a.dataTransfer.setData("type", "intarget"); 
                         });
                         widget2.setAttribute("draggable", true);
