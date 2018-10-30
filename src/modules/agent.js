@@ -14,7 +14,7 @@ var AgentManager = {
     }),
     
     init(){
-        CORE.GUI.menu.add("Agent/+ new Agent", () => new Agent() );
+        CORE.GUI.menu.add("Agent/+ new Agent", () => {let agent = new Agent(); agent.dialog.show('fade'); } );
     },
 
     createGUIParams( agent ){
@@ -22,12 +22,12 @@ var AgentManager = {
         if(!agent.dialog){
             var dialog = agent.dialog = new LiteGUI.Dialog( { id:"Settings", title:'Agent: '+ ((agent.properties && agent.properties.name)? agent.properties.name : agent.uid), close: true, minimize: false, width: 300, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
             agent.dialog.setPosition(10,70);
-            CORE.GUI.menu.add("Agent/" + ((agent.properties && agent.properties.name)? agent.properties.name : agent.uid), {callback: function() { 
-                dialog.show('fade');             
+            CORE.GUI.menu.add("Agent/" + ((agent.properties && agent.properties.name)? agent.properties.name : agent.uid), {callback: function() {    
+                agent.dialog.show('fade');
                 agent.dialog.setPosition(10,70);
             } });
             CORE.GUI.menu.remove("Agent/+ new Agent");
-            CORE.GUI.menu.add("Agent/+ new Agent", () => new Agent() );
+            CORE.GUI.menu.add("Agent/+ new Agent", () => {let agent = new Agent(); agent.dialog.show('fade'); } );
         }
         if(!agent.inspector){
             var inspector = agent.inspector = new LiteGUI.Inspector(),
@@ -101,6 +101,8 @@ var AgentManager = {
             CORE.Player.renderStats();
         }
 
+        agent.dialog.hide();
+
     }
 
     
@@ -119,8 +121,8 @@ class Agent{
         this.btree = null;
         this.blackboard = blackboard;
 
-        this.path = [{pos:[0,0,0],visited:false}, {pos: [-100,0,1400],visited:false}, {pos:[1400,0,1000],visited:false},{pos:[2000,0,800],visited:false},{pos:[2600,0,1400],visited:false}, {pos:[1800,0,1400],visited:false}, {pos:[1600,0,-800],visited:false}, {pos:[-1200,0,-1000],visited:false}, {pos:[-400,0,0],visited:false}];
-        this.current_waypoint = this.path[0];
+        //this.path = [{pos:[0,0,0],visited:false}, {pos: [-100,0,1400],visited:false}, {pos:[1400,0,1000],visited:false},{pos:[2000,0,800],visited:false},{pos:[2600,0,1400],visited:false}, {pos:[1800,0,1400],visited:false}, {pos:[1600,0,-800],visited:false}, {pos:[-1200,0,-1000],visited:false}, {pos:[-400,0,0],visited:false}];
+        //this.current_waypoint = this.path[0];
 
         var random = vec3.random(vec3.create(), 100);
         position = position || vec3.add(vec3.create(), vec3.create(), vec3.fromValues(random[0], 0, random[2]));
@@ -129,8 +131,8 @@ class Agent{
             age: 35,
             name: "Billy-" + guidGenerator(),
             ubrella: "closed",
-            // position: position
-            target: this.path[this.path.length-1].pos
+            position: position
+            //target: this.path[this.path.length-1].pos
             
         }
 
@@ -144,6 +146,7 @@ class Agent{
 
         this.visualizePath();//whe should remove this
     }
+
     
     render(){
         // for(var c in this.components){
@@ -160,6 +163,7 @@ class Agent{
 
     visualizePath()
     {
+        if(!this.path) return;
         var vertices = [];
         var path = new LS.Path();
         path.closed = true;
@@ -219,39 +223,20 @@ class Agent{
         if(this.animator.motion_speed < 0.1)
             return;
         var motion_to_apply = this.animator.motion_speed * (dt/0.0169);
-        this.orientCharacter(this.skeleton.skeleton_container, target);
+        this.orientCharacter( target );
         var direction = GFX.rotateVector(this.skeleton.skeleton_container.getGlobalMatrix(), [0,0,1]);
         direction = vec3.multiply(direction, direction, [this.animator.speed*motion_to_apply, this.animator.speed*motion_to_apply, this.animator.speed*motion_to_apply]);
         vec3.add(this.skeleton.skeleton_container.position, this.skeleton.skeleton_container.position, direction);
         this.skeleton.skeleton_container.updateMatrices();
     }
 
-    orientCharacter( skeleton, target )
+    orientCharacter( target )
     {
-        // this.tmp_vec = vec3.create();
-        tmp.vec = vec3.subtract( tmp.vec, skeleton.getGlobalPosition(), target );
-        tmp.vec = vec3.normalize( tmp.vec, tmp.vec );
-        var front = GFX.rotateVector(skeleton._global_matrix, RD.BACK);
-        var dot = vec3.dot( front, tmp.vec );
-        Math.clamp(dot, -0.999, 0.999);
-        
-        var degree = Math.acos(dot);
-        
-        tmp.axis = vec3.cross(tmp.axis, tmp.vec, front);
-        vec3.normalize(tmp.axis, tmp.axis);
-        // console.log(tmp.axis);
-        
-        // var mat = mat4.clone( skeleton._global_matrix );    
-        // tmp.inv_mat = mat4.invert(tmp.inv_mat, mat);
-        // if(tmp.inv_mat == null){
-        //     throw("Matrix affected");
-        // }
-        // tmp.axis2 = GFX.rotateVector(tmp.inv_mat, tmp.axis);
-
-        //rotate de gl-matrix es el rotateLocal
-        skeleton.rotate( 0.02, tmp.axis );
-        // skeleton.rotate( 0.02, [0,tmp.axis[1],0] )
-        // console.log("Despues de asignar fromMatrix", skeleton.getGlobalMatrix());
+        var tmpMat4 = mat4.create(), tmpQuat = quat.create();
+        mat4.lookAt(tmpMat4, target, this.skeleton.skeleton_container.getGlobalPosition(), [0,1,0]);
+        quat.fromMat4(tmpQuat, tmpMat4);
+        quat.slerp(tmpQuat, tmpQuat, this.skeleton.skeleton_container.rotation, 0.9);
+        this.skeleton.skeleton_container._rotation = tmpQuat;
     }
 
     inTarget( target, threshold)
@@ -270,6 +255,15 @@ class Agent{
             return true;
         
         return false;
+    }
+
+    getWayPoint(threshold){   
+        var count = this.path.length;
+        while(vec3.distance(this.skeleton.skeleton_container.position, this.path[this.current_waypoint].pos) <= threshold && count > 0){
+            this.current_waypoint = (this.current_waypoint+1)%this.path.length;
+            count--;
+        } 
+        return this.path[this.current_waypoint].pos;
     }
 
     getNextWaypoint()

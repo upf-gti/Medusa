@@ -225,7 +225,7 @@ function update(dt)
     // debugger;    
     BT.rootnode.tick(character_);
 
-    if(character_.inTarget(character_.current_waypoint.pos, 150))
+    /*if(character_.inTarget(character_.current_waypoint.pos, 250))
     {
       character_.current_waypoint.visited = true;
       if(character_.path.indexOf(character_.current_waypoint) == character_.path.length-1)
@@ -234,9 +234,9 @@ function update(dt)
         character_.restorePath();
       }
       character_.getNextWaypoint();
-    }
+    }*/
     // console.log(dt);
-    character_.moveTo(character_.current_waypoint.pos, dt);
+    character_.moveTo(character_.getWayPoint(150), dt);
     animator.clearMergeAnims();
 
     animator.animate(skeleton, dt, SIMPLE, weight_of_merge);
