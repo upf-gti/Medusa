@@ -1,7 +1,7 @@
 LGraphNode.prototype.connect = function( slot, target_node, target_slot )
 {
-	target_slot = target_slot || 0;	
-	
+	target_slot = target_slot || 0;
+
 	//THIS IS FOR BTREE MADE BY DAVID
 
 	if(this.children)
@@ -10,6 +10,13 @@ LGraphNode.prototype.connect = function( slot, target_node, target_slot )
 		this.children = [target_node.id];
 	target_node.parent = this.id;
 	//********************************/
+
+	if(!this.graph) //could be connected before adding it to a graph
+	{
+		console.log("Connect: Error, node doesnt belong to any graph. Nodes must be added first to a graph before connecting them."); //due to link ids being associated with graphs
+		return false;
+	}
+
 
 	//seek for the output slot
 	if( slot.constructor === String )
@@ -32,7 +39,7 @@ LGraphNode.prototype.connect = function( slot, target_node, target_slot )
 	if(target_node && target_node.constructor === Number)
 		target_node = this.graph.getNodeById( target_node );
 	if(!target_node)
-		throw("Node not found");
+		throw("target node is null");
 
 	//avoid loopback
 	if(target_node == this)
@@ -72,8 +79,8 @@ LGraphNode.prototype.connect = function( slot, target_node, target_slot )
 		target_node.disconnectInput( target_slot );
 
 	//why here??
-	this.setDirtyCanvas(false,true);
-	this.graph.connectionChange( this );
+	//this.setDirtyCanvas(false,true);
+	//this.graph.connectionChange( this );
 
 	var output = this.outputs[slot];
 
@@ -110,10 +117,12 @@ LGraphNode.prototype.connect = function( slot, target_node, target_slot )
 			this.onConnectionsChange( LiteGraph.OUTPUT, slot, true, link_info, output ); //link_info has been created now, so its updated
 		if(target_node.onConnectionsChange)
 			target_node.onConnectionsChange( LiteGraph.INPUT, target_slot, true, link_info, input );
+		if( this.graph && this.graph.onNodeConnectionChange )
+			this.graph.onNodeConnectionChange( LiteGraph.OUTPUT, this, slot, target_node, target_slot );
 	}
 
 	this.setDirtyCanvas(false,true);
 	this.graph.connectionChange( this );
 
 	return true;
-}
+}

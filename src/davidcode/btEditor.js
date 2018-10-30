@@ -5,7 +5,7 @@ function BTEditor( BT_list)
 	this._ctor(BT_list);
 }
 
-BTEditor.prototype._ctor = function(BT_list)
+BTEditor.prototype._ctor = function(btree)
 {
     this.node_pool = [];
     this.context2 = null;
@@ -13,6 +13,7 @@ BTEditor.prototype._ctor = function(BT_list)
     this.graph = null;
     this.graph_canvas = null;
     this.BT_list = BT_list;
+    this.btree = btree;
 }
 
 BTEditor.prototype.init = function()
@@ -26,157 +27,136 @@ BTEditor.prototype.init = function()
     bteditor_cont.appendChild(this.canvas2D);
 
     this.graph = new LGraph();
-    // this.graph.onNodeAdded = function(node)
-    // {
-    //      console.log(node);
-    // }
 
-    // this.graph.onNodeRemoved = function(node)
-    // {
-    //     console.log(node);
-    //     //Check if has children and disconnect
-    //     //Check if has parent and disconnect
-    // }
-    // var dos = 2;
-    // debugger;
-    // this.graph.onNodeConnectionChange = function( type , node, slot, target_node, target_slot )
-    // {
-    //     debugger;
-    //     // console.log(node);
-    // }
+    var that = this;
+    this.graph.onNodeAdded = function(node)
+    {
+         console.log(node);
+        //  node.title = node.node_props.name;
+
+         switch(node.type)
+         {
+             case "btree/root": {
+                 that.btree.rootnode = that.btree.addRootNode(node.id); 
+                 node.title = node.title = "Root";  
+             }
+                 break;
+             case "btree/conditional": {
+                that.btree.addConditionalNode(node.id, node.node_props);
+                if(node.node_props.name)
+                    node.title = node.node_props.name + " cond";
+             }
+                break;
+             case "btree/leaf": {
+                that.btree.addAnimationNode(node.id, node.node_props);
+                if(node.node_props.name)
+                    node.title = node.node_props.name;
+             }
+                break;
+             case "btree/intarget":{
+                 that.btree.addInTargetNode(node.id, node.node_props)
+             }
+                break;
+             case "btree/sequencer":
+                break;
+             case "btree/selector":
+                break;
+         }
+    }
+
+    this.graph.onNodeRemoved = function(node)
+    {
+        var parent_id = node.parent;
+        that.btree.deleteNode(node.id, parent_id);
+    }
+    
+    this.graph.onNodeConnectionChange = function( type , node, slot, target_node, target_slot )
+    {
+        console.log(that.btree);
+        var btnode = that.btree.getNodeById(node.id);
+        var target_btnode = that.btree.getNodeById(target_node.id);
+        btnode.children.push(target_btnode);
+        target_btnode.parent = btnode;
+    }
 
 
     this.graph_canvas = new LGraphCanvas(this.canvas2D , this.graph);
+    this.graph_canvas.default_link_color = "#98bcbe";
     this.root_node = LiteGraph.createNode("btree/root");
     this.root_node.pos = [200,200];
     this.graph.add(this.root_node);
-    console.log(this.root_node);
+    // console.log(this.root_node);
 
-    // this.graph_canvas.onNodeSelected = function(node)
-    // {
-    //     console.log(node);
-    // }
+    this.graph_canvas.onNodeSelected = function(node)
+    {
+        console.log(node);
+    }
 
-    // this.graph_canvas.onNodeDeselected = function(node)
-    // {
-    //     console.log(node);
-    // }
+    this.graph_canvas.onNodeDeselected = function(node)
+    {
+        console.log(node);
+    }
 
     this.graph_canvas.onDropItem = function( data )
     { 
         var type = data.dataTransfer.getData("type");
-        /*Super harcodeado para que funcione en la demo, aquí podrían ir las Task creadas */
-        if(type == "action")
-        {   
-            var params = {};
-            var property = data.dataTransfer.getData("text");
-            var node_leaf = LiteGraph.createNode("btree/leaf");
-            node_leaf.properties["merge_animations"] = [{anim:property,weight:1}];
-            node_leaf.title = property;
-            node_leaf.pos = [data.canvasX,data.canvasY];
-            if(property == "Idle")
-                params = {motion:0, speed:1}
-            else if(property == "Walking")
-                params = {motion:3, speed:1}
-            else if(property == "Running")
-                params = {motion:5, speed:1.25}
-            else    
-                params = {motion:1, speed:0.9}
-            node_leaf.properties["params"] = params;
-            node_editor.graph.add(node_leaf);
-            var n = BT.addAnimationNode(node_leaf.id, [{anim:property,weight:1}], params.speed,params.motion);
-        }
-        else if(type == "intarget")
-        {            
-            var property = data.dataTransfer.getData("text");
-            var node_cond = LiteGraph.createNode("btree/intarget");
-            node_cond.title = "In Target?";
-            node_cond.pos = [data.canvasX,data.canvasY];
-            node_editor.graph.add(node_cond);
-            var node = BT.addInTargetNode(node_cond.id, 200 );
-            // console.log("intarget entered");
-            return data;
-        }
-        else
-        {
-            var property = data.dataTransfer.getData("text");
-            var node_cond = LiteGraph.createNode("btree/conditional");
-            console.log(node_cond);
-            node_cond.title = property + " cond.";
-            node_cond.pos = [data.canvasX,data.canvasY];
-            node_cond.properties["limit_value"] = 50;
-            node_cond.properties["property_to_compare"] = property;
-            debugger;
-            node_editor.graph.add(node_cond);
-
-            var node = BT.addConditionalNode(node_cond.id, node_cond.title, property, 50 );
-            console.log(node);
-            return data;
-        }
+        var properties = data.dataTransfer.getData("obj");
+        properties = JSON.parse(properties);
+        that.addNodeByType(type, properties, [data.canvasX,data.canvasY]); 
     }
     
 
 }
 
-BTEditor.prototype.updateTree = function(gnode_id)
+BTEditor.prototype.addNodeByType = function(type, properties, pos)
 {
-    var g_node = node_editor.graph.getNodeById(gnode_id);
-    if(g_node.children && g_node.children.length > 0) 
-    {
-        var bt_node = BT.getNodeById(gnode_id);
-        if(BT.rootnode.children.length == 0)
-            BT.rootnode.children.push(bt_node);
-        for(var i = 0; i < g_node.children.length; i++)
-        {   
-            bt_node.children[i] = BT.getNodeById(g_node.children[i]);
-            var new_gnode = g_node.children[i];
-            this.updateTree(new_gnode);
-        }
+    switch(type){
+        case "action":{
+            var node_leaf = LiteGraph.createNode("btree/leaf");
+            node_leaf.node_props = properties;
+            node_leaf.pos = pos;
+            node_editor.graph.add(node_leaf);
+        } break;
+
+        case "intarget":{
+            var node_cond = LiteGraph.createNode("btree/intarget");
+            node_cond.node_props = properties;
+            node_cond.pos = pos;
+            node_editor.graph.add(node_cond);
+        } break;
+
+        default:{
+            var node_cond = LiteGraph.createNode("btree/conditional");
+            node_cond.node_props = properties;
+            node_cond.pos = pos;
+            node_editor.graph.add(node_cond);
+        } break;
     }
 }
-
-BTEditor.prototype.bTreeFromJSON = function( obj )
-{
-    var type = obj.type;
-    var node;
-    if(type == "root")
-    {
-
-    }
-    else if(type == "conditional")
-    {
-
-    }
-    else if(type == "intarget")
-    {
-
-    }
-    else if(type == "animation")
-    {
-
-    }
-
-    if(obj.children)
-    {
-        for(var i in children)
-        {
-            var child = this.bTreeFromJSON(children);
-            // node.connect();
-        }
-    }
-    return obj;
-}
+// BTEditor.prototype.updateTree = function(gnode_id)
+// {
+//     var g_node = node_editor.graph.getNodeById(gnode_id);
+//     if(g_node.children && g_node.children.length > 0) 
+//     {
+//         var bt_node = BT.getNodeById(gnode_id);
+//         if(BT.rootnode.children.length == 0)
+//             BT.rootnode.children.push(bt_node);
+//         for(var i = 0; i < g_node.children.length; i++)
+//         {   
+//             bt_node.children[i] = BT.getNodeById(g_node.children[i]);
+//             var new_gnode = g_node.children[i];
+//             this.updateTree(new_gnode);
+//         }
+//     }
+// }
 
 BTEditor.prototype.getBTNodeById = function( id )
 {
-    for(var i = 0; i < this.BT_list.length; i++)
+    for(var i = 0; i < this.btree.node_pool.length; i++)
     {
-        var BT = this.BT_list[i];
-        for(var i = 0; i < BT.node_pool.length; i++)
-        {
-            if(BT.node_pool[i].id == id)
-                return BT.node_pool[i];
-        }
+        var node = this.btree.node_pool[i];  
+        if(node.id == id)
+            return node;
     }
 }
 
@@ -189,6 +169,7 @@ function RootNode()
 {
     this.shape = 2;
     this.addOutput("","boolean");
+    this.flags = { horizontal: true };
 }
 RootNode.title = "Root";
 RootNode.desc = "Testing own nodes";
@@ -201,11 +182,6 @@ RootNode.desc = "Testing own nodes";
 // }
 LiteGraph.registerNodeType("btree/root", RootNode);
 
-RootNode.prototype.onConnectInput = function()
-{
-    node_editor.updateTree(node_editor.root_node.id);
-}
-
 function Conditional()
 {
     this.shape = 2;
@@ -214,29 +190,13 @@ function Conditional()
 	this.addOutput("","number");
 	this.addProperty( "value", 1.0 );
     this.editable = { property:"value", type:"number" };
+    this.node_props = {title:"", property_to_compare:"", limit_value: null}
+    this.flags = { horizontal: true };
+
 }
 
-Conditional.title = "Conditional";
+// Conditional.title = "Conditional";
 Conditional.desc = "Testing own nodes";
-
-// Conditional.prototype.onSelected = function()
-// {
-//     console.log(this);
-//     //GUI.current_node_id = this.id;  
-//     //GUI.node_inspector.refresh();
-// }
-
-// Conditional.prototype.onRemoved = function()
-// {
-//     if(this.parent)
-//         removeChild(this);
-//     node_editor.updateTree(node_editor.root_node.id);
-
-// }
-Conditional.prototype.onConnectInput = function()
-{
-    node_editor.updateTree(node_editor.root_node.id);
-}
 
 LiteGraph.registerNodeType("btree/conditional", Conditional);
 
@@ -246,28 +206,13 @@ function InTarget()
     this.addInput("",0);
 	this.addOutput("","number");
 	this.addProperty( "value", 1.0 );
-	this.editable = { property:"value", type:"number" };
+    this.editable = { property:"value", type:"number" };
+    this.flags = { horizontal: true };
+
 }
 
 InTarget.title = "InTarget";
 InTarget.desc = "Testing own nodes";
-// InTarget.prototype.onSelected = function()
-// {
-//     // console.log(this);
-//     //GUI.current_node = this;
-//     //GUI.node_inspector.refresh();
-// }
-
-InTarget.prototype.onRemoved = function()
-{
-    if(this.parent)
-        removeChild(this);
-    node_editor.updateTree(node_editor.root_node.id);
-}
-InTarget.prototype.onConnectInput = function()
-{
-    node_editor.updateTree(node_editor.root_node.id);
-}
 
 LiteGraph.registerNodeType("btree/intarget", InTarget);
 
@@ -276,7 +221,10 @@ function Leaf()
     this.shape = 2;
     this.addInput("",0);
 	this.addProperty( "value", 1.0 );
-	this.editable = { property:"value", type:"number" };
+    this.editable = { property:"value", type:"number" };
+    this.flags = { horizontal: true };
+    this.node_props = {anims:[{anim:null, weight: 1}], motion:0, speed:1}
+
 }
 
 Leaf.title = "Leaf";
@@ -289,17 +237,6 @@ Leaf.desc = "Testing own nodes";
 //     //GUI.node_inspector.refresh();
 // }
 
-Leaf.prototype.onRemoved = function()
-{
-    if(this.parent)
-        removeChild(this);
-    node_editor.updateTree(node_editor.root_node.id);
-}
-
-Leaf.prototype.onConnectInput = function()
-{
-    node_editor.updateTree(node_editor.root_node.id);
-}
 
 LiteGraph.registerNodeType("btree/leaf", Leaf);
 

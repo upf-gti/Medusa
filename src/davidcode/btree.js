@@ -4,18 +4,16 @@ NODETYPES = [
     3,//animator
 ]
 
-function BehaviourTree(editor)
+function BehaviourTree()
 {
   if(this.constructor !== BehaviourTree)
 	 throw("You must use new to create a BehaviourTree");
-	this._ctor(editor);
+	this._ctor();
 }
 
-BehaviourTree.prototype._ctor = function(editor)
+BehaviourTree.prototype._ctor = function()
 {
     this.node_pool = [];
-    this.rootnode = this.addRootNode();
-    this.btree_editor = editor;
 }
 
 BehaviourTree.prototype.getNodeById = function(id)
@@ -26,17 +24,54 @@ BehaviourTree.prototype.getNodeById = function(id)
             return this.node_pool[i];
     }
 }
+
+BehaviourTree.prototype.deleteNodeFromPool = function(id)
+{
+    for(var i = 0; i< this.node_pool.length; i++)
+    {
+        if(this.node_pool[i].id == id)
+        {
+            var node = this.getNodeById(id);
+            var index = this.node_pool.indexOf(node);
+            if (index !== -1) {
+                this.node_pool.splice(index, 1);
+            }
+        }
+    }
+}
+
+BehaviourTree.prototype.deleteNode = function(node_id, parent_id)
+{
+    var parent_node = this.getNodeById(parent_id);
+    var node = this.getNodeById(node_id);
+    if(parent_node)
+    {
+        var index = parent_node.children.indexOf(node);
+        if (index !== -1) {
+            parent_node.children.splice(index, 1);
+        }
+    }
+    if(node.children)
+    {
+        for(var j in node.children)
+        {
+            var child_node = node.children[j];
+            child_node.parent = null;
+        }
+    }
+    this.deleteNodeFromPool(node_id);
+    
+}
 BehaviourTree.prototype.run = function( character, scene )
 {
     this.character = character;
     this.scene = scene;
     this.rootnode.tick();
 }  
-
-BehaviourTree.prototype.addRootNode = function()
+BehaviourTree.prototype.addRootNode = function(id)
 {
     let node = new Node();
-    node.id = 2;
+    node.id = id;
     node.type = "root";
     node.boxcolor = "#fff";
 
@@ -46,23 +81,22 @@ BehaviourTree.prototype.addRootNode = function()
 
 /*********************************** DECORATOR NODES ***********************************/
 
-BehaviourTree.prototype.addConditionalNode = function(id,title, property_to_compare, limit_value )
+BehaviourTree.prototype.addConditionalNode = function(id, options )
 {
     let node = new Node();
-    node.properties = {};
+    // node.properties = {};
     node.id = id;
-    node.boxcolor = "#fff";
+    // node.boxcolor = "#fff";
 
-    node.title = title;
+    node.title = options.title;
+    node.property_to_compare = options.property_to_compare;
+    node.limit_value = options.limit_value;
     node.type = "conditional";
     node.tree = this.id;
     node.children = [];
-    node.blackboard = blackboard;
-    node.properties.id = id;
-    // node.properties.type = NODETYPES["conditional"];
-    node.property_to_compare = property_to_compare;
-    node.limit_value = limit_value;
-    this.value = 0;
+    // node.blackboard = blackboard;
+    // node.properties.id = id;
+    // this.value = 0;
     // console.log(node);
 
     // node.addCondition = (function(condition){ this.conditional_expression = condition }).bind(node);
@@ -73,6 +107,9 @@ BehaviourTree.prototype.addConditionalNode = function(id,title, property_to_comp
 
         if(agent.blackboard[property] != null)
         {
+            // console.log("Agent", agent);
+            // console.log("Param", agent.blackboard[property]);
+
             if(agent.blackboard[property] > this.limit_value)
                 return true;
             else    
@@ -155,20 +192,24 @@ BehaviourTree.prototype.addBooleanConditionalNode = function(id, property_to_com
     return node;
 }
 
-BehaviourTree.prototype.addInTargetNode = function(id, threshold )
+BehaviourTree.prototype.addInTargetNode = function(id, options )
 {
     let node = new Node();
     node.id = id;
     node.type = "intarget";
     this.value = 0;
-    node.threshold = threshold;
+    if(options)
+    {
+        console.log(options);
+        node.threshold = options.threshold;
+    }
     node.children = [];
 
     node.isInTarget = function(agent)
     {
         // var state = agent.state;
         // debugger;
-        if(agent.inTarget(agent.target, this.threshold))
+        if(agent.inTarget(agent.properties.target, this.threshold))
         {
             agent.in_target = true;
             // console.log("In target!");
@@ -233,16 +274,15 @@ BehaviourTree.prototype.addSequencerNode = function( id )
 
 /*********************************** LEAF NODES ***********************************/
 
-BehaviourTree.prototype.addAnimationNode = function(id, anims, speed, motion )
+BehaviourTree.prototype.addAnimationNode = function(id, options )
 {
     let node = new Node();
     node.id = id;
     node.type = "animation";
-    this.value = 0;
-    node.anims = anims;
+    node.anims = options.anims;
     node.params = {};
-    node.params.speed = speed;
-    node.params.motion = motion;
+    node.params.speed = options.speed;
+    node.params.motion = options.motion;
     
     node.action = function(agent)
     {
@@ -253,6 +293,7 @@ BehaviourTree.prototype.addAnimationNode = function(id, anims, speed, motion )
         behaviour.params = this.params;
         behaviour.type = "mixing";
         behaviour.author = "manuel";
+        // console.log("Action", behaviour.animations_to_merge);
         LEvent.trigger( agent, "applyBehaviour", behaviour);
 
         return true;

@@ -37,40 +37,44 @@ var AgentManager = {
             inspector.on_refresh = function(){
 
                 inspector.clear();
-                    for(var p in properties){
-                        let widget = null;
-                        switch(properties[p].constructor.name){
-                            case "Number" : widget = inspector.addNumber( p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v } } );    break;
-                            case "String" : { 
-                                widget = inspector.addString( p, properties[p], { key: p, callback: function(v){ 
+                for(let p in properties){
+                    let widget = null;
+                    switch(properties[p].constructor.name){
+                        case "Number" : widget = inspector.addNumber( p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v } } );    break;
+                        case "String" : { 
+                            widget = inspector.addString( p, properties[p], { key: p, callback: function(v){ 
 
-                                //Updates name reference in menu
-                                if(this.options.key == "name"){
-                                    dialog.root.querySelector(".panel-header").innerText = "Agent: "+v;
-                                    CORE.GUI.menu.findMenu( "Agent/"+properties[this.options.key]).name = v;
-                                }
-                                properties[this.options.key] = v;
-
-                                }});    break;
+                            //Updates name reference in menu
+                            if(this.options.key == "name"){
+                                dialog.root.querySelector(".panel-header").innerText = "Agent: "+v;
+                                CORE.GUI.menu.findMenu( "Agent/"+properties[this.options.key]).name = v;
                             }
-                            case "Boolean":  widget = inspector.addCheckbox( p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v } } );    break;
-                            case "Array":
-                            case "Float32Array": 
-                                switch(properties[p].length){
-                                    case 2:  widget = inspector.addVector2(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
-                                    case 3:  widget = inspector.addVector3(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
-                                    case 4:  widget = inspector.addVector4(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
-                                }break;
-                            default:    
-                            debugger;   
-                             console.warn( "parameter type from parameter "+p+" in agent "+ uid + " was not recognised");
-                        }
-                        if(!widget) continue;
-                        widget.classList.add("draggable-item");
-                        widget.addEventListener("dragstart", function(a){ a.dataTransfer.setData("text", a.srcElement.children[0].title); });
-                        widget.setAttribute("draggable", true);
+                            properties[this.options.key] = v;
 
+                            }});    break;
+                        }
+                        case "Boolean":  widget = inspector.addCheckbox( p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v } } );    break;
+                        case "Array":
+                        case "Float32Array": 
+                            switch(properties[p].length){
+                                case 2:  widget = inspector.addVector2(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
+                                case 3:  widget = inspector.addVector3(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
+                                case 4:  widget = inspector.addVector4(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
+                            }break;
+                        default:    
+                        debugger;   
+                            console.warn( "parameter type from parameter "+p+" in agent "+ uid + " was not recognised");
                     }
+                    if(!widget) continue;
+                    widget.classList.add("draggable-item");
+                    widget.addEventListener("dragstart", function(a){ 
+                        var obj = {name:a.srcElement.children[0].title, property_to_compare:a.srcElement.children[0].title, limit_value:50}
+                        obj = JSON.stringify(obj);
+                        a.dataTransfer.setData("obj", obj); 
+                    });
+                    widget.setAttribute("draggable", true);
+
+                }
     
                     inspector.addSeparator();
                     inspector.widgets_per_row = 3;
@@ -125,7 +129,7 @@ class Agent{
         //this.current_waypoint = this.path[0];
 
         var random = vec3.random(vec3.create(), 100);
-        position = position || vec3.add(vec3.create(), vec3.create(), vec3.fromValues(random[0], 0, random[2]));
+          position= position || vec3.add(vec3.create(), vec3.create(), vec3.fromValues(random[0], 0, random[2]));
         
         this.properties = {
             age: 35,
@@ -145,6 +149,10 @@ class Agent{
         AgentManager.agents[this.uid] = this;
 
         this.visualizePath();//whe should remove this
+
+        LEvent.bind(this, "applyBehaviour", (function(e,p){
+            this.animator.applyBehaviour(p);
+        }).bind(this)); 
     }
 
     
