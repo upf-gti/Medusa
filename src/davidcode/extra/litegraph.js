@@ -1594,6 +1594,7 @@ LGraph.prototype.configure = function( data, keep_old )
 		{
 			var n_info = nodes[i]; //stored info
 			var node = LiteGraph.createNode( n_info.type, n_info.title );
+			node.data = n_info.data;
 			if(!node)
 			{
 				if(LiteGraph.debug)

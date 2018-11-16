@@ -9,25 +9,11 @@ var GFX = {
     renderer: null,
     lines_mesh: null,
     cube: null,
-    // context2:null,
-    // canvas2D:null,
-
     initCanvas: function() {
-        // this.canvas2D = document.createElement("canvas");
-        // this.context2 = this.canvas2D.getContext("2d");
-        // var bteditor_cont = document.getElementById("editor-canvas-container");
-        // this.canvas2D.width = bteditor_cont.clientWidth;
-        // this.canvas2D.height = bteditor_cont.clientHeight;
-        // this.canvas2D.id = "BTEditor"
-        // bteditor_cont.appendChild(this.canvas2D);
-        // this.context2.fillStyle = "#222";
-        // this.context2.font = "150px Arial";
-        // this.context2.textAlign = "center";
-        // this.context2.fillText("BTreeEditor",750, 500 );
 
         this.scene = new RD.Scene();
         this.context = GL.create({
-            width: window.innerWidth - 300,
+            width: window.innerWidth*0.6,
             height: window.innerHeight,
             alpha: true,
             premultipliedAlpha: false
@@ -35,7 +21,7 @@ var GFX = {
         this.context.onmouse = this.onmouse.bind(this)
         this.camera = new RD.Camera();
         //pos, target, ?
-        this.camera.lookAt([0, 130, 500], [0, 70, 0], [0, 1, 0]);
+        this.camera.lookAt([0, 1000, 2500], [0, 70, 0], [0, 1, 0]);
         this.camera.perspective(45, this.context.canvas.width / this.context.canvas.height, 0.1, 20000);
 
         floor = new RD.SceneNode();
@@ -94,6 +80,7 @@ var GFX = {
             last = now;
             now = getTime();
             var dt = (now - last) * 0.001;
+            global_dt = dt;
             time = (Date.now() - start_time) * 0.001;
 
             // if(GFX.context2.start2D)
@@ -131,10 +118,10 @@ var GFX = {
                 for (var i in AgentManager.agents) {
                     AgentManager.agents[i].changeColor();
                 }
-                agent.character.is_selected = true;
+                agent.is_selected = true;
                 agent_selected = agent.properties.name;
                 // console.log(agent.character);
-                agent.character.changeColor();
+                agent.changeColor();
                 var agents = CORE.AgentManager.agents;
                 for (var i in agents) {
                     var ag = agents[i];
@@ -184,9 +171,6 @@ var GFX = {
             if (e.keyCode == 68)
                 tgt_node_right = true;
 
-            if (e.keyCode == 46) {
-                console.log("hola");
-            }
         }
 
         this.renderer.context.onkeyup = function(e) {
@@ -204,10 +188,15 @@ var GFX = {
 
             if (e.keyCode == 68)
                 tgt_node_right = false;
-
+            if(e.keyCode == 46){
+                for(var i in node_editor.graph_canvas.selected_nodes)
+                {
+                    var node = node_editor.graph_canvas.selected_nodes[i];
+                    node_editor.graph.remove(node);
+                }
+            }
 
         }
-
     },
 
     onmouse: function(e) {

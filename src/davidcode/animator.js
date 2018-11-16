@@ -131,29 +131,50 @@ Animator.prototype.animateSimple = function( skeleton, animation, dt, TYPE )
 
 /* 
 * base anim is only an animation
-* animations is an array of [anim,weigh, target_weight] */
+* animations is an array of [anim,weigh,target_weight]  on the future, anim.type t o determine if we reproduce
+  looping or just one time and a anim.time_to_reproduce if we set an animations for a set time*/
 
-Animator.prototype.animateMix = function( skeleton, base_anim, animations, dt, TYPE)
+Animator.prototype.animateMix = function( skeleton, base_anim, m_animations, dt, TYPE)
 {
   var anim_samples_array = new Array();
   var base_duration = base_anim.takes["default"].duration;
   this.smoothSpeed();
   this.smoothMotion();
-  for(var h = 0; h < animations.length; h++)
+  for(var h = 0; h < m_animations.length; h++)
   {
-    var animation = animations[h].animation;
-    var weight = animations[h].weight;
-    var tgt_weight = animations[h].target_weight;
+    var animation = m_animations[h].animation;
+    var anim_current_time = m_animations[h].current_time;
+    var weight = m_animations[h].weight;
+    var tgt_weight = m_animations[h].target_weight;
 
-    // if((tgt_weight == 1) && (Math.abs(weight - tgt_weight) < 0.05))
-    // {
-    //   this.base_animation = getAnimationByName(animation.name);
-    //   this.merge_animations = [];
-    //   console.log("Cambiando base anim");
-    //   return;
-    // }
+    // debugger;
+    // console.log("NoLoopAnim");
+    if(m_animations[h].type == 1)
+    {
+      if(anim_current_time * this.speed > animation.takes["default"].duration)
+      {
+        // debugger;
+        this.deleteFromMergeAnims(animation.name);
+        continue;
+      }
+    }
 
-    weigth = this.smoothTransition(animations[h], weight, tgt_weight);
+    if((tgt_weight == 1) && (Math.abs(weight - tgt_weight) < 0.05))
+    {
+      if(m_animations[h].type != 1 && animation.name != this.base_animation.name)
+      {
+        // console.log(m_animations);
+        this.base_animation = base_anim= getAnimationByName(animation.name);
+        this.base_animation.current_time = base_anim.current_time = m_animations[h].current_time;
+        // console.log(this.base_animation);
+        this.deleteFromMergeAnims(animation.name);
+        // console.log("Cambiando base anim", animation.name);
+        continue;
+      }
+      // return;
+    }
+    if(m_animations.length)
+      weigth = this.smoothTransition(m_animations[h], weight, tgt_weight);
 
     var animation_samples = new Array();
     var duration2 = animation.takes["default"].duration;
@@ -162,9 +183,14 @@ Animator.prototype.animateMix = function( skeleton, base_anim, animations, dt, T
     for( var j = 0; j < animation.takes["default"].tracks.length; j++)
     {
       var track_m = animation.takes["default"].tracks[j];
-      animation_samples.push(track_m.getSample(this.current_time * ponderation * this.speed, true ));
+      // animation_samples.push(track_m.getSample(this.current_time * ponderation * this.speed, true ));
+      animation_samples.push(track_m.getSample(anim_current_time  * this.speed, true ));
     }
     anim_samples_array.push({animation_samples, weight});
+    // debugger;
+    m_animations[h].current_time += dt;
+    if(m_animations[h].current_time * this.speed > animation.takes["default"].duration)
+      m_animations[h].current_time = 0;
   }
 
   for( var k = 0; k < base_anim.takes["default"].tracks.length; k++)
@@ -173,7 +199,7 @@ Animator.prototype.animateMix = function( skeleton, base_anim, animations, dt, T
     var id_search = skeleton.name + "/" + track._property_path[0];
     var node = GFX.scene._nodes_by_id[ id_search ];
     //sample will contain the tansform
-    var sample1 = track.getSample( this.current_time * this.speed, true );
+    var sample1 = track.getSample( base_anim.current_time * this.speed, true );
     var result = null;
     var final_pos = null;
 
@@ -218,8 +244,10 @@ Animator.prototype.animateMix = function( skeleton, base_anim, animations, dt, T
     skeleton.addLines(skeleton.vertices);
     skeleton.addPoints(skeleton.vertices);
   }
-  if(this.current_time * this.speed > base_anim.takes["default"].duration)
-    this.current_time = 0;
+  base_anim.current_time += dt;
+
+  if(base_anim.current_time * this.speed > base_anim.takes["default"].duration)
+    base_anim.current_time = 0;
 }
 
 Animator.prototype.animateOnBlending = function(skeleton, animations, dt, weight, last_anim_time, TYPE)
@@ -299,33 +327,33 @@ Animator.prototype.interpolateSamples = function( track, node, sample1, sample2,
   // node.updateMatrices();
 }
 
-Animator.prototype.translateRoot = function( that, skeleton )
-{
-  if(!that.pathX)
-  {
-    that.pathX = skeleton.root_bone.position[0] - that.initialX;
-    that.pathY = skeleton.root_bone.position[1] - that.initialY;
-    console.log("PATHY: ", skeleton.root_bone.position[1]);
-    that.pathZ = skeleton.root_bone.position[2] - that.initialZ;
-  }
+// Animator.prototype.translateRoot = function( that, skeleton )
+// {
+//   if(!that.pathX)
+//   {
+//     that.pathX = skeleton.root_bone.position[0] - that.initialX;
+//     that.pathY = skeleton.root_bone.position[1] - that.initialY;
+//     console.log("PATHY: ", skeleton.root_bone.position[1]);
+//     that.pathZ = skeleton.root_bone.position[2] - that.initialZ;
+//   }
 
-  console.log("Container" , skeleton.skeleton_container.position);
-  console.log("Root bone", skeleton.root_bone.position);
+//   console.log("Container" , skeleton.skeleton_container.position);
+//   console.log("Root bone", skeleton.root_bone.position);
 
-  that.initialX = skeleton.skeleton_container.position[0] + skeleton.root_bone.position[0];
-  that.initialY = skeleton.skeleton_container.position[1] + skeleton.root_bone.position[1];
-  that.initialZ = skeleton.skeleton_container.position[2] + skeleton.root_bone.position[2];
+//   that.initialX = skeleton.skeleton_container.position[0] + skeleton.root_bone.position[0];
+//   that.initialY = skeleton.skeleton_container.position[1] + skeleton.root_bone.position[1];
+//   that.initialZ = skeleton.skeleton_container.position[2] + skeleton.root_bone.position[2];
 
-  skeleton.skeleton_container.removeChild( skeleton.root_bone );
+//   skeleton.skeleton_container.removeChild( skeleton.root_bone );
 
-  skeleton.skeleton_container.position[0] += that.pathX;
-  skeleton.skeleton_container.position[1] += that.pathY;
-  skeleton.skeleton_container.position[2] += that.pathZ;
+//   skeleton.skeleton_container.position[0] += that.pathX;
+//   skeleton.skeleton_container.position[1] += that.pathY;
+//   skeleton.skeleton_container.position[2] += that.pathZ;
 
-  skeleton.skeleton_container.updateMatrices();
+//   skeleton.skeleton_container.updateMatrices();
 
-  skeleton.skeleton_container.addChild( skeleton.root_bone );
-}
+//   skeleton.skeleton_container.addChild( skeleton.root_bone );
+// }
 
 Animator.prototype.setUpAnim = function(animation, speed)
 {
@@ -374,12 +402,16 @@ Animator.prototype.clearMergeAnims = function()
   }
 }
 
-Animator.prototype.addAnimToMerge = function(name, weight)
+Animator.prototype.addAnimToMerge = function(name, weight, type)
 {
+  if(name == this.base_animation.name)
+    return;
   var anim = {anim_name: name}
   anim.animation = getAnimationByName(name);
   anim.weight = 0;
   anim.target_weight = weight;
+  anim.type = type;
+  anim.current_time = 0.0;
 
   this.merge_animations.push(anim);
   this.merge_anim_names.push(name);
@@ -469,7 +501,7 @@ Animator.prototype.smoothMotion = function()
 
 Animator.prototype.deleteFromMergeAnims = function( anim_name )
 {
-  console.log(anim_name);
+  // console.log(anim_name);
   var index = this.merge_animations.indexOf(this.getMergeAnim(anim_name));
   if (index !== -1)this.merge_animations.splice(index, 1); 
 
@@ -499,7 +531,7 @@ Animator.prototype.applyBehaviour = function( behaviour )
     }
   }
 
-  if(behaviour.type == "mixing")
+  if(behaviour.type2 == "mixing")
   {
     // en el futuro habrá más parametros, por lo que tendre que hacer un
     // configure y almazenar los parametros en un objeto del animator para
@@ -513,7 +545,7 @@ Animator.prototype.applyBehaviour = function( behaviour )
       var animation = behaviour.animations_to_merge[i];
       if( !this.checkMergeAnimByName( animation.anim ) )
       {
-          this.addAnimToMerge(animation.anim, animation.weight);
+          this.addAnimToMerge(animation.anim, animation.weight, animation.type);
       }
       else{
           var anim = this.getMergeAnim(animation.anim);

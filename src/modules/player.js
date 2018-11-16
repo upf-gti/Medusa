@@ -96,8 +96,7 @@ class Player{
             throw "stats div not created / ready yet";
 
         var text = "";
-
-        text += "Agents: " + CORE.AgentManager.agents.length;
+        text += "Agents: " + Object.keys(CORE.AgentManager.agents).length;
         text += " | Zones: " + 2;//TODO
 
         this.stats.innerText = text;

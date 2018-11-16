@@ -17,7 +17,6 @@
         "src/davidcode/extra/path.js",
         "src/davidcode/extra/tinyxml.js",
         "src/davidcode/extra/litegraph.js",
-        "src/davidcode/extra/patches.js",
         "src/davidcode/animator.js",
         "src/davidcode/skeleton.js",
         "src/davidcode/character.js",

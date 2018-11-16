@@ -25,43 +25,53 @@ BTEditor.prototype.init = function()
     this.canvas2D.height = bteditor_cont.clientHeight;
     this.canvas2D.id = "BTEditor"
     bteditor_cont.appendChild(this.canvas2D);
+    LiteGraph.NODE_TITLE_COLOR = "#CCC";
+    LiteGraph.NODE_TEXT_COLOR = "#CCC"
 
     this.graph = new LGraph();
 
     var that = this;
     this.graph.onNodeAdded = function(node)
     {
-         console.log(node);
-        //  node.title = node.node_props.name;
+        node.btree = that.btree;
+        switch(node.type)
+        {
+            case "btree/Root": {
+                that.btree.rootnode = that.btree.addRootNode(node.id); 
+            } break;
 
-         switch(node.type)
-         {
-             case "btree/root": {
-                 that.btree.rootnode = that.btree.addRootNode(node.id); 
-                 node.title = node.title = "Root";  
-             }
-                 break;
-             case "btree/conditional": {
-                that.btree.addConditionalNode(node.id, node.node_props);
-                if(node.node_props.name)
-                    node.title = node.node_props.name + " cond";
-             }
-                break;
-             case "btree/leaf": {
-                that.btree.addAnimationNode(node.id, node.node_props);
-                if(node.node_props.name)
-                    node.title = node.node_props.name;
-             }
-                break;
-             case "btree/intarget":{
-                 that.btree.addInTargetNode(node.id, node.node_props)
-             }
-                break;
-             case "btree/sequencer":
-                break;
-             case "btree/selector":
-                break;
-         }
+            case "btree/Conditional": {
+            that.btree.addConditionalNode(node.id, node.data);
+            } break;
+
+            case "btree/SimpleAnimate": {
+            that.btree.addAnimationNode(node.id, node.data);
+            } break;
+
+            case "btree/InTarget":{
+                that.btree.addInTargetNode(node.id, node.data)
+            } break;
+
+            case "btree/Sequencer":{
+                that.btree.addSequencerNode(node.id, node.data);
+            } break;
+
+            case "btree/selector": break;
+
+            case "btree/FindNextTarget":{
+                that.btree.addFindNextTargetNode(node.id, node.data);
+            } break;
+            case "btree/EQSNearestInterestPoint":{
+                that.btree.addEQSNearestInterestPointNode(node.id, node.data);
+            } break;
+            case "btree/MoveTo":{
+                that.btree.addMoveToNode(node.id, node.data);
+            } break;
+
+            // case "btree/EQSDistanceTo":{
+            //     that.btree.addEQSDistanceToNode(node.id, node.data);
+            // }
+        }
     }
 
     this.graph.onNodeRemoved = function(node)
@@ -82,14 +92,12 @@ BTEditor.prototype.init = function()
 
     this.graph_canvas = new LGraphCanvas(this.canvas2D , this.graph);
     this.graph_canvas.default_link_color = "#98bcbe";
-    this.root_node = LiteGraph.createNode("btree/root");
-    this.root_node.pos = [200,200];
-    this.graph.add(this.root_node);
     // console.log(this.root_node);
 
     this.graph_canvas.onNodeSelected = function(node)
     {
         console.log(node);
+        current_graph_node = node;
     }
 
     this.graph_canvas.onNodeDeselected = function(node)
@@ -101,6 +109,7 @@ BTEditor.prototype.init = function()
     { 
         var type = data.dataTransfer.getData("type");
         var properties = data.dataTransfer.getData("obj");
+        console.log(properties);
         properties = JSON.parse(properties);
         that.addNodeByType(type, properties, [data.canvasX,data.canvasY]); 
     }
@@ -112,43 +121,32 @@ BTEditor.prototype.addNodeByType = function(type, properties, pos)
 {
     switch(type){
         case "action":{
-            var node_leaf = LiteGraph.createNode("btree/leaf");
-            node_leaf.node_props = properties;
+            var node_leaf = LiteGraph.createNode("btree/SimpleAnimate");
+            node_leaf.data = properties;
             node_leaf.pos = pos;
             node_editor.graph.add(node_leaf);
         } break;
 
         case "intarget":{
-            var node_cond = LiteGraph.createNode("btree/intarget");
-            node_cond.node_props = properties;
+            var node_cond = LiteGraph.createNode("btree/InTarget");
+            node_cond.data = properties;
             node_cond.pos = pos;
             node_editor.graph.add(node_cond);
         } break;
-
+        case "sequencer":{
+            var node_seq = LiteGraph.createNode("btree/Sequencer");
+            node_seq.data = properties;
+            node_seq.pos = pos;
+            node_editor.graph.add(node_seq);
+        } break;
         default:{
-            var node_cond = LiteGraph.createNode("btree/conditional");
-            node_cond.node_props = properties;
+            var node_cond = LiteGraph.createNode("btree/Conditional");
+            node_cond.data = properties;
             node_cond.pos = pos;
             node_editor.graph.add(node_cond);
         } break;
     }
 }
-// BTEditor.prototype.updateTree = function(gnode_id)
-// {
-//     var g_node = node_editor.graph.getNodeById(gnode_id);
-//     if(g_node.children && g_node.children.length > 0) 
-//     {
-//         var bt_node = BT.getNodeById(gnode_id);
-//         if(BT.rootnode.children.length == 0)
-//             BT.rootnode.children.push(bt_node);
-//         for(var i = 0; i < g_node.children.length; i++)
-//         {   
-//             bt_node.children[i] = BT.getNodeById(g_node.children[i]);
-//             var new_gnode = g_node.children[i];
-//             this.updateTree(new_gnode);
-//         }
-//     }
-// }
 
 BTEditor.prototype.getBTNodeById = function( id )
 {
@@ -160,85 +158,351 @@ BTEditor.prototype.getBTNodeById = function( id )
     }
 }
 
-// LiteGraphNode.prototype.onRemove = function()
-// {
-//     console.log("Removed");
-// }
-
 function RootNode()
 {
     this.shape = 2;
-    this.addOutput("","boolean");
+    this.color = "#1E1E1E"
+    this.boxcolor = "#999";
+    this.addOutput("","path");
     this.flags = { horizontal: true };
+}
+
+RootNode.prototype.onConfigure = function(info)
+{
+    onConfig(info, this.graph);
 }
 RootNode.title = "Root";
 RootNode.desc = "Testing own nodes";
 
-// RootNode.prototype.onSelected = function()
-// {
-//     // console.log(this);
-//     //GUI.current_node_id = this.id;  
-//     //GUI.node_inspector.refresh();
-// }
-LiteGraph.registerNodeType("btree/root", RootNode);
+LiteGraph.registerNodeType("btree/Root", RootNode);
 
 function Conditional()
 {
     this.shape = 2;
-    // this.boxcolor = "#ff0000";
-    this.addInput("",0);
-	this.addOutput("","number");
-	this.addProperty( "value", 1.0 );
+    this.color = "#005557";
+    this.bgcolor = "#2d4243";
+    this.boxcolor = "#999";
+    var w = 200;
+    var h = 65;
+    this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
+    this.addInput("value","number", {pos:[0,10], dir:LiteGraph.LEFT});
+    // this.addInput("value","number", {pos:[0,30], dir:LiteGraph.LEFT});
+    this.addOutput("","path", {pos:[w*0.5,h], dir:LiteGraph.DOWN});
+    this.size = [w, h];    
+    this.addProperty( "value", 1.0 );
     this.editable = { property:"value", type:"number" };
-    this.node_props = {title:"", property_to_compare:"", limit_value: null}
-    this.flags = { horizontal: true };
+    this.data = {title:"", property_to_compare:"", limit_value: null}
+    // this.flags = { resizable: false };
 
 }
 
-// Conditional.title = "Conditional";
+Conditional.prototype.onDrawBackground = function(ctx, canvas)
+{
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#AAA";
+    // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
+    ctx.fillText(`Property: ${this.data.property_to_compare}`,10,35);
+    if(this.data.limit_value)
+        ctx.fillText(`Threshold: ${this.data.limit_value}`,10,55);
+}
+
+Conditional.prototype.onExecute = function()
+{
+    var data = this.getInputData(1);
+    if(data)
+        this.data.limit_value = data;
+    if(this.btree)
+    {
+        this.btree.updateNodeInfo(this.id, this.data);
+        return;
+    }
+}
+
+Conditional.title = "Conditional"
 Conditional.desc = "Testing own nodes";
 
-LiteGraph.registerNodeType("btree/conditional", Conditional);
+Conditional.prototype.onConfigure = function(info)
+{
+    onConfig(info, this.graph);
+}
+
+LiteGraph.registerNodeType("btree/Conditional", Conditional);
 
 function InTarget()
 {
     this.shape = 2;
-    this.addInput("",0);
-	this.addOutput("","number");
-	this.addProperty( "value", 1.0 );
+    this.color = "#005557";
+    this.bgcolor = "#2d4243";
+    this.boxcolor = "#999";
+    
+    var w = 200;
+    var h = 45;
+    this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
+    this.addInput("target","vec3", {pos:[0,10], dir:LiteGraph.LEFT});
+    this.addOutput("","path", {pos:[w*0.5,h], dir:LiteGraph.DOWN});
+    this.size = [w, h];     
     this.editable = { property:"value", type:"number" };
-    this.flags = { horizontal: true };
-
+    this.flags = { resizable: false };
+    this.data = {threshold:100};
 }
 
 InTarget.title = "InTarget";
 InTarget.desc = "Testing own nodes";
+InTarget.prototype.onConfigure = function(info)
+{
+    onConfig(info, this.graph);
+}
 
-LiteGraph.registerNodeType("btree/intarget", InTarget);
+LiteGraph.registerNodeType("btree/InTarget", InTarget);
 
-function Leaf()
+function Sequencer()
 {
     this.shape = 2;
-    this.addInput("",0);
+    this.color = "#6F0E12";
+    this.bgcolor = "#3f2c2c";
+    this.boxcolor = "#999";
+    this.addInput("","path");
+	this.addOutput("","path");
 	this.addProperty( "value", 1.0 );
     this.editable = { property:"value", type:"number" };
+    this.data = {}
     this.flags = { horizontal: true };
-    this.node_props = {anims:[{anim:null, weight: 1}], motion:0, speed:1}
+}
+
+Sequencer.prototype.onDrawBackground = function(ctx, canvas)
+{
 
 }
 
-Leaf.title = "Leaf";
-Leaf.desc = "Testing own nodes";
+Sequencer.prototype.onConfigure = function(info)
+{
+    onConfig(info, this.graph);
+}
 
-// Leaf.prototype.onSelected = function()
+// Sequencer.prototype.onConfigure = bl();
+LiteGraph.registerNodeType("btree/Sequencer", Sequencer);
+
+
+function MoveTo()
+{
+    this.shape = 2;
+    this.color = "#1B662D"
+    this.bgcolor = "#384837";
+    this.boxcolor = "#999";
+    var w = 200;
+    var h = 65;
+    this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
+    this.addInput("target","vec3", {pos:[0,10], dir:LiteGraph.LEFT});
+    this.addOutput("","path", {pos:[w*0.5,h], dir:LiteGraph.DOWN});
+    this.size = [w, h];    
+    this.editable = { property:"value", type:"number" };
+    this.flags = { resizable: false };
+    this.data = {target:null, motion:1}
+
+}
+
+MoveTo.title = "MoveTo ";
+MoveTo.prototype.onDrawBackground = function(ctx, canvas)
+{
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#AAA";
+    // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
+    ctx.fillText(`move to: ${this.data.target}`,10,35);
+    ctx.fillText(`Motion speed: ${this.data.motion}`,10,55);
+}
+MoveTo.prototype.onExecute = function()
+ {
+    var data = this.getInputData(1);
+    if(data)
+        this.data.target = data;
+    if(this.btree)
+    {
+        this.btree.updateNodeInfo(this.id, this.data);
+        return;
+    }
+
+}
+
+MoveTo.prototype.onConfigure = function(info)
+{
+    onConfig(info, this.graph);
+}
+
+LiteGraph.registerNodeType("btree/MoveTo", MoveTo);
+
+function FindNextTarget()
+{
+    this.shape = 2;
+    this.color = "#1B662D"
+    this.bgcolor = "#384837";
+    this.boxcolor = "#999";
+    var w = 200;
+    var h = 65;
+    this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
+    // this.addOutput("","path", {pos:[w*0.5,h], dir:LiteGraph.DOWN});
+    this.size = [w, h];    
+    this.editable = { property:"value", type:"number" };
+    this.flags = { resizable: false };
+    this.data = {}
+
+}
+
+FindNextTarget.title = "FindNextTarget ";
+FindNextTarget.prototype.onDrawBackground = function(ctx, canvas)
+{
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#AAA";
+    // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
+    ctx.fillText(`move to: ${this.data.target}`,10,35);
+    ctx.fillText(`Motion speed: ${this.data.motion}`,10,55);
+}
+
+FindNextTarget.prototype.onConfigure = function(info)
+{
+    onConfig(info, this.graph);
+}
+
+LiteGraph.registerNodeType("btree/FindNextTarget", FindNextTarget);
+
+
+
+function SimpleAnimate()
+{
+    this.shape = 2;
+    this.color = "#1B662D"
+    this.bgcolor = "#384837";
+    this.boxcolor = "#999";
+    this.addInput("","path");
+    this.addProperty( "value", 1.0 );
+    this.size = [200,65];
+    this.editable = { property:"value", type:"number" };
+    this.flags = { horizontal: true };
+    this.data = {anims:[{anim:null, weight: 1}], motion:0, speed:1}
+
+}
+
+SimpleAnimate.title = "SimpleAnimate ";
+SimpleAnimate.prototype.onDrawBackground = function(ctx, canvas)
+{
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#AAA";
+    // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
+    ctx.fillText(`Animation: ${this.data.anims[0].anim}`,10,15);
+    ctx.fillText(`Motion speed: ${this.data.motion}`,10,35);
+    ctx.fillText(`Animation speed: ${this.data.speed}`,10,55);
+}
+
+SimpleAnimate.prototype.onConfigure = function(info)
+{
+    // debugger;
+    onConfig(info, this.graph);
+}
+
+LiteGraph.registerNodeType("btree/SimpleAnimate", SimpleAnimate);
+
+// function EQSNearestAgent()
 // {
-//     // console.log(this);
-//     //GUI.current_node_id = this.id;
-//     //GUI.node_inspector.refresh();
+//     this.shape = 2;
+//     this.color = "#3E0E35";
+//     this.bgcolor = "#3d2e3d";
+//     this.boxcolor = "#999";
+//     var w = 200;
+//     var h = 45;
+//     this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
+//     this.addOutput("value","vec3", {pos:[w,10], dir:LiteGraph.LEFT});
+//     this.addOutput("","path", {pos:[w*0.5,h], dir:LiteGraph.DOWN});
+//     this.size = [w, h];    
+//     this.editable = { property:"value", type:"number" };
+//     this.flags = { resizable: false };
+//     this.data = {}
 // }
 
+// EQSNearestAgent.prototype.onDrawBackground = function(ctx, canvas)
+// {
+//     ctx.font = "12px Arial";
+//     ctx.fillStyle = "#AAA";
+//     // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
+//     ctx.fillText(`Return the nearest agent`,10,30);
+// }
 
-LiteGraph.registerNodeType("btree/leaf", Leaf);
+// LiteGraph.registerNodeType("btree/EQSNearestAgent", EQSNearestAgent);
+
+function EQSNearestInterestPoint()
+{
+    this.shape = 2;
+    this.color = "#3E0E35";
+    this.bgcolor = "#3d2e3d";
+    this.boxcolor = "#999";
+    this.title = "EQS-NIP"
+    var w = 150;
+    var h = 45;
+    // this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
+    this.addOutput("value","vec3", {pos:[w,10], dir:LiteGraph.LEFT});
+    // this.addOutput("","path", {pos:[w*0.5,h], dir:LiteGraph.DOWN});
+    this.size = [w, h]; 
+    this.editable = { property:"value", type:"number" };
+    this.flags = { resizable: false };
+    this.data = {list:[]}
+}
+
+EQSNearestInterestPoint.prototype.onDrawBackground = function(ctx, canvas)
+{
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#AAA";
+    // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
+    ctx.fillText(`List evaluated`,10,15);
+}
+EQSNearestInterestPoint.prototype.onExecute = function()
+{
+    var nearest = [0,0,-1000]
+    this.setOutputData(0,nearest);
+}
+
+EQSNearestInterestPoint.prototype.onConfigure = function(info)
+{
+    onConfig(info, this.graph);
+}
+
+
+LiteGraph.registerNodeType("btree/EQSNearestInterestPoint", EQSNearestInterestPoint);
+
+
+function EQSDistanceTo()
+{
+    this.shape = 2;
+    this.color = "#3E0E35";
+    this.bgcolor = "#3d2e3d";
+    this.boxcolor = "#999";
+    var w = 150;
+    var h = 45;
+    // this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
+    this.addInput("pos","vec3", {pos:[0,10], dir:LiteGraph.LEFT});
+    this.addOutput("dist","number", {pos:[w,10], dir:LiteGraph.LEFT});
+    // this.addOutput("","path", {pos:[w*0.5,h], dir:LiteGraph.DOWN});
+    this.size = [w, h]; 
+    this.editable = { property:"value", type:"number" };
+    this.flags = { resizable: false };
+    this.data = {pos:[0, 0, 0]}
+}
+
+EQSDistanceTo.prototype.onDrawBackground = function(ctx, canvas)
+{
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#AAA";
+    // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
+    ctx.fillText(`Point evaluated`,10,35);
+}
+
+EQSDistanceTo.prototype.onConfigure = function(info)
+{
+    onConfig(info, this.graph);
+}
+
+
+
+LiteGraph.registerNodeType("btree/EQSDistanceTo", EQSDistanceTo);
+
+
 
 function removeChild(node)
 {
@@ -255,4 +519,46 @@ function removeChild(node)
         }
     }
     node.parent = null;
+}
+
+function onConfig(info, graph)
+{
+    // console.log("Links: ",  info.graph.links);
+    // console.log("Links",graph.links);
+    // debugger;
+    if(!info.outputs)
+        return
+
+    for(let i in info.outputs)
+    {
+        var output = info.outputs[i];
+        for(let j in output.links)
+        {   
+            var link_id = output.links[j];
+            var link = getLinkById(link_id, graph);
+
+            var node = graph.getNodeById(link.origin_id);
+            var origin_slot = link.origin_slot;
+            var target_node = graph.getNodeById(link.target_id);
+            var target_slot = link.target_slot;
+            var type = link.type;
+
+            graph.onNodeConnectionChange( type , node, origin_slot, target_node, target_slot );
+            console.log("Link", link);
+        }
+    }
+
+    // var node = graph.getNodeById(info.id);
+    // console.log("Node", node);
+    // console.log("Info: ", info);
+}
+
+function getLinkById(id,graph)
+{
+    for(var i in graph.links)
+    {
+        var link = graph.links[i];
+        if(link.id == id)
+            return link;
+    }
 }

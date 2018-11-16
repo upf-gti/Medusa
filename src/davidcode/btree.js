@@ -33,9 +33,8 @@ BehaviourTree.prototype.deleteNodeFromPool = function(id)
         {
             var node = this.getNodeById(id);
             var index = this.node_pool.indexOf(node);
-            if (index !== -1) {
+            if (index !== -1) 
                 this.node_pool.splice(index, 1);
-            }
         }
     }
 }
@@ -47,9 +46,9 @@ BehaviourTree.prototype.deleteNode = function(node_id, parent_id)
     if(parent_node)
     {
         var index = parent_node.children.indexOf(node);
-        if (index !== -1) {
+        if (index !== -1) 
             parent_node.children.splice(index, 1);
-        }
+        
     }
     if(node.children)
     {
@@ -68,6 +67,13 @@ BehaviourTree.prototype.run = function( character, scene )
     this.scene = scene;
     this.rootnode.tick();
 }  
+
+BehaviourTree.prototype.updateNodeInfo = function(id, options)
+{
+    var node = this.getNodeById(id);
+    node.properties = options;
+}
+
 BehaviourTree.prototype.addRootNode = function(id)
 {
     let node = new Node();
@@ -84,59 +90,70 @@ BehaviourTree.prototype.addRootNode = function(id)
 BehaviourTree.prototype.addConditionalNode = function(id, options )
 {
     let node = new Node();
-    // node.properties = {};
     node.id = id;
     // node.boxcolor = "#fff";
-
-    node.title = options.title;
-    node.property_to_compare = options.property_to_compare;
-    node.limit_value = options.limit_value;
+    node.properties = options;
+    node.title = node.properties.title;
     node.type = "conditional";
     node.tree = this.id;
     node.children = [];
-    // node.blackboard = blackboard;
-    // node.properties.id = id;
-    // this.value = 0;
-    // console.log(node);
 
-    // node.addCondition = (function(condition){ this.conditional_expression = condition }).bind(node);
     node.conditional_expression = function(agent)
     {
-        // console.log("AGENT", agent);
-        var property = this.property_to_compare.toLowerCase();
-
+        var property = this.properties.property_to_compare.toLowerCase();
+        //means that is boolean
+        if(this.properties.limit_value == null)
+        {
+            if(agent.blackboard[property] != null)
+            {
+                if(agent.blackboard[property])
+                    return true;
+                else    
+                    return false;
+            }
+            else if(agent.properties[property])
+            {
+                if(agent.properties[property])
+                    return true;
+                else    
+                    return false;
+            }
+        }
         if(agent.blackboard[property] != null)
         {
-            // console.log("Agent", agent);
-            // console.log("Param", agent.blackboard[property]);
-
-            if(agent.blackboard[property] > this.limit_value)
+            if(agent.blackboard[property] > this.properties.limit_value)
                 return true;
             else    
                 return false;
         }
         else if(agent.properties[property])
         {
-            if(agent.properties[property] > this.limit_value)
+            if(agent.properties[property] > this.properties.limit_value)
                 return true;
             else    
                 return false;
         }
     }
 
-    node.tick = function(agent)
+    node.tick = function(agent, options)
     {
         if(this.conditional_expression && !this.conditional_expression(agent))
             return false;
         else if(this.conditional_expression && this.conditional_expression(agent))
+        {   
+            if(this.children.length == 0){
+                console.log("No Children")
+                return true;
+            }
             for(var n in this.children)
             {
                 let child = this.children[n];
-                var value2 = child.tick(agent);
+                var value = child.tick(agent);
                 //Value debería ser success, fail, o running
-                if(value2)
-                    return value2;
+                if(value)
+                    return value;
             }
+        }
     }
     this.node_pool.push(node);
     return node;
@@ -195,35 +212,21 @@ BehaviourTree.prototype.addBooleanConditionalNode = function(id, property_to_com
 BehaviourTree.prototype.addInTargetNode = function(id, options )
 {
     let node = new Node();
+    node.properties = options;
     node.id = id;
     node.type = "intarget";
     this.value = 0;
     if(options)
     {
-        console.log(options);
-        node.threshold = options.threshold;
+        node.threshold = node.properties.threshold;
     }
     node.children = [];
 
     node.isInTarget = function(agent)
     {
-        // var state = agent.state;
-        // debugger;
         if(agent.inTarget(agent.properties.target, this.threshold))
         {
-            agent.in_target = true;
-            // console.log("In target!");
-            for(var n in this.children){
-                let child = this.children[n];
-                var value = child.tick(agent);
-                //Value debería ser success, fail, o running
-                //De momento true o false
-                if(value)
-                {
-
-                    return value;
-                }
-            }
+            // console.log("Intarget");
             return true;
         }
         else
@@ -235,8 +238,17 @@ BehaviourTree.prototype.addInTargetNode = function(id, options )
     {
         if(this.isInTarget && this.isInTarget(agent))
         {
-            // console.log("Agent in target");
-            return true;
+            agent.in_target = true;
+            for(var n in this.children){
+                let child = this.children[n];
+                var value = child.tick(agent);
+                //Value debería ser success, fail, o running
+                //De momento true o false
+                if(value)
+                {
+                    return value;
+                }
+            }
         }
         else
             return false;
@@ -248,22 +260,22 @@ BehaviourTree.prototype.addInTargetNode = function(id, options )
 BehaviourTree.prototype.addSequencerNode = function( id )
 {
     let node = new Node();
+    node.id = id;
     node.type = "sequencer";
-    this.value = 0;
-    node.threshold = threshold;
+    node.boxcolor = "#fff";
 
-    node.tick = function(agent)
+    node.tick = function(agent, options)
     {
         for(var n in this.children)
         {
             let child = this.children[n];
-            var value = child.tick();
-            if(n == this.children.length && value)
+            var value = child.tick(agent, options);
+            if(n == this.children.length-1 && value)
                 return value;
             //Value debería ser success, fail, o running
             if(!value)
             {
-                console.log("Sequence failed");
+                // console.log("Sequence failed");
                 return value;
             }
         }
@@ -272,17 +284,195 @@ BehaviourTree.prototype.addSequencerNode = function( id )
     return node;
 }
 
-/*********************************** LEAF NODES ***********************************/
-
-BehaviourTree.prototype.addAnimationNode = function(id, options )
+BehaviourTree.prototype.addFindNextTargetNode = function(id, options)
 {
     let node = new Node();
     node.id = id;
+    node.type = "next_target";
+    
+    node.findNextTarget = function(agent)
+    {
+        //find nearest agent
+        if(agent.checkNextTarget())
+        {
+            agent.properties.target = agent.checkNextTarget();
+            agent.in_target = false;
+            return true;  
+        }
+        return false;
+    }
+
+    node.tick = function(agent, options)
+    {
+        if(this.findNextTarget && !this.findNextTarget(agent))
+            return false;
+        else
+        {   
+            // var nextTargetFound = this.findNextTarget(agent);
+            // if(this.children.length == 0){
+            //     console.log("No Children")
+            //     return true;
+            // }
+            return true;
+        }
+    }
+    this.node_pool.push(node);
+    return node;
+}
+
+BehaviourTree.prototype.addEQSNearestAgentNode = function(id, options)
+{
+    let node = new Node();
+    node.properties = options;
+    node.id = id;
     node.type = "animation";
-    node.anims = options.anims;
+    node.target = node.properties.target;
+    
+    node.query = function(agent)
+    {
+        //find nearest agent
+        return nearest_agent;
+    }
+
+    node.tick = function(agent, options)
+    {
+        if(this.query && !this.query(agent))
+            return false;
+        else
+        {   
+            var n_agent = this.query(agent);
+            if(this.children.length == 0){
+                console.log("No Children")
+                return true;
+            }
+            for(var n in this.children)
+            {
+                let child = this.children[n];
+                var value = child.tick(agent, n_agent);
+                //Value debería ser success, fail, o running
+                if(value)
+                    return value;
+            }
+        }
+    }
+    this.node_pool.push(node);
+    return node;
+}
+BehaviourTree.prototype.addEQSNearestInterestPointNode = function(id, options)
+{
+    let node = new Node();
+    node.properties = options;
+    node.id = id;
+    node.type = "animation";
+    node.target = node.properties.target
+    node.properties.list = CORE.Scene.properties.interest_points;
+    node.list = node.properties.list;
+    
+    node.query = function(agent)
+    {
+        //find nearest IP
+        return this.list[0];
+    }
+
+    node.tick = function(agent, options)
+    {
+        if(this.query && !this.query(agent))
+            return false;
+        else
+        {   
+            var n_agent_pos = this.query(agent);
+            if(this.children.length == 0){
+                console.log("No Children")
+                return true;
+            }
+            for(var n in this.children)
+            {
+                let child = this.children[n];
+                var value = child.tick(agent, n_agent_pos);
+                //Value debería ser success, fail, o running
+                if(value)
+                    return value;
+            }
+        }
+    }
+    this.node_pool.push(node);
+    return node;
+}
+BehaviourTree.prototype.addEQSDistanceToNode = function(id, options)
+{
+    let node = new Node();
+    node.properties = options;
+    node.id = id;
+    node.type = "distanceTo";
+    node.target = node.properties.pos;
+    
+    node.distance_to = function(agent, pos)
+    {
+        //conmpute distance from agent.pos to target
+        return 50;
+    }
+
+    node.tick = function(agent, options)
+    {
+        if(this.distance_to && !this.query(agent))
+            return false;
+        else
+        {   
+            var dist = this.distance_to(agent, this.target);
+            //pasar esta dist por el output para que llegue al nodo conectado
+            
+            if(this.children.length == 0){
+                console.log("No Children")
+                return true;
+            }
+            for(var n in this.children)
+            {
+                let child = this.children[n];
+                var value = child.tick(agent);
+                //Value debería ser success, fail, o running
+                if(value)
+                    return value;
+            }
+        }
+    }
+    this.node_pool.push(node);
+    return node;
+}
+
+/*********************************** LEAF NODES ***********************************/
+BehaviourTree.prototype.addMoveToNode = function(id, options )
+{
+    let node = new Node();
+    node.properties = options;
+    node.id = id;
+    node.type = "animation";
+    // var target = node.properties.target;
+
+    node.tick = function(agent)
+    {
+        // debugger;
+        if(node.properties.target){
+            agent.properties.target = node.properties.target;
+            // console.log(agent);
+            return true;
+        }
+        return false;
+    }
+    this.node_pool.push(node);
+    return node;
+}
+
+BehaviourTree.prototype.addAnimationNode = function( id, options )
+{
+    let node = new Node();
+    node.properties = options;
+    node.id = id;
+    node.type = "animation";
+    node.anims = node.properties.anims;
     node.params = {};
-    node.params.speed = options.speed;
-    node.params.motion = options.motion;
+    node.params.speed = node.properties.speed;
+    node.params.motion = node.properties.motion;
+    node.type = node.properties.type;
     
     node.action = function(agent)
     {
@@ -291,7 +481,8 @@ BehaviourTree.prototype.addAnimationNode = function(id, options )
         // console.log(anims);
         behaviour.animations_to_merge = this.anims;
         behaviour.params = this.params;
-        behaviour.type = "mixing";
+        behaviour.type = this.type;
+        behaviour.type2 = "mixing";
         behaviour.author = "manuel";
         // console.log("Action", behaviour.animations_to_merge);
         LEvent.trigger( agent, "applyBehaviour", behaviour);
@@ -299,10 +490,8 @@ BehaviourTree.prototype.addAnimationNode = function(id, options )
         return true;
     }
 
-    node.tick = function(agent)
+    node.tick = function(agent, options)
     {
-
-
         if(this.action)
             return this.action(agent);
     }

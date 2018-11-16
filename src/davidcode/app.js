@@ -64,9 +64,11 @@ var creation_mode = false;
 var path_mode = false;
 
 var agent_selected = null;
-
+var current_graph_node = null;
 //stats
 var num_agents = 0;
+
+var global_dt;
 
 var tmp = {
   vec : vec3.create(),
@@ -107,7 +109,8 @@ function appinit()
   skeleton3 = new Skeleton("skeleton2", "src/assets/Old_Man_Walk.dae", [100, 0, 0], true);
   skeleton4 = new Skeleton("skeleton2", "src/assets/Idle.dae", [100, 0, 0], true);
   skeleton5 = new Skeleton("skeleton2", "src/assets/Walking.dae", [150, 0, 0], true);
-
+  skeleton5 = new Skeleton("skeleton2", "src/assets/Waving.dae", [150, 0, 0], true);
+  skeleton5 = new Skeleton("skeleton2", "src/assets/Umbrella.dae", [150, 0, 0], true);
   // createTree2();
   
   
@@ -168,13 +171,6 @@ function update(dt)
     //  ULTRAMEGAREQUETESUPERHARDCODEADO --> HACER GESTION DE ZONAS Y BLACKBOARDS
     // checkZone(character_);
     if(!skeleton || !skeleton.skeleton_container) continue;
-    if(skeleton.skeleton_container.getGlobalPosition()[0] > 0)
-    {
-      character_.blackboard = blackboard2;
-    }
-    else{
-      character_.blackboard = blackboard;
-    }
 
     if(!skeleton.root_bone)
       continue;
@@ -188,33 +184,33 @@ function update(dt)
     {
       var anim_name = skeleton.anim_name.split("/");
       animator.base_animation = getAnimationByName(anim_name[2].slice(0, -4));
+      animator.base_animation.current_time = 0;
       animator.merge_animations = [];
       setting_done = true;
     }
   
     if(!setting_done)
       return;
-
+    if(!BT.rootnode)
+      return;
+    node_editor.graph.runStep(1,false);
     BT.rootnode.tick(character_);
-    if(character_.inTarget(character_.current_waypoint.pos, 150))
-    {
-      character_.current_waypoint.visited = true;
-      if(character_.path.indexOf(character_.current_waypoint) == character_.path.length-1)
-      {
-        // console.log("Vuelve al primero");
-        character_.restorePath();
-      }
-      character_.getNextWaypoint();
-    }
+    // if(character_.inTarget(character_.current_waypoint.pos, 150))
+    // {
+    //   character_.current_waypoint.visited = true;
+    //   if(character_.path.indexOf(character_.current_waypoint) == character_.path.length-1)
+    //   {
+    //     // console.log("Vuelve al primero");
+    //     //character_.restorePath();
+    //   }
+    //   character_.getNextWaypoint();
+    // }
     // console.log(dt);
-    character_.moveTo(character_.current_waypoint.pos, dt);
+    character_.moveTo(character_.properties.target, dt);
     animator.clearMergeAnims();
 
     animator.animate(skeleton, dt, SIMPLE, weight_of_merge);
-    animator.last_current_time += dt;
-  
-    if(updateTime)
-      animator.current_time += dt;
+
   }  
 }
 
@@ -274,9 +270,9 @@ String.prototype.capitalize = function() {
 
 function disselectCharacter()
 {
-  for(var i in characters)
+  for(var i in AgentManager.agents)
   {
-    var char = characters[i];
+    var char = AgentManager.agents[i];
     char.is_selected = false;
     char.changeColor();
   }
@@ -284,47 +280,47 @@ function disselectCharacter()
 
 function createDefaultAreas()
 {
-  area1 = new RD.SceneNode();
-  area1.name = "area1";
-  area1.mesh = "planeXZ";
-  area1.position = [2500, 0, 0];
-  area1.blend_mode = RD.BLEND_ALPHA;
-  area1.flags.depth_test = false;
-  area1.scale([5000, 1, 10000]);
-  area1.color = [0,1,1,0.05];
-  GFX.scene.root.addChild(area1);
+  // area1 = new RD.SceneNode();
+  // area1.name = "area1";
+  // area1.mesh = "planeXZ";
+  // area1.position = [2500, 0, 0];
+  // area1.blend_mode = RD.BLEND_ALPHA;
+  // area1.flags.depth_test = false;
+  // area1.scale([5000, 1, 10000]);
+  // area1.color = [0,1,1,0.05];
+  // GFX.scene.root.addChild(area1);
 
-  area2 = new RD.SceneNode();
-  area2.name = "area2";
-  area2.mesh = "planeXZ";
-  area2.position = [-2500, 0, 0];
-  area2.blend_mode = RD.BLEND_ALPHA;
-  area2.flags.depth_test = false;
-  area2.scale([5000, 1, 10000]);
-  area2.color = [0.25,1,0,0.05];
-  GFX.scene.root.addChild(area2);
+  // area2 = new RD.SceneNode();
+  // area2.name = "area2";
+  // area2.mesh = "planeXZ";
+  // area2.position = [-2500, 0, 0];
+  // area2.blend_mode = RD.BLEND_ALPHA;
+  // area2.flags.depth_test = false;
+  // area2.scale([5000, 1, 10000]);
+  // area2.color = [0.25,1,0,0.05];
+  // GFX.scene.root.addChild(area2);
 
-  area3 = new RD.SceneNode();
-  area3.name = "area3";
-  area3.mesh = "planeXZ";
-  area3.texture = "sunny.png";
-  area3.position = [-300, 2, 0];
-  area3.blend_mode = RD.BLEND_ALPHA;
-  area3.flags.depth_test = false;
-  area3.scale([500, 1, 500]);
-  area3.rotate(90*DEG2RAD, [0,-1,0]);
-  GFX.scene.root.addChild(area3);
+  // area3 = new RD.SceneNode();
+  // area3.name = "area3";
+  // area3.mesh = "planeXZ";
+  // area3.texture = "sunny.png";
+  // area3.position = [-300, 2, 0];
+  // area3.blend_mode = RD.BLEND_ALPHA;
+  // area3.flags.depth_test = false;
+  // area3.scale([500, 1, 500]);
+  // area3.rotate(90*DEG2RAD, [0,-1,0]);
+  // GFX.scene.root.addChild(area3);
 
-  area4 = new RD.SceneNode();
-  area4.name = "area4";
-  area4.mesh = "planeXZ";
-  area4.scale([500, 1, 500]);
-  area4.blend_mode = RD.BLEND_ALPHA;
-  area4.flags.depth_test = false;
-  area4.texture = "rainy.png";
-  area4.position = [300, 0, 0];
-  area4.rotate(90*DEG2RAD, [0,1,0]);
-  GFX.scene.root.addChild(area4);
+  // area4 = new RD.SceneNode();
+  // area4.name = "area4";
+  // area4.mesh = "planeXZ";
+  // area4.scale([500, 1, 500]);
+  // area4.blend_mode = RD.BLEND_ALPHA;
+  // area4.flags.depth_test = false;
+  // area4.texture = "rainy.png";
+  // area4.position = [300, 0, 0];
+  // area4.rotate(90*DEG2RAD, [0,1,0]);
+  // GFX.scene.root.addChild(area4);
 }
 
 //init();
