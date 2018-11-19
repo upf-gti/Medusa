@@ -68,9 +68,9 @@ BTEditor.prototype.init = function()
                 that.btree.addMoveToNode(node.id, node.data);
             } break;
 
-            // case "btree/EQSDistanceTo":{
-            //     that.btree.addEQSDistanceToNode(node.id, node.data);
-            // }
+            case "btree/EQSDistanceTo":{
+                that.btree.addEQSDistanceToNode(node.id, node.data);
+            }
         }
     }
 
@@ -82,11 +82,15 @@ BTEditor.prototype.init = function()
     
     this.graph.onNodeConnectionChange = function( type , node, slot, target_node, target_slot )
     {
+        if(!node)
+            condole.log("Disconnect");
         console.log(that.btree);
         var btnode = that.btree.getNodeById(node.id);
-        var target_btnode = that.btree.getNodeById(target_node.id);
-        btnode.children.push(target_btnode);
-        target_btnode.parent = btnode;
+        if(target_node){
+            var target_btnode = that.btree.getNodeById(target_node.id);
+            btnode.children.push(target_btnode);
+            target_btnode.parent = btnode;
+        }
     }
 
 
@@ -98,6 +102,7 @@ BTEditor.prototype.init = function()
     {
         console.log(node);
         current_graph_node = node;
+        // CORE.GUI.showNodeInfo(node);
     }
 
     this.graph_canvas.onNodeDeselected = function(node)
@@ -183,15 +188,24 @@ function Conditional()
     this.bgcolor = "#2d4243";
     this.boxcolor = "#999";
     var w = 200;
-    var h = 65;
+    var h = 75;
     this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
     this.addInput("value","number", {pos:[0,10], dir:LiteGraph.LEFT});
     // this.addInput("value","number", {pos:[0,30], dir:LiteGraph.LEFT});
     this.addOutput("","path", {pos:[w*0.5,h], dir:LiteGraph.DOWN});
     this.size = [w, h];    
-    this.addProperty( "value", 1.0 );
+//     this.properties = {
+//         value: 50,
+//         min: 0,
+//         max: 75,
+//         text: "threshold"
+//     };
+//     var that = this;
+//     this.size = [80,60];
+//    this.slider = this.addWidget("slider","V", this.properties.value, function(v){ that.properties.value = v; }, this.properties  );
+
     this.editable = { property:"value", type:"number" };
-    this.data = {title:"", property_to_compare:"", limit_value: null}
+    this.data = {title:"", property_to_compare:"", limit_value: 50, value_to_compare:null}
     // this.flags = { resizable: false };
 
 }
@@ -202,15 +216,26 @@ Conditional.prototype.onDrawBackground = function(ctx, canvas)
     ctx.fillStyle = "#AAA";
     // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
     ctx.fillText(`Property: ${this.data.property_to_compare}`,10,35);
-    if(this.data.limit_value)
-        ctx.fillText(`Threshold: ${this.data.limit_value}`,10,55);
+    // if(this.data.limit_value)
+    //     ctx.fillText(`Threshold: ${this.data.limit_value}`,10,55);
 }
 
+Conditional.prototype.onDblClick = function(node)
+{
+    CORE.GUI.showNodeInfo(this);
+}
+
+// Conditional.prototype.onPropertyChanged = function(name,value)
+// {
+//     if(name == "value")
+//         this.slider.value = value;
+// }
 Conditional.prototype.onExecute = function()
 {
     var data = this.getInputData(1);
+    // console.log(data);
     if(data)
-        this.data.limit_value = data;
+        this.data.value_to_compare = data;
     if(this.btree)
     {
         this.btree.updateNodeInfo(this.id, this.data);
@@ -337,7 +362,7 @@ function FindNextTarget()
     this.bgcolor = "#384837";
     this.boxcolor = "#999";
     var w = 200;
-    var h = 65;
+    var h = 35;
     this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
     // this.addOutput("","path", {pos:[w*0.5,h], dir:LiteGraph.DOWN});
     this.size = [w, h];    
@@ -350,11 +375,11 @@ function FindNextTarget()
 FindNextTarget.title = "FindNextTarget ";
 FindNextTarget.prototype.onDrawBackground = function(ctx, canvas)
 {
-    ctx.font = "12px Arial";
-    ctx.fillStyle = "#AAA";
-    // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
-    ctx.fillText(`move to: ${this.data.target}`,10,35);
-    ctx.fillText(`Motion speed: ${this.data.motion}`,10,55);
+    // ctx.font = "12px Arial";
+    // ctx.fillStyle = "#AAA";
+    // // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
+    // ctx.fillText(`move to: ${this.data.target}`,10,35);
+    // ctx.fillText(`Motion speed: ${this.data.motion}`,10,55);
 }
 
 FindNextTarget.prototype.onConfigure = function(info)
@@ -454,7 +479,20 @@ EQSNearestInterestPoint.prototype.onDrawBackground = function(ctx, canvas)
 }
 EQSNearestInterestPoint.prototype.onExecute = function()
 {
-    var nearest = [0,0,-1000]
+    var nearest = [0,0,-1000];
+    var min = 99999999999;
+    // console.log(CORE.Scene.properties.interest_points);
+    for(var i in CORE.Scene.properties.interest_points)
+    {
+        var ip = CORE.Scene.properties.interest_points[i];
+        var agent_pos = agent_evaluated.skeleton.skeleton_container.getGlobalPosition();
+        var dist = vec3.dist(ip, agent_pos);
+
+        if(dist < min){
+            min = dist;
+            nearest = ip;
+        }
+    }
     this.setOutputData(0,nearest);
 }
 
@@ -492,7 +530,16 @@ EQSDistanceTo.prototype.onDrawBackground = function(ctx, canvas)
     // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
     ctx.fillText(`Point evaluated`,10,35);
 }
-
+EQSDistanceTo.prototype.onExecute = function()
+{
+    var point = this.getInputData(0);
+    var agent_pos = agent_evaluated.skeleton.skeleton_container.getGlobalPosition();
+    var dist = vec3.dist(point, agent_pos);
+    // console.log("Agent pos: ", agent_pos);
+    // console.log("Point: ", point);
+    // console.log(dist);  
+    this.setOutputData(0,dist);
+}
 EQSDistanceTo.prototype.onConfigure = function(info)
 {
     onConfig(info, this.graph);
@@ -544,7 +591,7 @@ function onConfig(info, graph)
             var type = link.type;
 
             graph.onNodeConnectionChange( type , node, origin_slot, target_node, target_slot );
-            console.log("Link", link);
+            // console.log("Link", link);
         }
     }
 

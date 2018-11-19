@@ -102,6 +102,12 @@ BehaviourTree.prototype.addConditionalNode = function(id, options )
     {
         var property = this.properties.property_to_compare.toLowerCase();
         //means that is boolean
+        if(this.properties.value_to_compare)
+        {
+            if(this.properties.value_to_compare > this.properties.limit_value )
+                return true;
+            return false;
+        }
         if(this.properties.limit_value == null)
         {
             if(agent.blackboard[property] != null)

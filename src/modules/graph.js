@@ -212,7 +212,7 @@ var GraphManager = {
                 {
                     let behavior = CORE.Scene.behaviors[i];
                     load_inspector.addButton(i,"Load",{callback:function(){
-                        console.log("Loading: ", JSON.parse(behavior));
+                        // console.log("Loading: ", JSON.parse(behavior));
                         behavior = JSON.parse(behavior);
                         node_editor.graph.configure(behavior);
                         dlg.close();

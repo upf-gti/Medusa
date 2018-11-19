@@ -65,6 +65,7 @@ var path_mode = false;
 
 var agent_selected = null;
 var current_graph_node = null;
+var agent_evaluated = null;
 //stats
 var num_agents = 0;
 
@@ -165,6 +166,7 @@ function update(dt)
   for(var c in AgentManager.agents)
   {
     var character_ = AgentManager.agents[c]; 
+    agent_evaluated = character_;
     var animator = character_.animator;
     var skeleton = character_.skeleton;
 
