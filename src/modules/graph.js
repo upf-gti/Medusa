@@ -208,12 +208,16 @@ var GraphManager = {
                 load_inspector.clear();
                 load_inspector.addTitle("Select Behavior"); 
                 load_inspector.addSeparator();
+                if(isEmpty(CORE.Scene.behaviors))
+                    return;
                 for(let i in CORE.Scene.behaviors)
                 {
                     let behavior = CORE.Scene.behaviors[i];
                     load_inspector.addButton(i,"Load",{callback:function(){
                         // console.log("Loading: ", JSON.parse(behavior));
                         behavior = JSON.parse(behavior);
+                        console.log(behavior);
+                        // debugger;
                         node_editor.graph.configure(behavior);
                         dlg.close();
                     }})
@@ -256,7 +260,13 @@ var GraphManager = {
                     if(name)
                     {
                         console.log("Name", name);
-                        console.log(node_editor.graph.serialize());
+                        var graph = node_editor.graph.serialize();
+                        var nodes = graph.nodes;
+                        for(var i in nodes)
+                        {   
+                            delete nodes[i].data["g_node"];
+                        }
+                        console.log(graph);
                     }
                 }})
                 dlg.adjustSize();

@@ -4,6 +4,13 @@ NODETYPES = [
     3,//animator
 ]
 
+var STATUS = 
+{
+    success:0,
+    running:1, 
+    fail:2
+}
+
 function BehaviourTree()
 {
   if(this.constructor !== BehaviourTree)
@@ -14,6 +21,9 @@ function BehaviourTree()
 BehaviourTree.prototype._ctor = function()
 {
     this.node_pool = [];
+    this.time = 0;
+    this.last_time = 0;
+    this.fixed_node = null;
 }
 
 BehaviourTree.prototype.getNodeById = function(id)
@@ -27,7 +37,7 @@ BehaviourTree.prototype.getNodeById = function(id)
 
 BehaviourTree.prototype.deleteNodeFromPool = function(id)
 {
-    for(var i = 0; i< this.node_pool.length; i++)
+    for(var i = 0; i < this.node_pool.length; i++)
     {
         if(this.node_pool[i].id == id)
         {
@@ -74,25 +84,42 @@ BehaviourTree.prototype.updateNodeInfo = function(id, options)
     node.properties = options;
 }
 
-BehaviourTree.prototype.addRootNode = function(id)
+BehaviourTree.prototype.addRootNode = function(id, options, g_node)
 {
     let node = new Node();
     node.id = id;
+    node.properties = options;
+    node.g_node = g_node;
     node.type = "root";
-    node.boxcolor = "#fff";
 
+    node.tick = function(agent, dt){
+        for(var n in this.children){
+            var child = this.children[n];
+            var value = child.tick(agent, dt);
+            //Value debería ser success, fail, o running
+            if(value == STATUS.success){
+                var g_child = child.g_node;
+                var chlid_input_link_id = g_child.inputs[0].link;
+                this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                return value;
+            }
+        }
+        // console.log("Ninguna rama ha tenido exito");
+        return STATUS.fail; //placeholder ta que lo pensemos bien
+    }
     this.node_pool.push(node);
     return node;
 }
 
 /*********************************** DECORATOR NODES ***********************************/
 
-BehaviourTree.prototype.addConditionalNode = function(id, options )
+BehaviourTree.prototype.addConditionalNode = function(id, options, g_node )
 {
     let node = new Node();
     node.id = id;
     // node.boxcolor = "#fff";
     node.properties = options;
+    node.g_node = g_node;
     node.title = node.properties.title;
     node.type = "conditional";
     node.tree = this.id;
@@ -104,29 +131,15 @@ BehaviourTree.prototype.addConditionalNode = function(id, options )
         //means that is boolean
         if(this.properties.value_to_compare)
         {
+            //comprobar el tipo de comparativa ( <, >, ==)
             if(this.properties.value_to_compare > this.properties.limit_value )
                 return true;
             return false;
         }
-        if(this.properties.limit_value == null)
-        {
-            if(agent.blackboard[property] != null)
-            {
-                if(agent.blackboard[property])
-                    return true;
-                else    
-                    return false;
-            }
-            else if(agent.properties[property])
-            {
-                if(agent.properties[property])
-                    return true;
-                else    
-                    return false;
-            }
-        }
         if(agent.blackboard[property] != null)
         {
+            //comprobar el tipo de comparativa ( <, >, ==)
+
             if(agent.blackboard[property] > this.properties.limit_value)
                 return true;
             else    
@@ -134,6 +147,7 @@ BehaviourTree.prototype.addConditionalNode = function(id, options )
         }
         else if(agent.properties[property])
         {
+            //comprobar el tipo de comparativa ( <, >, ==)
             if(agent.properties[property] > this.properties.limit_value)
                 return true;
             else    
@@ -141,85 +155,112 @@ BehaviourTree.prototype.addConditionalNode = function(id, options )
         }
     }
 
-    node.tick = function(agent, options)
+    node.tick = function(agent, dt)
     {
         if(this.conditional_expression && !this.conditional_expression(agent))
-            return false;
+            return STATUS.fail;
         else if(this.conditional_expression && this.conditional_expression(agent))
         {   
             if(this.children.length == 0){
                 console.log("No Children")
-                return true;
+                return STATUS.success;
             }
-            for(var n in this.children)
+            for(let n in this.children)
             {
-                let child = this.children[n];
-                var value = child.tick(agent);
+                var child = this.children[n];
+                var value = child.tick(agent, dt);
                 //Value debería ser success, fail, o running
-                if(value)
+                if(value == STATUS.success)
+                {
+                    var g_child = child.g_node;
+                    var chlid_input_link_id = g_child.inputs[0].link;
+                    this.g_node.triggerSlot(0, null, chlid_input_link_id);
                     return value;
+                }
             }
+            return STATUS.fail;
         }
     }
     this.node_pool.push(node);
     return node;
 }
 
-BehaviourTree.prototype.addBooleanConditionalNode = function(id, property_to_compare )
+BehaviourTree.prototype.addBoolConditionalNode = function(id, options, g_node)
 {
     let node = new Node();
     node.id = id;
-    node.type = "bool_conditional";
-    node.boxcolor = "#fff";
+    // node.boxcolor = "#fff";
+    node.properties = options;
+    node.g_node = g_node;
+    node.title = node.properties.title;
+    node.type = "conditional";
     node.tree = this.id;
     node.children = [];
-    node.blackboard = blackboard;
-    node.property_to_compare = property_to_compare;
-    this.value = 0;
-    // console.log(node);
 
-    // node.addCondition = (function(condition){ this.conditional_expression = condition }).bind(node);
     node.conditional_expression = function(agent)
     {
-        if(this.blackboard[this.property_to_compare] != null)
+        var property = this.properties.property_to_compare.toLowerCase();
+        //means that is boolean
+        if(this.properties.value_to_compare)
         {
-            if(this.blackboard[this.property_to_compare])
+            //si me entra externamente un valor y es igual al estado booleano (me entra falso y quiero que siga ese path si es falso)
+            if(this.properties.value_to_compare == this.properties.bool_state)
+                return true;
+            return false;
+        }
+        if(agent.blackboard[property] != null)
+        {
+            if(agent.blackboard[property] == this.properties.bool_state)
                 return true;
             else    
                 return false;
         }
-        else if(agent.properties[this.property_to_compare])
+        else if(agent.properties[property] != null)
         {
-            if(agent.properties[this.property_to_compare])
+            if(agent.properties[property] == this.properties.bool_state)
                 return true;
             else    
                 return false;
         }
     }
 
-    node.tick = function(agent)
+    node.tick = function(agent, dt)
     {
         if(this.conditional_expression && !this.conditional_expression(agent))
-            return false;
-        if(this.conditional_expression && this.conditional_expression(agent))
+            return STATUS.fail;
+        else if(this.conditional_expression && this.conditional_expression(agent))
+        {   
+            if(this.children.length == 0){
+                console.log("No Children")
+                return STATUS.success;
+            }
             for(var n in this.children)
             {
                 let child = this.children[n];
-                var value2 = child.tick(agent);
+
+                var value = child.tick(agent, dt);
                 //Value debería ser success, fail, o running
-                if(value2)
-                    return value2;
+                if(value == STATUS.success)
+                {
+                    var g_child = child.g_node;
+                    var chlid_input_link_id = g_child.inputs[0].link;
+                    this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                    return value;
+                }
             }
+            return STATUS.fail;
+        }
     }
     this.node_pool.push(node);
     return node;
 }
 
-BehaviourTree.prototype.addInTargetNode = function(id, options )
+BehaviourTree.prototype.addInTargetNode = function(id, options, g_node )
 {
     let node = new Node();
-    node.properties = options;
     node.id = id;
+    node.properties = options;
+    node.g_node = g_node;
     node.type = "intarget";
     this.value = 0;
     if(options)
@@ -233,6 +274,9 @@ BehaviourTree.prototype.addInTargetNode = function(id, options )
         if(agent.inTarget(agent.properties.target, this.threshold))
         {
             // console.log("Intarget");
+            // check if the target is in some special list and  some properties to apply to
+            // the agent or to the blackboard
+            CORE.Scene.applyTargetProperties(agent.properties.target, agent);
             return true;
         }
         else
@@ -240,49 +284,97 @@ BehaviourTree.prototype.addInTargetNode = function(id, options )
 
     }
 
-    node.tick = function(agent)
+    node.tick = function(agent, dt)
     {
         if(this.isInTarget && this.isInTarget(agent))
         {
             agent.in_target = true;
             for(var n in this.children){
                 let child = this.children[n];
-                var value = child.tick(agent);
+                var value = child.tick(agent, dt);
                 //Value debería ser success, fail, o running
                 //De momento true o false
-                if(value)
+                if(value == STATUS.success)
                 {
+                    var g_child = child.g_node;
+                    var chlid_input_link_id = g_child.inputs[0].link;
+                    this.g_node.triggerSlot(0, null, chlid_input_link_id);
                     return value;
                 }
             }
         }
         else
-            return false;
+            return STATUS.fail;
     }
     this.node_pool.push(node);
     return node;
 }
 
-BehaviourTree.prototype.addSequencerNode = function( id )
+BehaviourTree.prototype.addSequencerNode = function( id, options, g_node )
 {
     let node = new Node();
     node.id = id;
+    node.properties = options;
+    node.g_node = g_node;
     node.type = "sequencer";
     node.boxcolor = "#fff";
 
-    node.tick = function(agent, options)
+    node.tick = function(agent, dt)
     {
-        for(var n in this.children)
+        if(this.executing_child_index != null)
         {
-            let child = this.children[n];
-            var value = child.tick(agent, options);
-            if(n == this.children.length-1 && value)
-                return value;
-            //Value debería ser success, fail, o running
-            if(!value)
+            let child = this.children[this.executing_child_index];
+            var value = child.tick(agent, dt);
+            if(value == STATUS.running)
             {
-                // console.log("Sequence failed");
+                // this.executing_child_index = n;
+                var g_child = child.g_node;
+                var chlid_input_link_id = g_child.inputs[0].link;
+                this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                return STATUS.success;
+            }
+            if(value == STATUS.success )
+            {
+                this.executing_child_index += 1;
+                var g_child = child.g_node;
+                var chlid_input_link_id = g_child.inputs[0].link;
+                this.g_node.triggerSlot(0, null, chlid_input_link_id);
+            }
+            if(this.executing_child_index == this.children.length && value == STATUS.success)
+            {
+                this.executing_child_index = null;
+                return STATUS.success;
+            }
+            //Value debería ser success, fail, o running
+            if(value == STATUS.fail)
                 return value;
+        }
+        else
+        {
+
+            for(var n in this.children)
+            {
+                let child = this.children[n];
+                var value = child.tick(agent, dt);
+                if(value == STATUS.running)
+                {
+                    this.executing_child_index = parseInt(n);
+                    var g_child = child.g_node;
+                    var chlid_input_link_id = g_child.inputs[0].link;
+                    this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                    return STATUS.success;
+                }
+                if(value == STATUS.success)
+                {
+                    var g_child = child.g_node;
+                    var chlid_input_link_id = g_child.inputs[0].link;
+                    this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                }
+                if(n == this.children.length-1 && value == STATUS.success && this.executing_child_index == null)
+                    return STATUS.success;
+                //Value debería ser success, fail, o running
+                if(value == STATUS.fail)
+                    return value;
             }
         }
     }
@@ -290,10 +382,12 @@ BehaviourTree.prototype.addSequencerNode = function( id )
     return node;
 }
 
-BehaviourTree.prototype.addFindNextTargetNode = function(id, options)
+BehaviourTree.prototype.addFindNextTargetNode = function(id, options, g_node)
 {
     let node = new Node();
     node.id = id;
+    node.properties = options;
+    node.g_node = g_node;
     node.type = "next_target";
     
     node.findNextTarget = function(agent)
@@ -308,18 +402,16 @@ BehaviourTree.prototype.addFindNextTargetNode = function(id, options)
         return false;
     }
 
-    node.tick = function(agent, options)
+    node.tick = function(agent, dt)
     {
         if(this.findNextTarget && !this.findNextTarget(agent))
-            return false;
+            return STATUS.fail;
         else
         {   
-            // var nextTargetFound = this.findNextTarget(agent);
-            // if(this.children.length == 0){
-            //     console.log("No Children")
-            //     return true;
-            // }
-            return true;
+            // var g_child = child.g_node;
+            // var chlid_input_link_id = g_child.inputs[0].link;
+            // this.g_node.triggerSlot(0, null, chlid_input_link_id);
+            return STATUS.success;
         }
     }
     this.node_pool.push(node);
@@ -349,14 +441,14 @@ BehaviourTree.prototype.addEQSNearestAgentNode = function(id, options)
             var n_agent = this.query(agent);
             if(this.children.length == 0){
                 console.log("No Children")
-                return true;
+                return STATUS.success;
             }
             for(var n in this.children)
             {
                 let child = this.children[n];
                 var value = child.tick(agent, n_agent);
                 //Value debería ser success, fail, o running
-                if(value)
+                if(value == STATUS.success)
                     return value;
             }
         }
@@ -368,6 +460,7 @@ BehaviourTree.prototype.addEQSNearestInterestPointNode = function(id, options)
 {
     let node = new Node();
     node.properties = options;
+    
     node.id = id;
     node.type = "animation";
     node.target = node.properties.target
@@ -446,32 +539,62 @@ BehaviourTree.prototype.addEQSDistanceToNode = function(id, options)
 }
 
 /*********************************** LEAF NODES ***********************************/
-BehaviourTree.prototype.addMoveToNode = function(id, options )
+BehaviourTree.prototype.addMoveToNode = function(id, options, g_node )
 {
     let node = new Node();
     node.properties = options;
+    node.g_node = g_node;
     node.id = id;
     node.type = "animation";
     // var target = node.properties.target;
 
-    node.tick = function(agent)
+    node.tick = function(agent, dt)
     {
         // debugger;
-        if(node.properties.target){
-            agent.properties.target = node.properties.target;
+        if(this.properties.target){
+            agent.properties.target = this.properties.target;
             // console.log(agent);
-            return true;
+            return STATUS.success;
         }
-        return false;
+        return STATUS.fail;
     }
     this.node_pool.push(node);
     return node;
 }
 
-BehaviourTree.prototype.addAnimationNode = function( id, options )
+BehaviourTree.prototype.addWaitNode = function(id, options, g_node )
 {
     let node = new Node();
     node.properties = options;
+    node.properties.current_time = 0;
+    node.g_node = g_node;
+    node.id = id;
+    node.type = "wait";
+    // var target = node.properties.target;
+
+    node.tick = function(agent, dt)
+    {
+        // debugger;
+        if(this.properties.current_time > this.properties.total_time){
+            this.properties.current_time = 0;
+            // console.log(agent);
+            return STATUS.success;
+        }
+        else
+        {
+            this.properties.current_time += dt;
+            return STATUS.running;
+        }
+    }
+    this.node_pool.push(node);
+    return node;
+}
+
+BehaviourTree.prototype.addAnimationNode = function( id, options, g_node )
+{
+    let node = new Node();
+    node.properties = options;
+    node.g_node = g_node;
     node.id = id;
     node.type = "animation";
     node.anims = node.properties.anims;
@@ -493,10 +616,10 @@ BehaviourTree.prototype.addAnimationNode = function( id, options )
         // console.log("Action", behaviour.animations_to_merge);
         LEvent.trigger( agent, "applyBehaviour", behaviour);
 
-        return true;
+        return STATUS.success;
     }
 
-    node.tick = function(agent, options)
+    node.tick = function(agent, dt)
     {
         if(this.action)
             return this.action(agent);

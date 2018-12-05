@@ -179,7 +179,7 @@ Character.prototype.inTarget = function( target, threshold)
     current_pos[1] = this.skeleton.skeleton_container.getGlobalPosition()[2];
 
     var a = vec2.fromValues(current_pos[0],current_pos[1]);
-    var b = vec2.fromValues(target[0],target[2]);
+    var b = vec2.fromValues(target.pos[0],target.pos[2]);
 
     var dist = vec2.distance(a,b);
     // console.log("dist", dist);

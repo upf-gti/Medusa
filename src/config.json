@@ -18,6 +18,7 @@
         "src/davidcode/extra/tinyxml.js",
         "src/davidcode/extra/litegraph.js",
         "src/davidcode/animator.js",
+        "src/davidcode/behaviors.js",
         "src/davidcode/skeleton.js",
         "src/davidcode/character.js",
         "src/davidcode/btree.js",

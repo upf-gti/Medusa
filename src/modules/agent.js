@@ -56,26 +56,31 @@ var AgentManager = {
                         case "Boolean":  widget = inspector.addCheckbox( p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v } } );    break;
                         case "Array":
                         case "Float32Array": 
-                            switch(properties[p].length){
-                                case 2:  widget = inspector.addVector2(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
-                                case 3:  widget = inspector.addVector3(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
-                                case 4:  widget = inspector.addVector4(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
-                            }
+                            // switch(properties[p].length){
+                            //     case 2:  widget = inspector.addVector2(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
+                            //     case 3:  widget = inspector.addVector3(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
+                            //     case 4:  widget = inspector.addVector4(p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v; } }); break;
+                            // }
                             break;
                         default:    
-                        debugger;   
-                            console.warn( "parameter type from parameter "+p+" in agent "+ uid + " was not recognised");
+                        // debugger;   
+                            // console.warn( "parameter type from parameter "+p+" in agent "+ uid + " was not recognised");
                     }
                     if(!widget) continue;
                     widget.classList.add("draggable-item");
-                    console.log(widget.type);
                     widget.addEventListener("dragstart", function(a){ 
                         var str = a.srcElement.children[1].children[0].children[0].classList.value;
                         var limit = 50;
                         if(str.includes("checkbox"))
                             limit = null;
-                        
-                        var obj = {name:a.srcElement.children[0].title, property_to_compare:a.srcElement.children[0].title, limit_value:limit}
+                        var obj = {}
+                        if(this.children[1].children[0].children[0].classList.contains('checkbox'))
+                        {
+                            obj = {name:a.srcElement.children[0].title, property_to_compare:a.srcElement.children[0].title, bool_state:true};
+                            a.dataTransfer.setData("type", "bool");
+                        } 
+                        else
+                            obj = {name:a.srcElement.children[0].title, property_to_compare:a.srcElement.children[0].title, limit_value:limit};
                         obj = JSON.stringify(obj);
                         a.dataTransfer.setData("obj", obj); 
                     });
@@ -131,7 +136,7 @@ class Agent{
         this.blackboard = blackboard;
 
         // this.path = [{pos:[0,0,100],visited:false}, {pos: [-100,0,1400],visited:false}, {pos:[1400,0,1000],visited:false},{pos:[2000,0,800],visited:false},{pos:[2600,0,1400],visited:false}, {pos:[1800,0,1400],visited:false}, {pos:[1600,0,-800],visited:false}, {pos:[-1200,0,-1000],visited:false}, {pos:[-400,0,0],visited:false}];
-        this.path = [{pos:[1300,0,0],visited:false},{pos: [0,0,1000],visited:false} ,{pos: [-1300,0,0],visited:false}];
+        this.path = [{id:1,pos:[1300,0,0],visited:false},{id:2,pos: [0,0,1000],visited:false} ,{id:3,pos: [-1300,0,0],visited:false}];
         this.current_waypoint = this.path[0];
 
         var random = vec3.random(vec3.create(), 100);
@@ -144,7 +149,7 @@ class Agent{
             money:20,
             hungry:false,
             umbrella: true,
-            target: this.path[0].pos
+            target: this.path[0]
         }
 
         this.skeleton = new Skeleton( LS.generateUId('skeleton'), "src/assets/Walking.dae", [0,0,0], false);
@@ -240,7 +245,7 @@ class Agent{
         if(this.animator.motion_speed < 0.1)
             return;
         var motion_to_apply = this.animator.motion_speed * (dt/0.0169);
-        this.orientCharacter(this.skeleton.skeleton_container, target, dt);
+        this.orientCharacter(this.skeleton.skeleton_container, target.pos, dt);
         var direction = GFX.rotateVector(this.skeleton.skeleton_container.getGlobalMatrix(), [0,0,1]);
         direction = vec3.multiply(direction, direction, [this.animator.speed*motion_to_apply, this.animator.speed*motion_to_apply, this.animator.speed*motion_to_apply]);
         vec3.add(this.skeleton.skeleton_container.position, this.skeleton.skeleton_container.position, direction);
@@ -263,7 +268,7 @@ class Agent{
         current_pos[1] = this.skeleton.skeleton_container.getGlobalPosition()[2];
 
         var a = vec2.fromValues(current_pos[0],current_pos[1]);
-        var b = vec2.fromValues(target[0],target[2]);
+        var b = vec2.fromValues(target.pos[0],target.pos[2]);
 
         var dist = vec2.distance(a,b);
         // console.log("dist", dist);
@@ -271,8 +276,8 @@ class Agent{
         if(dist < threshold)
         {
                 for(var i  in this.path)
-                if(this.path[i].pos == target)
-                    this.path[i].visited = true;
+                    if(this.path[i].id == target.id)
+                        this.path[i].visited = true;
             
             return true;
         }
@@ -289,9 +294,8 @@ class Agent{
                 this.current_waypoint = this.path[i];
                 // if(i == this.path.length -1)
                 //     this.restorePath();
-                return this.path[i].pos;
+                return this.path[i];
             }
-
         }
     }
 
@@ -323,7 +327,7 @@ class Agent{
         for(var i in this.path)
         {
             if(!this.path[i].visited)
-                return this.path[i].pos;
+                return this.path[i];
         }
         return false;
     }
