@@ -61,6 +61,10 @@ BTEditor.prototype.init = function()
                 that.btree.addSequencerNode(node.id, node.data, node);
             } break;
 
+            case "btree/Selector":{
+                that.btree.addSelectorNode(node.id, node.data, node);
+            } break;
+
             case "btree/selector": break; 
 
             case "btree/FindNextTarget":{
@@ -233,7 +237,6 @@ function Conditional()
     var h = 85;
     this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
     this.addInput("value","number", {pos:[0,40], dir:LiteGraph.LEFT});
-    // this.addInput("value","number", {pos:[0,30], dir:LiteGraph.LEFT});
     this.addOutput("","path", {pos:[w*0.5,h], dir:LiteGraph.DOWN});
     this.size = [w, h];    
     var that = this;
@@ -243,7 +246,6 @@ function Conditional()
         max: 100,
         text: "threshold"
     };
-    // this.size = [80,60];
     this.slider = this.addWidget("slider","Threshold", this.properties.value, function(v){ that.properties.value = v; that.data.limit_value = v; }, this.properties  );
 
     this.editable = { property:"value", type:"number" };
@@ -255,10 +257,7 @@ Conditional.prototype.onDrawBackground = function(ctx, canvas)
 {
     ctx.font = "12px Arial";
     ctx.fillStyle = "#AAA";
-    // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
     ctx.fillText(`Property: ${this.data.property_to_compare}`,10,65);
-    // if(this.data.limit_value)
-    //     ctx.fillText(`Threshold: ${this.data.limit_value}`,10,55);
 }
 
 Conditional.prototype.onDblClick = function(node)
@@ -276,7 +275,7 @@ Conditional.prototype.onPropertyChanged = function(name,value)
 Conditional.prototype.onExecute = function()
 {
     var data = this.getInputData(1);
-    // console.log(data);
+    console.log(data);
     if(data)
         this.data.value_to_compare = data;
     if(this.btree)
@@ -435,6 +434,35 @@ Sequencer.prototype.onConfigure = function(info)
 
 // Sequencer.prototype.onConfigure = bl();
 LiteGraph.registerNodeType("btree/Sequencer", Sequencer);
+
+function Selector()
+{
+    this.shape = 2;
+    this.color = "#6F0E12";
+    this.bgcolor = "#3f2c2c";
+    this.boxcolor = "#999";
+    this.addInput("","path");
+	this.addOutput("","path");
+	this.addProperty( "value", 1.0 );
+    this.editable = { property:"value", type:"number" };
+    this.data = {}
+    this.flags = { horizontal: true };
+}
+
+Selector.prototype.onDrawBackground = function(ctx, canvas)
+{
+
+}
+
+Selector.prototype.onConfigure = function(info)
+{
+    onConfig(info, this.graph);
+    // this.data.g_node = this;
+
+}
+
+// Selector.prototype.onConfigure = bl();
+LiteGraph.registerNodeType("btree/Selector", Selector);
 
 
 function MoveTo()
@@ -630,7 +658,6 @@ EQSNearestInterestPoint.prototype.onExecute = function()
 {
     var nearest = [0,0,-1000];
     var min = 99999999999;
-    debugger;
     if(!this.ip_type)
         this.ip_type = "shops";
     // console.log(CORE.Scene.properties.interest_points);
@@ -696,10 +723,10 @@ EQSDistanceTo.prototype.onExecute = function()
 {
     var point = this.getInputData(0);
     var agent_pos = agent_evaluated.skeleton.skeleton_container.getGlobalPosition();
-    var dist = vec3.dist(point, agent_pos);
-    // console.log("Agent pos: ", agent_pos);
-    // console.log("Point: ", point);
-    // console.log(dist);  
+    var dist = vec3.dist(point.pos, agent_pos);
+    console.log("Agent pos: ", agent_pos);
+    console.log("Point: ", point);
+    console.log(dist);  
     this.setOutputData(0,dist);
 }
 EQSDistanceTo.prototype.onConfigure = function(info)

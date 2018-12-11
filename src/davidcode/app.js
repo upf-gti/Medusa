@@ -192,6 +192,16 @@ function onStartParsing()
 	start_time = Date.now();
 }
 
+function clearPath(upath)
+{
+  var path = upath
+  for(var i in path)
+  {
+    var wp = path[i];
+    wp.visited = false;
+  }
+  return path;
+}
 function createBtree(editor)
 {
   

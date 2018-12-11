@@ -35,7 +35,7 @@ var AgentManager = {
                 dialog = agent.dialog,
                 uid = agent.uid;
             inspector.on_refresh = function(){
-
+                properties = agent.properties,
                 inspector.clear();
                 for(let p in properties){
                     let widget = null;
@@ -117,6 +117,22 @@ var AgentManager = {
             CORE.Player.renderStats();
         }
 
+    },
+
+    save_agents()
+    {   
+        var agents_to_save = [];
+        for(var i in this.agents)
+        {
+            var agent = this.agents[i];
+            var agent_ = {};
+            agent_.uid = agent.uid;
+            agent_.path = clearPath(agent.path);
+            agent_.properties = agent.properties;
+            agents_to_save.push(agent_);
+        }
+        console.log(agents_to_save);
+        return agents_to_save;
     }
 
     
@@ -126,11 +142,16 @@ CORE.registerModule( AgentManager );
 
 
 class Agent{
+    /* A parameter is passed if we want to load an agent */
+    constructor( o ){
 
-    constructor( position ){
+        if(o)
+        {
+            this.configure(o, this)
+            return;
+        }
 
-        this.uid = LS.generateUId('agent');
-       
+        this.uid = LS.generateUId('agent');  
 
         this.btree = null;
         this.blackboard = blackboard;
@@ -139,8 +160,8 @@ class Agent{
         this.path = [{id:1,pos:[1300,0,0],visited:false},{id:2,pos: [0,0,1000],visited:false} ,{id:3,pos: [-1300,0,0],visited:false}];
         this.current_waypoint = this.path[0];
 
-        var random = vec3.random(vec3.create(), 100);
-          position= position || vec3.add(vec3.create(), vec3.create(), vec3.fromValues(random[0], 0, random[2]));
+        // var random = vec3.random(vec3.create(), 100);
+        //   position = position || vec3.add(vec3.create(), vec3.create(), vec3.fromValues(random[0], 0, random[2]));
         
         this.properties = {
             name: "Billy-" + guidGenerator(),
@@ -148,7 +169,7 @@ class Agent{
             hurry: 25,
             money:20,
             hungry:false,
-            umbrella: true,
+            umbrella: false,
             target: this.path[0]
         }
 
@@ -171,19 +192,36 @@ class Agent{
         }).bind(this));
     }
     
-    render(){
-        // for(var c in this.components){
-        //     if(!!this.components[c].render)
-        //         this.components[c].render();
-        // }
+    configure( o, agent )
+    {
+        agent.uid = o.uid;
+        agent.btree = null;
+        agent.blackboard = blackboard;
+        agent.path = clearPath(o.path);
+        agent.current_waypoint = agent.path[0];
+        agent.properties = o.properties;
+        agent.properties.target = agent.path[0];
+        // agent.skeleton = o.skeleton;
+        // agent.animator = o.animator;
+        agent.skeleton = new Skeleton( LS.generateUId('skeleton'), "src/assets/Walking.dae", [0,0,0], false);
+        agent.animator = new Animator();
+        agent.animator.animations = animations; //toremove
+        animators.push( agent.animator );//toremove 
 
-        //OR
+        AgentManager.agents[agent.uid] = agent;
 
-        // if(skeleton)
-        //     this.skeleton.drawSkeleton();
-        
+        agent.visualizePath();//whe should remove this
+
+        LEvent.bind(agent, "applyBehaviour", (function(e,p){
+            agent.animator.applyBehaviour(p);
+        }).bind(agent)); 
+
+        LEvent.bind(agent, "moveTo", (function(e,p){
+            agent.moveTo(p,global_dt);
+        }).bind(agent));
+
+        agent.inspector.refresh();
     }
-
     visualizePath()
     {
         var vertices = [];

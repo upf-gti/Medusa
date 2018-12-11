@@ -208,17 +208,25 @@ var GraphManager = {
                 load_inspector.clear();
                 load_inspector.addTitle("Select Behavior"); 
                 load_inspector.addSeparator();
+
                 if(isEmpty(CORE.Scene.behaviors))
                     return;
+
                 for(let i in CORE.Scene.behaviors)
                 {
-                    let behavior = CORE.Scene.behaviors[i];
+                    let scene = CORE.Scene.behaviors[i];
                     load_inspector.addButton(i,"Load",{callback:function(){
                         // console.log("Loading: ", JSON.parse(behavior));
-                        behavior = JSON.parse(behavior);
-                        console.log(behavior);
+                        scene = JSON.parse(scene);
+                        console.log(scene);
                         // debugger;
-                        node_editor.graph.configure(behavior);
+                        for(var i in scene.agents)
+                        {
+                            var agent = scene.agents[i];
+                            CORE.Scene.loadAgent(agent);
+                        }
+                        CORE.Scene.loadScene(scene.scene);
+                        node_editor.graph.configure(scene.behavior);
                         dlg.close();
                     }})
                 }
@@ -259,6 +267,7 @@ var GraphManager = {
                 {
                     if(name)
                     {
+                        var scene_obj = {};
                         console.log("Name", name);
                         var graph = node_editor.graph.serialize();
                         var nodes = graph.nodes;
@@ -266,7 +275,11 @@ var GraphManager = {
                         {   
                             delete nodes[i].data["g_node"];
                         }
-                        console.log(graph);
+                        scene_obj.behavior = graph;
+                        var agents = CORE.AgentManager.save_agents();
+                        scene_obj.agents = agents;
+                        scene_obj.scene = CORE.Scene.properties;
+                        console.log(scene_obj);
                     }
                 }})
                 dlg.adjustSize();

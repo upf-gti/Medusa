@@ -98,9 +98,12 @@ BehaviourTree.prototype.addRootNode = function(id, options, g_node)
             var value = child.tick(agent, dt);
             //Value debería ser success, fail, o running
             if(value == STATUS.success){
-                var g_child = child.g_node;
-                var chlid_input_link_id = g_child.inputs[0].link;
-                this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                if(agent.is_selected)
+                {
+                    var g_child = child.g_node;
+                    var chlid_input_link_id = g_child.inputs[0].link;
+                    this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                }
                 return value;
             }
         }
@@ -172,9 +175,12 @@ BehaviourTree.prototype.addConditionalNode = function(id, options, g_node )
                 //Value debería ser success, fail, o running
                 if(value == STATUS.success)
                 {
-                    var g_child = child.g_node;
-                    var chlid_input_link_id = g_child.inputs[0].link;
-                    this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                    if(agent.is_selected)
+                    {
+                        var g_child = child.g_node;
+                        var chlid_input_link_id = g_child.inputs[0].link;
+                        this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                    }
                     return value;
                 }
             }
@@ -242,9 +248,12 @@ BehaviourTree.prototype.addBoolConditionalNode = function(id, options, g_node)
                 //Value debería ser success, fail, o running
                 if(value == STATUS.success)
                 {
-                    var g_child = child.g_node;
-                    var chlid_input_link_id = g_child.inputs[0].link;
-                    this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                    if(agent.is_selected)
+                    {
+                        var g_child = child.g_node;
+                        var chlid_input_link_id = g_child.inputs[0].link;
+                        this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                    }
                     return value;
                 }
             }
@@ -292,13 +301,15 @@ BehaviourTree.prototype.addInTargetNode = function(id, options, g_node )
             for(var n in this.children){
                 let child = this.children[n];
                 var value = child.tick(agent, dt);
-                //Value debería ser success, fail, o running
-                //De momento true o false
+
                 if(value == STATUS.success)
                 {
-                    var g_child = child.g_node;
-                    var chlid_input_link_id = g_child.inputs[0].link;
-                    this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                    if(agent.is_selected)
+                    {
+                        var g_child = child.g_node;
+                        var chlid_input_link_id = g_child.inputs[0].link;
+                        this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                    }
                     return value;
                 }
             }
@@ -327,18 +338,23 @@ BehaviourTree.prototype.addSequencerNode = function( id, options, g_node )
             var value = child.tick(agent, dt);
             if(value == STATUS.running)
             {
-                // this.executing_child_index = n;
-                var g_child = child.g_node;
-                var chlid_input_link_id = g_child.inputs[0].link;
-                this.g_node.triggerSlot(0, null, chlid_input_link_id);
+               if(agent.is_selected)
+               {
+                   var g_child = child.g_node;
+                   var chlid_input_link_id = g_child.inputs[0].link;
+                   this.g_node.triggerSlot(0, null, chlid_input_link_id);
+               }
                 return STATUS.success;
             }
             if(value == STATUS.success )
             {
                 this.executing_child_index += 1;
-                var g_child = child.g_node;
-                var chlid_input_link_id = g_child.inputs[0].link;
-                this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                if(agent.is_selected)
+                {
+                    var g_child = child.g_node;
+                    var chlid_input_link_id = g_child.inputs[0].link;
+                    this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                }
             }
             if(this.executing_child_index == this.children.length && value == STATUS.success)
             {
@@ -359,16 +375,22 @@ BehaviourTree.prototype.addSequencerNode = function( id, options, g_node )
                 if(value == STATUS.running)
                 {
                     this.executing_child_index = parseInt(n);
-                    var g_child = child.g_node;
-                    var chlid_input_link_id = g_child.inputs[0].link;
-                    this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                    if(agent.is_selected)
+                    {
+                        var g_child = child.g_node;
+                        var chlid_input_link_id = g_child.inputs[0].link;
+                        this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                    }
                     return STATUS.success;
                 }
                 if(value == STATUS.success)
                 {
-                    var g_child = child.g_node;
-                    var chlid_input_link_id = g_child.inputs[0].link;
-                    this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                    if(agent.is_selected)
+                    {
+                        var g_child = child.g_node;
+                        var chlid_input_link_id = g_child.inputs[0].link;
+                        this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                    }
                 }
                 if(n == this.children.length-1 && value == STATUS.success && this.executing_child_index == null)
                     return STATUS.success;
@@ -377,6 +399,36 @@ BehaviourTree.prototype.addSequencerNode = function( id, options, g_node )
                     return value;
             }
         }
+    }
+    this.node_pool.push(node);
+    return node;
+}
+
+BehaviourTree.prototype.addSelectorNode = function(id, options, g_node)
+{
+    let node = new Node();
+    node.id = id;
+    node.properties = options;
+    node.g_node = g_node;
+    node.type = "root";
+
+    node.tick = function(agent, dt){
+        for(var n in this.children){
+            var child = this.children[n];
+            var value = child.tick(agent, dt);
+            //Value debería ser success, fail, o running
+            if(value == STATUS.success){
+                if(agent.is_selected)
+                {
+                    var g_child = child.g_node;
+                    var chlid_input_link_id = g_child.inputs[0].link;
+                    this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                }
+                return value;
+            }
+        }
+        // console.log("Ninguna rama ha tenido exito");
+        return STATUS.fail; //placeholder ta que lo pensemos bien
     }
     this.node_pool.push(node);
     return node;

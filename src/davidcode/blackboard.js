@@ -9,7 +9,7 @@ Blackboard.prototype._ctor = function()
 {
     this.stress = 0;
     this.avg_age = 20;
-    this.rain = 0;
+    this.rain = 50;
     this.bbvariables = ["stress", "rain"];
     this.area = [-2500,-2500,2500,2500];
 }

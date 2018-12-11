@@ -23,29 +23,37 @@ class Scene{
         this.zones = {};
 
         window.blackboard = this.addZone("zone1" ,new Blackboard());
-        window.blackboard.setArea(-2500,-2500,0,2500);
+        // window.blackboard.setArea(-2500,-2500,0,2500);
 
         this.properties.interest_points = 
         {
-            shops:[
-            { pos:[0,0,-1000], a_properties:{umbrella:true}, bb_properties:{}, name: "Shop1", id:10}, 
-            { pos:[1000,0,1000], a_properties:{umbrella:true}, bb_properties:{}, name: "Shop2", id:11}
-            ], 
+            // shops:[
+            //     { pos:[0,0,-1000], a_properties:{umbrella:true}, bb_properties:{}, name: "Shop1", id:10}, 
+            //     { pos:[1000,0,1000], a_properties:{umbrella:true}, bb_properties:{}, name: "Shop2", id:11}
+            // ], 
 
-            banks:[
-            { pos:[200,0,2000], a_properties:{money:true}, bb_properties:{}, name: "Bank1", id:12}
-            ],
+            // banks:[
+            //     { pos:[200,0,2000], a_properties:{money:50}, bb_properties:{}, name: "Bank1", id:12}
+            // ],
 
-            restaurants:[
-            { pos:[-500,0,1100], a_properties:{hungry:false}, bb_properties:{}, name: "McDonalds", id:13}, 
-            ], 
+            // restaurants:[
+            //     { pos:[-500,0,1100], a_properties:{hungry:false}, bb_properties:{}, name: "McDonalds", id:13}, 
+            // ], 
 
-            semaphores:[
-            { pos:[650,0,500], a_properties:{umbrella:true}, bb_properties:{}, name: "TL1", id:14}, 
-            ]
         }; 
 
         this.behaviors = gen_behaviors;
+    }
+    
+    loadScene( o )
+    {   
+        this.properties = o;
+        this.visualizeInterestPoints();
+    }
+
+    loadAgent( o )
+    {
+        new Agent(o);
     }
 
     addZone( zoneID, properties ){
