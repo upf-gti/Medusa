@@ -122,7 +122,7 @@ class CrowdFile{
                 var mesh = GL.Mesh.load({ vertices: JSON.parse("["+points.join()+"]") });
                 mesh.primitive = gl.LINE_STRIP;
                 GFX.renderer.meshes["path_"+this.paths[j].node._uid] = mesh;
-                this.paths[j].node.mesh = "path_"+this.paths[j].node._uid;
+                this.paths[j].node.mesh = "path_"+node._uidthis.paths[j].;
                 this.paths[j].node.toggled = false;
                 this.paths[j].node.color = [Math.random(),Math.random(),Math.random(),1];
                 this.paths[j].node.primitive = gl.LINE_STRIP;

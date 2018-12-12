@@ -36,6 +36,6 @@
         "src/modules/gui.js",
         "src/modules/player.js",
         "src/modules/scene.js",
-        "src/components/pathparser.js"
+        "src/components/protosceneparser.js"
     ]
 }
