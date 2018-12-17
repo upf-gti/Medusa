@@ -158,4 +158,12 @@ body {
     cursor: pointer;
 }
 
+/*Canvas labels*/
+canvas.canvas-labels {
+    display: block;
+    position: absolute;
+    pointer-events: none;
+}
+
+
 /* ------------------------------------------------------------------------------- custom Litegraph stylesheet */

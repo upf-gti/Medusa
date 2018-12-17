@@ -87,7 +87,6 @@ var GFX = {
         var last = now = getTime();
 
         requestAnimationFrame(animate);
-
         function animate() {
             requestAnimationFrame(animate);
 
@@ -100,7 +99,9 @@ var GFX = {
             //   GFX.context2.start2D();
 
             GFX.renderer.clear([0, 0, 0, 0.1]);
+            CORE.Labels.update();
             GFX.renderer.render(GFX.scene, GFX.camera);
+
             GFX.scene.update(dt);
             update(dt);
 

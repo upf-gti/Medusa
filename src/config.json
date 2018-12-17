@@ -36,6 +36,8 @@
         "src/modules/gui.js",
         "src/modules/player.js",
         "src/modules/scene.js",
+        "src/modules/labels.js",
+
         "src/components/protosceneparser.js"
     ]
 }
