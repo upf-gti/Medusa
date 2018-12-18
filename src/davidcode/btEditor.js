@@ -31,6 +31,7 @@ BTEditor.prototype.init = function()
     LiteGraph.NODE_TEXT_COLOR = "#CCC"
 
     this.graph = new LGraph();
+    this.graph.description_stack = [];
 
     var that = this;
     this.graph.onNodeAdded = function(node)
@@ -148,7 +149,30 @@ BTEditor.prototype.init = function()
         properties = JSON.parse(properties);
         that.addNodeByType(type, properties, [data.canvasX,data.canvasY]); 
     }
-    
+
+    this.graph_canvas.onDrawOverlay = function( ctx )
+    {
+        if( this.graph.description_stack.length > 0 )
+        {
+            var array_of_messages = node_editor.graph.description_stack;
+            // ctx.strokeStyle = "#333333";
+            // ctx.strokeRect(70, 2, 250, ((array_of_messages.length)*25));
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.fillRect(70, 2, 275, ((array_of_messages.length)*25)); 
+
+            ctx.font = "12px Arial";
+            ctx.fillStyle  = "#888888";
+            if(array_of_messages)
+                for (var i = array_of_messages.length-1; i >= 0; i-- )
+                {
+                    var h = Math.abs(i-(array_of_messages.length-1));
+                    ctx.fillText(array_of_messages[i].capitalize(), 80, (15 + h*25)); 
+                }
+            ctx.closePath();
+   
+        }
+    }
 
 }
 
@@ -275,7 +299,7 @@ Conditional.prototype.onPropertyChanged = function(name,value)
 Conditional.prototype.onExecute = function()
 {
     var data = this.getInputData(1);
-    console.log(data);
+    // console.log(data);
     if(data)
         this.data.value_to_compare = data;
     if(this.btree)
@@ -641,7 +665,10 @@ function EQSNearestInterestPoint()
         text: "threshold"
     };
     // this.size = [80,60];
-    this.slider = this.addWidget("combo","Combo", "shops", function(v){that.ip_type = v;}, { values:["shops","banks","restaurants", "semaphores"]} );
+    this.slider = this.addWidget("combo","List", Object.keys(CORE.Scene.properties.interest_points)[0], function(v){that.ip_type = v;}, { values:function(widget, node){
+        return Object.keys(CORE.Scene.properties.interest_points);
+    }} );
+    // this.slider = this.addWidget("combo","List", Object.keys(CORE.Scene.properties.interest_points)[0], function(v){that.ip_type = v;}, { values:Object.keys(CORE.Scene.properties.interest_points)} );
 
     this.editable = { property:"value", type:"number" };
     this.flags = { resizable: false };
@@ -723,10 +750,10 @@ EQSDistanceTo.prototype.onExecute = function()
 {
     var point = this.getInputData(0);
     var agent_pos = agent_evaluated.skeleton.skeleton_container.getGlobalPosition();
-    var dist = vec3.dist(point.pos, agent_pos);
-    console.log("Agent pos: ", agent_pos);
-    console.log("Point: ", point);
-    console.log(dist);  
+    var dist = vec3.dist(point, agent_pos);
+    // console.log("Agent pos: ", agent_pos);
+    // console.log("Point: ", point);
+    // console.log(dist);  
     this.setOutputData(0,dist);
 }
 EQSDistanceTo.prototype.onConfigure = function(info)

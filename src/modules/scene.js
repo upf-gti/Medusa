@@ -29,7 +29,7 @@ class Scene{
         {
             // shops:[
             //     { pos:[0,0,-1000], a_properties:{umbrella:true}, bb_properties:{}, name: "Shop1", id:10}, 
-            //     { pos:[1000,0,1000], a_properties:{umbrella:true}, bb_properties:{}, name: "Shop2", id:11}
+            //     { pos:[1000.5,0.7,1000.4], a_properties:{umbrella:true}, bb_properties:{}, name: "Shop2", id:11}
             // ], 
 
             // banks:[
@@ -83,6 +83,7 @@ class Scene{
             inspector.on_refresh = function()
             {
                 inspector.clear();
+                
                 for(let z in zones)
                 {
                     inspector.addTitle(z);
@@ -134,7 +135,7 @@ class Scene{
         }
 
         this.dialog.show('fade');
-        this.dialog.setPosition(10,270);
+        this.dialog.setPosition(10,325);
 
     }
     applyTargetProperties( target,  agent )
@@ -185,6 +186,133 @@ class Scene{
                 GFX.scene.root.addChild(node);
             }
         }
+    }
+
+    addInterestPoint( x, z )
+    {
+        var color = [Math.random()+0.2, Math.random()+0.2, Math.random()+0.2]
+        var node = new RD.SceneNode();
+        node.color = color;
+        node.shader = "phong";
+        node.mesh = "sphere";
+        node.position = [x,0,z];
+        node.scale(20,20,20);
+        node.render_priority = 1;
+        this.openNewInteresPointDialog(node);
+        // GFX.scene.root.addChild(node);
+
+    }
+
+    openNewInteresPointDialog( node )
+    {
+        var interest_points = CORE.Scene.properties.interest_points;
+        var ip_types_list = Object.keys(interest_points);
+        var new_ip_type;
+        var a_properties = {};
+        var bb_properties = {};
+
+        var dialog = new LiteGUI.Dialog( { id:"ip-creation", title:'New Interest Point', close: true, minimize: false, width: 300, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
+        var inspector = this.inspector = new LiteGUI.Inspector();
+
+        inspector.on_refresh = function()
+        {
+            console.log(node);
+            inspector.clear();
+            inspector.addInfo("New Interest Point creation", "",{width:"100%"});
+            var name = node.name || "";
+            inspector.addString("Name", name, {width:"100%", callback:function(v){
+                node.name = v;
+            }});
+
+            var type = new_ip_type || "";
+            inspector.addString("New Type", type, {width:"100%", callback:function(v){
+                new_ip_type = v;
+            }});
+            
+            inspector.addCombo("Type", ip_types_list[0], { values: ip_types_list, width:"100%", callback: function(v){
+                new_ip_type = v;
+            }});
+
+            // inspector.addSeparator();
+            inspector.addTitle("Agent Properties");
+
+            inspector.widgets_per_row = 2;
+            for(var i in a_properties)
+            {
+                let key = i;
+                let value = a_properties[i];
+                inspector.addInfo(key, value, {width:"100%"});
+            }
+            inspector.widgets_per_row = 3;
+            inspector.addSeparator();
+
+            var _k,_v;
+            inspector.addString(null, "",  { width:"45%", placeHolder:"propery...",  callback: v => _k = v });
+            inspector.addString(null, "",  { width:"45%", placeHolder:"value...",       callback: v => _v = v });
+            inspector.addButton(null, "+", { width:"10%", callback: e => {
+                if(!_k || !_v) 
+                    return;
+                try{ 
+                    _v = JSON.parse('{ "v":'+_v+'}').v;
+                }catch(e){
+                    //if fails it was a string, so leave it as the string it was.
+                }
+                a_properties[_k] = _v;
+                inspector.refresh();
+            }});
+
+            // inspector.addSeparator();
+            inspector.addTitle("Blackboard Properties");
+            inspector.widgets_per_row = 2;
+            for(var i in bb_properties)
+            {
+                let key = i;
+                let value = a_properties[i];
+                inspector.addInfo(key, value, {width:"100%"});
+            }
+            inspector.widgets_per_row = 3;
+            inspector.addSeparator();
+
+
+            var _k2,_v2;
+            inspector.addString(null, "",  { width:"45%", placeHolder:"propery...",  callback: v => _k2 = v });
+            inspector.addString(null, "",  { width:"45%", placeHolder:"value...",       callback: v => _v2 = v });
+            inspector.addButton(null, "+", { width:"10%", callback: e => {
+                if(!_k2 || !_v2) 
+                    return;
+                try{ 
+                    _v2 = JSON.parse('{ "v":'+_v2+'}').v;
+                }catch(e){
+                    //if fails it was a string, so leave it as the string it was.
+                }
+                bb_properties[_k2] = _v2;
+            }});
+
+            inspector.addSeparator();
+
+            inspector.addButton(null, "Create", {width:"100%", callback:function(){
+
+                console.log(bb_properties);
+                console.log(a_properties);
+                var interest_point = {};
+                interest_point.pos = node.position;
+                interest_point.name = node.name;
+                interest_point.id = 50 + Math.round(Math.random()*100);
+                interest_point.a_properties = a_properties;
+                interest_point.bb_properties = bb_properties;
+                if(!CORE.Scene.properties.interest_points[new_ip_type])
+                    CORE.Scene.properties.interest_points[new_ip_type] = [];
+                CORE.Scene.properties.interest_points[new_ip_type].push(interest_point);
+                GFX.scene.root.addChild(node);
+                dialog.close();
+            }})
+            dialog.adjustSize();
+        }
+
+        dialog.add(inspector);
+        inspector.refresh();
+        dialog.show('fade');
+        dialog.setPosition(270,270);
     }
 }
 

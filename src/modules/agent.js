@@ -21,10 +21,10 @@ var AgentManager = {
         
         if(!agent.dialog){
             var dialog = agent.dialog = new LiteGUI.Dialog( { id:"Settings", title:'Agent: '+ ((agent.properties && agent.properties.name)? agent.properties.name : agent.uid), close: true, minimize: false, width: 300, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
-            agent.dialog.setPosition(10,70);
+            agent.dialog.setPosition(10,125);
             CORE.GUI.menu.add("Agent/" + ((agent.properties && agent.properties.name)? agent.properties.name : agent.uid), {callback: function() { 
                 dialog.show('fade');             
-                agent.dialog.setPosition(10,70);
+                agent.dialog.setPosition(10,125);
             } });
             CORE.GUI.menu.remove("Agent/+ new Agent");
             CORE.GUI.menu.add("Agent/+ new Agent", () => new Agent() );
@@ -110,7 +110,7 @@ var AgentManager = {
                     inspector.widgets_per_row = 1;
                     agent.dialog.adjustSize();
             }
-
+            agent.dialog.setPosition(10,125);
             agent.dialog.add(inspector);
             inspector.refresh();
 

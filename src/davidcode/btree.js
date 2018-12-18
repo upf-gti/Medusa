@@ -103,6 +103,12 @@ BehaviourTree.prototype.addRootNode = function(id, options, g_node)
                     var g_child = child.g_node;
                     var chlid_input_link_id = g_child.inputs[0].link;
                     this.g_node.triggerSlot(0, null, chlid_input_link_id);
+
+                    if(child.description)
+                    {
+                        var graph = child.g_node.graph;
+                        graph.description_stack.push(child.description); 
+                    } 
                 }
                 return value;
             }
@@ -163,7 +169,9 @@ BehaviourTree.prototype.addConditionalNode = function(id, options, g_node )
         if(this.conditional_expression && !this.conditional_expression(agent))
             return STATUS.fail;
         else if(this.conditional_expression && this.conditional_expression(agent))
-        {   
+        {               
+            this.description = this.properties.property_to_compare + ' property passes the threshold';
+
             if(this.children.length == 0){
                 console.log("No Children")
                 return STATUS.success;
@@ -180,6 +188,12 @@ BehaviourTree.prototype.addConditionalNode = function(id, options, g_node )
                         var g_child = child.g_node;
                         var chlid_input_link_id = g_child.inputs[0].link;
                         this.g_node.triggerSlot(0, null, chlid_input_link_id);
+
+                        if(child.description)
+                        {
+                            var graph = child.g_node.graph;
+                            graph.description_stack.push(child.description); 
+                        } 
                     }
                     return value;
                 }
@@ -236,6 +250,7 @@ BehaviourTree.prototype.addBoolConditionalNode = function(id, options, g_node)
             return STATUS.fail;
         else if(this.conditional_expression && this.conditional_expression(agent))
         {   
+            this.description = this.properties.property_to_compare + ' property is true';
             if(this.children.length == 0){
                 console.log("No Children")
                 return STATUS.success;
@@ -253,6 +268,12 @@ BehaviourTree.prototype.addBoolConditionalNode = function(id, options, g_node)
                         var g_child = child.g_node;
                         var chlid_input_link_id = g_child.inputs[0].link;
                         this.g_node.triggerSlot(0, null, chlid_input_link_id);
+
+                        if(child.description)
+                        {
+                            var graph = child.g_node.graph;
+                            graph.description_stack.push(child.description); 
+                        }
                     }
                     return value;
                 }
@@ -297,6 +318,7 @@ BehaviourTree.prototype.addInTargetNode = function(id, options, g_node )
     {
         if(this.isInTarget && this.isInTarget(agent))
         {
+            this.description = 'Agent in target';
             agent.in_target = true;
             for(var n in this.children){
                 let child = this.children[n];
@@ -309,6 +331,12 @@ BehaviourTree.prototype.addInTargetNode = function(id, options, g_node )
                         var g_child = child.g_node;
                         var chlid_input_link_id = g_child.inputs[0].link;
                         this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                        
+                        if(child.description)
+                        {
+                            var graph = child.g_node.graph;
+                            graph.description_stack.push(child.description); 
+                        }
                     }
                     return value;
                 }
@@ -343,6 +371,12 @@ BehaviourTree.prototype.addSequencerNode = function( id, options, g_node )
                    var g_child = child.g_node;
                    var chlid_input_link_id = g_child.inputs[0].link;
                    this.g_node.triggerSlot(0, null, chlid_input_link_id);
+
+                   if(child.description)
+                   {
+                       var graph = child.g_node.graph;
+                       graph.description_stack.push(child.description); 
+                   }
                }
                 return STATUS.success;
             }
@@ -354,6 +388,12 @@ BehaviourTree.prototype.addSequencerNode = function( id, options, g_node )
                     var g_child = child.g_node;
                     var chlid_input_link_id = g_child.inputs[0].link;
                     this.g_node.triggerSlot(0, null, chlid_input_link_id);
+
+                    if(child.description)
+                    {
+                        var graph = child.g_node.graph;
+                        graph.description_stack.push(child.description); 
+                    }
                 }
             }
             if(this.executing_child_index == this.children.length && value == STATUS.success)
@@ -380,6 +420,12 @@ BehaviourTree.prototype.addSequencerNode = function( id, options, g_node )
                         var g_child = child.g_node;
                         var chlid_input_link_id = g_child.inputs[0].link;
                         this.g_node.triggerSlot(0, null, chlid_input_link_id);
+                        
+                        if(child.description)
+                        {
+                            var graph = child.g_node.graph;
+                            graph.description_stack.push(child.description); 
+                        }
                     }
                     return STATUS.success;
                 }
@@ -390,6 +436,12 @@ BehaviourTree.prototype.addSequencerNode = function( id, options, g_node )
                         var g_child = child.g_node;
                         var chlid_input_link_id = g_child.inputs[0].link;
                         this.g_node.triggerSlot(0, null, chlid_input_link_id);
+
+                        if(child.description)
+                        {
+                            var graph = child.g_node.graph;
+                            graph.description_stack.push(child.description); 
+                        }
                     }
                 }
                 if(n == this.children.length-1 && value == STATUS.success && this.executing_child_index == null)
@@ -423,6 +475,12 @@ BehaviourTree.prototype.addSelectorNode = function(id, options, g_node)
                     var g_child = child.g_node;
                     var chlid_input_link_id = g_child.inputs[0].link;
                     this.g_node.triggerSlot(0, null, chlid_input_link_id);
+
+                    if(child.description)
+                    {
+                        var graph = child.g_node.graph;
+                        graph.description_stack.push(child.description); 
+                    }
                 }
                 return value;
             }
@@ -460,6 +518,8 @@ BehaviourTree.prototype.addFindNextTargetNode = function(id, options, g_node)
             return STATUS.fail;
         else
         {   
+            this.description = ' Next waypoint of the path found';
+
             // var g_child = child.g_node;
             // var chlid_input_link_id = g_child.inputs[0].link;
             // this.g_node.triggerSlot(0, null, chlid_input_link_id);
@@ -605,6 +665,8 @@ BehaviourTree.prototype.addMoveToNode = function(id, options, g_node )
         // debugger;
         if(this.properties.target){
             agent.properties.target = this.properties.target;
+            this.description = 'Target updated: New destination set to the input';
+
             // console.log(agent);
             return STATUS.success;
         }
@@ -627,6 +689,7 @@ BehaviourTree.prototype.addWaitNode = function(id, options, g_node )
     node.tick = function(agent, dt)
     {
         // debugger;
+        this.description = 'Waiting ' + this.properties.total_time + ' seconds ';
         if(this.properties.current_time > this.properties.total_time){
             this.properties.current_time = 0;
             // console.log(agent);
@@ -674,7 +737,10 @@ BehaviourTree.prototype.addAnimationNode = function( id, options, g_node )
     node.tick = function(agent, dt)
     {
         if(this.action)
+        {
+            this.description = 'Playing ' + this.anims[0].anim;
             return this.action(agent);
+        }
     }
     this.node_pool.push(node);
     return node;

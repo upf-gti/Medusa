@@ -71,6 +71,10 @@ var num_agents = 0;
 
 var global_dt;
 
+var IP_CREATION_MODE = 1;
+var NAV_MODE = 0;
+var scene_mode = NAV_MODE;
+
 var tmp = {
   vec : vec3.create(),
   axis : vec3.create(),
@@ -90,17 +94,19 @@ function appinit()
   skeleton5 = new Skeleton("skeleton2", "src/assets/Walking.dae", [150, 0, 0], true);
   skeleton5 = new Skeleton("skeleton2", "src/assets/Waving.dae", [150, 0, 0], true);
   skeleton5 = new Skeleton("skeleton2", "src/assets/Umbrella.dae", [150, 0, 0], true);
+  skeleton5 = new Skeleton("skeleton2", "src/assets/StandUp.dae", [150, 0, 0], true);
+  skeleton5 = new Skeleton("skeleton2", "src/assets/Tripping.dae", [150, 0, 0], true);
   
   BT = new BehaviourTree();
   node_editor = new BTEditor(BT);
   BT_list.push(BT);
   
   node_editor.init();
-  createDefaultAreas();
-
   CORE.Player.renderStats()
   CORE.GraphManager.renderStats();
   CORE.Scene.visualizeInterestPoints();
+
+  // paintInCanvas(node_editor.graph_canvas.canvas.getContext("2d"));
 }
 function resize()
 {
@@ -154,20 +160,21 @@ function update(dt)
   
     if(!setting_done)
       return;
+
     if(!BT.rootnode)
       return;
+
+    node_editor.graph.clearTriggeredSlots();
+    node_editor.graph.description_stack = [];
     node_editor.graph.runStep(1,false);
     if(BT.fixed_node)
       BT.fixed_node.tick(character_, dt);
     else
       BT.rootnode.tick(character_, dt);
-
+    
     character_.moveTo(character_.properties.target, dt);
-
     animator.clearMergeAnims();
-
     animator.animate(skeleton, dt, SIMPLE, weight_of_merge);
-
   }  
 }
 
@@ -202,17 +209,6 @@ function clearPath(upath)
   }
   return path;
 }
-function createBtree(editor)
-{
-  
-  // var is_raining = BT.addConditionalNode(2,"rain", 0.5);
-  // var walk = BT.addAnimationNode(3, [{anim: "Walking", weight:1.0}], 1, 3);
-  // var run = BT.addAnimationNode(4, [{anim: "Running", weight:1.0}], 1, 5);
-
-  // BT.rootnode.addChildren(is_raining); //conditional
-  // BT.rootnode.addChildren(walk);       //action
-  // is_raining.addChildren(run);         //action
-}
 
 function updateTargetPos()
 {
@@ -244,53 +240,6 @@ function disselectCharacter()
     char.changeColor();
   }
 }
-
-function createDefaultAreas()
-{
-  // area1 = new RD.SceneNode();
-  // area1.name = "area1";
-  // area1.mesh = "planeXZ";
-  // area1.position = [2500, 0, 0];
-  // area1.blend_mode = RD.BLEND_ALPHA;
-  // area1.flags.depth_test = false;
-  // area1.scale([5000, 1, 10000]);
-  // area1.color = [0,1,1,0.05];
-  // GFX.scene.root.addChild(area1);
-
-  // area2 = new RD.SceneNode();
-  // area2.name = "area2";
-  // area2.mesh = "planeXZ";
-  // area2.position = [-2500, 0, 0];
-  // area2.blend_mode = RD.BLEND_ALPHA;
-  // area2.flags.depth_test = false;
-  // area2.scale([5000, 1, 10000]);
-  // area2.color = [0.25,1,0,0.05];
-  // GFX.scene.root.addChild(area2);
-
-  // area3 = new RD.SceneNode();
-  // area3.name = "area3";
-  // area3.mesh = "planeXZ";
-  // area3.texture = "sunny.png";
-  // area3.position = [-300, 2, 0];
-  // area3.blend_mode = RD.BLEND_ALPHA;
-  // area3.flags.depth_test = false;
-  // area3.scale([500, 1, 500]);
-  // area3.rotate(90*DEG2RAD, [0,-1,0]);
-  // GFX.scene.root.addChild(area3);
-
-  // area4 = new RD.SceneNode();
-  // area4.name = "area4";
-  // area4.mesh = "planeXZ";
-  // area4.scale([500, 1, 500]);
-  // area4.blend_mode = RD.BLEND_ALPHA;
-  // area4.flags.depth_test = false;
-  // area4.texture = "rainy.png";
-  // area4.position = [300, 0, 0];
-  // area4.rotate(90*DEG2RAD, [0,1,0]);
-  // GFX.scene.root.addChild(area4);
-}
-
-//init();
 
 function guidGenerator() {
   var S4 = function() {

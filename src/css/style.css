@@ -158,4 +158,37 @@ body {
     cursor: pointer;
 }
 
+
 /* ------------------------------------------------------------------------------- custom Litegraph stylesheet */
+
+#micro-tools{
+    position:absolute;
+    left: 8px;
+    margin-right: 10px;
+    top:60px;
+}
+
+.tool-btn{
+    width: 20px !important;
+    height: 20px;
+    background-color: rgb(53, 53, 53);
+    /* position: relative; */
+    display: inline-block;
+    /* border: 1px solid red; */
+    margin-top: 5px;
+    margin-left: 5px;
+    margin-right: 5px;
+    border-radius: 5px; 
+    z-index: 100;
+    font-size: 14px;
+    text-align: center;
+}
+
+.tool-btn:hover{
+    cursor: pointer;
+    background-color: rgb(87, 87, 87);
+}
+
+.tool-btn.active{
+    background-color: rgb(0, 83, 79);
+}

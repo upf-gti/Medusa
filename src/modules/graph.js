@@ -42,7 +42,8 @@ var GraphManager = {
                 "Idle" : {name:"Idle", anims:[{anim:"Idle",weight: 1}], motion:0, speed:0.5},
                 "Old Walk" : {name:"Old_Man_Walk", anims:[{anim:"Old_Man_Walk",weight: 1}], motion:1, speed:0.9},
                 "Umbrella" : {name:"Umbrella", anims:[{anim:"Umbrella",weight: 1}], motion:3, speed:1},
-                "Debug" : {name:"Marcha", anims:[{anim:"Walking",weight: 1}, {anim:"Running",weight: 0.5}], motion:4, speed:1},
+                "StandUp" : {name:"StandUp", anims:[{anim:"StandUp",weight: 1}], motion:0, speed:1},
+                "Fall" : {name:"Fall", anims:[{anim:"Tripping",weight: 1}], motion:0, speed:1},
             };
             this.generic_nodes = this.generic_nodes || {
                 "InTarget" : {name:"InTarget", threshold:200}

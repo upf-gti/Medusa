@@ -9,6 +9,9 @@ var GFX = {
     renderer: null,
     lines_mesh: null,
     cube: null,
+
+    init_time_clicked: 0,
+
     initCanvas: function() {
 
         this.scene = new RD.Scene();
@@ -101,61 +104,7 @@ var GFX = {
             GFX.onmouse(e);
         }
         this.renderer.context.onmousedown = function(e) {
-            if (e.rightButton) {
-                var x = e.canvasx;
-                var y = e.canvasy;
-                //testRay with that spheres
-                var agent = GFX.getAgentFromTestCollision(x, y);
-                // console.log(agent);
-                if (!agent) {
-                    disselectCharacter();
-                    agent_selected = null;
-                    CORE.GraphManager.renderStats();
-                    return;
-
-                }
-                disselectCharacter();
-                for (var i in AgentManager.agents) {
-                    AgentManager.agents[i].changeColor();
-                }
-                agent.is_selected = true;
-                agent_selected = agent.properties.name;
-                // console.log(agent.character);
-                agent.changeColor();
-                var agents = CORE.AgentManager.agents;
-                for (var i in agents) {
-                    var ag = agents[i];
-                    ag.dialog.close();
-                }
-                agent.dialog.show();
-                agent.dialog.setPosition(10, 70);
-
-                CORE.GraphManager.renderStats();
-
-
-                //delete spheres
-            }
-            // if(creation_mode && e.leftButton)
-            // {
-            //   console.log(e);
-            //   var x = e.canvasx;
-            //   var y = e.canvasy;
-
-            //   var position = GFX.testCollision(x, y);
-            //   // var skeleton = new Skeleton("skeleton1" + Math.random(), "src/assets/Walking.dae", position, false);
-            //   // var animator1 = new Animator();
-            //   // animator1.animations = animations;
-            //   // animators.push( animator1 );
-            //   // var character = new Character("Billy" + Math.random(), skeleton, animator1);
-            //   // character.state["age"] = 20;
-            //   // characters.push(character);
-
-            //   var agent = new Agent( position );
-
-            // }
-            else if (path_mode) {
-                console.log("Path clicking");
-            }
+            
         }
         this.renderer.context.onkeydown = function(e) {
             if (e.keyCode == 87)
@@ -184,8 +133,6 @@ var GFX = {
             if (e.keyCode == 65)
                 tgt_node_left = false;
 
-
-
             if (e.keyCode == 68)
                 tgt_node_right = false;
             if(e.keyCode == 46){
@@ -195,15 +142,11 @@ var GFX = {
                     node_editor.graph.remove(node);
                 }
             }
-
         }
     },
 
     onmouse: function(e) {
         if (e.type == "mousemove" && e.dragging) {
-            if (e.rightButton) {
-
-            }
             if (e.leftButton) {
                 GFX.camera.orbit(e.deltax * -0.005, [0, 1, 0]);
                 GFX.camera.orbit(e.deltay * -0.005, [1, 0, 0], null, true);
@@ -212,10 +155,100 @@ var GFX = {
                 var vect = vec3.fromValues(e.deltax * -0.5, e.deltay * 0.5, 0);
                 GFX.camera.moveLocal(vect)
             }
-        } else if (e.type == "wheel") {
+        } 
+        else if (e.type == "wheel") 
             GFX.camera.orbitDistanceFactor(1.0 - (e.wheel / 2000));
-        }
+        
+        else if (e.type == "mousedown") 
+        {
+            if (e.leftButton) {
+                GFX.init_time_clicked = Date.now();
+            }
+            else
+            {
+                GFX.init_time_clicked = null;
+                var actions = [
+                {
+                    title: "Create ", //text to show
+                    has_submenu: true,
+                    submenu: {
+                        options: 
+                        [{
+                            title: "Interest Point",
+                            callback: function() 
+                            { 
+                                var x = e.canvasx;
+                                var y = e.canvasy;
+                                var position = GFX.testCollision(x, y);
+                                CORE.Scene.addInterestPoint(position[0], position[2]); 
+                            }
+                        }]
+                    }
+                }
+                ];
+                var contextmenu = new LiteGUI.ContextMenu( actions, { event: e });
+            }    
 
+        }
+        else if ( e.type == "mouseup")
+        {
+            if(scene_mode == NAV_MODE)
+            {
+                if(!GFX.init_time_clicked) 
+                    return;
+    
+                var dif = Date.now() - GFX.init_time_clicked;
+                if(dif < 200)
+                {
+                    var x = e.canvasx;
+                    var y = e.canvasy;
+                    //testRay with that spheres
+                    var agent = GFX.getAgentFromTestCollision(x, y);
+                    if (!agent) 
+                    {
+                        disselectCharacter();
+                        agent_selected = null;
+                        CORE.GraphManager.renderStats();
+                        return;
+                    }
+    
+                    disselectCharacter();
+                    for (var i in AgentManager.agents) 
+                        AgentManager.agents[i].changeColor();
+                    
+                    agent.is_selected = true;
+                    agent_selected = agent.properties.name;
+                    agent.changeColor();
+    
+                    var agents = CORE.AgentManager.agents;
+                    for (var i in agents) 
+                    {
+                        var ag = agents[i];
+                        ag.dialog.close();
+                    }
+                    agent.dialog.show();
+                    agent.dialog.setPosition(10, 70);
+                    CORE.GraphManager.renderStats();
+                }
+            }
+            else if(scene_mode == IP_CREATION_MODE)
+            {
+                if(!GFX.init_time_clicked) 
+                return;
+                
+                var dif = Date.now() - GFX.init_time_clicked;
+                if(dif < 200)
+                {
+                    console.log("Add code to create Interest Points");
+                    console.log(e);
+                    var x = e.canvasx;
+                    var y = e.canvasy;
+                    var position = GFX.testCollision(x, y);
+                    CORE.Scene.addInterestPoint(position[0], position[2]);
+                    console.log(position);
+                }
+            }
+        }
     },
 
     updateCamera: function() {
@@ -241,7 +274,6 @@ var GFX = {
         cube.scale([50, 500, 50]);
         cube.position = [700, 500 / 2, -500];
         GFX.scene.root.addChild(cube);
-
     },
 
     rotateVector: function(matrix, v) {
