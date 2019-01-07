@@ -30,6 +30,10 @@ class GUI{
         document.body.style.opacity = (!!v)? 1.0 : 0.0;
     }
 
+    toggleLabels( ){
+        
+    }
+
 }
 
 CORE.registerModule( GUI );
