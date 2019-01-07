@@ -125,4 +125,5 @@ LGraphNode.prototype.connect = function( slot, target_node, target_slot )
 	this.graph.connectionChange( this );
 
 	return true;
-}
+}
+

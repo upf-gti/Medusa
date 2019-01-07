@@ -10,18 +10,17 @@ class Node{
         this.n = null;
         this.parameters = {};
 
-        this.tick = function(agent){
-            
+        this.tick = function(agent, dt){
             for(var n in this.children){
                 let child = this.children[n];
-                var value = child.tick(agent);
+                var value = child.tick(agent, dt);
                 //Value debería ser success, fail, o running
-                if(value){
+                if(value == STATUS.success){
                     return value;
                 }
             }
             // console.log("Ninguna rama ha tenido exito");
-            return false; //placeholder hasta que lo pensemos bien
+            return STATUS.fail; //placeholder hasta que lo pensemos bien
         }
     }
 
