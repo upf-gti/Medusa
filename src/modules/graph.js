@@ -37,10 +37,13 @@ var GraphManager = {
 
             //Actions dialog
             this.actions = this.actions || {
-                "Running" : {name:"Running", anims:[{anim:"Running",weight: 1}] , motion:5, speed:1.25},
+                "Running" : {name:"Running", anims:[{anim:"Running",weight: 1}] , motion:5, speed:1},
                 "Walking" : {name:"Walking",  anims:[{anim:"Walking",weight: 1}], motion:3, speed:1},
                 "Idle" : {name:"Idle", anims:[{anim:"Idle",weight: 1}], motion:0, speed:0.5},
                 "Old Walk" : {name:"Old_Man_Walk", anims:[{anim:"Old_Man_Walk",weight: 1}], motion:1, speed:0.9},
+                "Umbrella" : {name:"Umbrella", anims:[{anim:"Umbrella",weight: 1}], motion:3, speed:1},
+                "StandUp" : {name:"StandUp", anims:[{anim:"StandUp",weight: 1}], motion:0, speed:1},
+                "Fall" : {name:"Fall", anims:[{anim:"Tripping",weight: 1}], motion:0, speed:1},
             };
             this.generic_nodes = this.generic_nodes || {
                 "InTarget" : {name:"InTarget", threshold:200}
@@ -111,6 +114,20 @@ var GraphManager = {
 
         }).bind(this));
 
+        CORE.GUI.menu.add("Load/+ Demos", { 
+            callback:( ()=>{ 
+                this.showLoadDialog()
+            }).bind(this) 
+        });
+        CORE.GUI.menu.add("Save", { 
+            callback:( ()=>{ 
+                this.showSaveDialog()
+            }).bind(this) 
+        });
+
+        // CORE.GUI.menu.add("Save", () => console.log("On developement") );
+
+
         // var canvas = document.querySelectorAll("#graph-canvas");
 
         // if(!canvas.length){
@@ -173,6 +190,108 @@ var GraphManager = {
         else
             text += "Current agent: " + agent_selected;
         this.stats.innerText = text;
+    },
+
+    showLoadDialog(){
+        if(!this.load_dialog){
+            var load_dialog = this.load_dialog = new LiteGUI.Dialog( { id:"Settings", title:'Load Behavior', close: true, minimize: false, width: 300, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
+            this.load_dialog.setPosition(10,270);
+
+        }
+        var dlg = this.load_dialog;
+
+        if(!this.load_inspector){
+            var load_inspector = this.load_inspector = new LiteGUI.Inspector(),
+                load_dialog = this.load_dialog;
+
+            load_inspector.on_refresh = function()
+            {
+                load_inspector.clear();
+                load_inspector.addTitle("Select Behavior"); 
+                load_inspector.addSeparator();
+
+                if(isEmpty(CORE.Scene.behaviors))
+                    return;
+
+                for(let i in CORE.Scene.behaviors)
+                {
+                    let scene = CORE.Scene.behaviors[i];
+                    load_inspector.addButton(i,"Load",{callback:function(){
+                        // console.log("Loading: ", JSON.parse(behavior));
+                        scene = JSON.parse(scene);
+                        console.log(scene);
+                        // debugger;
+                        for(var i in scene.agents)
+                        {
+                            var agent = scene.agents[i];
+                            CORE.Scene.loadAgent(agent);
+                        }
+                        CORE.Scene.loadScene(scene.scene);
+                        node_editor.graph.configure(scene.behavior);
+                        dlg.close();
+                    }})
+                }
+                dlg.adjustSize();
+            }
+
+            this.load_dialog.add(load_inspector);
+            load_inspector.refresh();
+        }
+
+        this.load_dialog.show('fade');
+        this.load_dialog.setPosition(100,270);
+    },
+
+    showSaveDialog()
+    {
+        if(!this.save_dialog){
+            var save_dialog = this.save_dialog = new LiteGUI.Dialog( { id:"Settings", title:'Save Behavior', close: true, minimize: false, width: 300, height: 300, scroll: false, resizable: false, draggable: true, parent:"body"});
+            this.save_dialog.setPosition(10,270);
+
+        }
+        var dlg = this.save_dialog;
+
+        if(!this.save_inspector){
+            var save_inspector = this.save_inspector = new LiteGUI.Inspector(),
+                save_dialog = this.save_dialog;
+
+            save_inspector.on_refresh = function()
+            {
+                save_inspector.clear();
+                var name = "";
+                save_inspector.addTitle("Add a name to the Graph");
+                save_inspector.addString("Name", null, {callback:function(v)
+                {
+                    name = v;
+                }}); 
+                save_inspector.addButton(null, "Save", {callback:function()
+                {
+                    if(name)
+                    {
+                        var scene_obj = {};
+                        console.log("Name", name);
+                        var graph = node_editor.graph.serialize();
+                        var nodes = graph.nodes;
+                        for(var i in nodes)
+                        {   
+                            delete nodes[i].data["g_node"];
+                        }
+                        scene_obj.behavior = graph;
+                        var agents = CORE.AgentManager.save_agents();
+                        scene_obj.agents = agents;
+                        scene_obj.scene = CORE.Scene.properties;
+                        console.log(scene_obj);
+                    }
+                }})
+                dlg.adjustSize();
+            }
+
+            this.save_dialog.add(save_inspector);
+            save_inspector.refresh();
+        }
+
+        this.save_dialog.show('fade');
+        this.save_dialog.setPosition(100,270);
     }
 }
 CORE.registerModule( GraphManager );

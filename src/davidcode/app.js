@@ -64,9 +64,16 @@ var creation_mode = false;
 var path_mode = false;
 
 var agent_selected = null;
-
+var current_graph_node = null;
+var agent_evaluated = null;
 //stats
 var num_agents = 0;
+
+var global_dt;
+
+var IP_CREATION_MODE = 1;
+var NAV_MODE = 0;
+var scene_mode = NAV_MODE;
 
 var tmp = {
   vec : vec3.create(),
@@ -81,61 +88,25 @@ function appinit()
   Collada.init({ forceParser: false,  dataPath: "", workerPath: "../src/", libsPath: "../external/" });
   window.onresize = resize;
 
-  // blackboard = new Blackboard();
-  // blackboard.setArea(-2500,-2500,0,2500);
-  
-  // blackboard2 = new Blackboard();
-  // blackboard2.setArea(0,-2500,2500,2500);
-  // blackboard2.rain = 1.5;
-
-  // animator = new Animator();
-  // animators.push( animator );
-  // skeleton = default_skeleton = new Skeleton("skeleton1", "src/assets/Walking.dae", [0, 0, 0], false);
-  // character = new Character("Billy", skeleton, animator);
-  // character.state["age"] = 20;
-  // characters.push(character);
-
-  // animator2 = new Animator();
-  // animators.push( animator );
-  // skeleton2 = new Skeleton("skeleton2", "assets/Idle.dae", [575, 0, 0], false);
-  // character2 = new Character("Jonny", skeleton2, animator2);
-  // character2.state["age"] = 60;
-  // characters.push(character2);
-
-
   skeleton2 = new Skeleton("skeleton2", "src/assets/Running.dae", [150, 0, 0], true);
   skeleton3 = new Skeleton("skeleton2", "src/assets/Old_Man_Walk.dae", [100, 0, 0], true);
   skeleton4 = new Skeleton("skeleton2", "src/assets/Idle.dae", [100, 0, 0], true);
   skeleton5 = new Skeleton("skeleton2", "src/assets/Walking.dae", [150, 0, 0], true);
-
-  // createTree2();
-  
+  skeleton5 = new Skeleton("skeleton2", "src/assets/Waving.dae", [150, 0, 0], true);
+  skeleton5 = new Skeleton("skeleton2", "src/assets/Umbrella.dae", [150, 0, 0], true);
+  skeleton5 = new Skeleton("skeleton2", "src/assets/StandUp.dae", [150, 0, 0], true);
+  skeleton5 = new Skeleton("skeleton2", "src/assets/Tripping.dae", [150, 0, 0], true);
   
   BT = new BehaviourTree();
   node_editor = new BTEditor(BT);
   BT_list.push(BT);
   
   node_editor.init();
-  //GUI.initializeGUI();
-  
-  // target_node = new RD.SceneNode();
-  // target_node.mesh = "sphere";
-  // target_node.scaling = 35;
-  // target_node.shader = "phong"
-  // target_node.color = [1.0,0.0,0.0,1];
-  // target_node.position = [200,0,1000]
-  // GFX.scene.root.addChild(target_node);
-
-  //character.visualizePath();
-
-  // character.state.target = target_node.position;
-  // character2.state.target = target_node.position;
-
-  // cond_node = new ConditionalNode(123, BT, blackboard, BT.tree, "is_raining?", "rain", 0);
-  createDefaultAreas();
-
   CORE.Player.renderStats()
   CORE.GraphManager.renderStats();
+  CORE.Scene.visualizeInterestPoints();
+
+  // paintInCanvas(node_editor.graph_canvas.canvas.getContext("2d"));
 }
 function resize()
 {
@@ -162,19 +133,13 @@ function update(dt)
   for(var c in AgentManager.agents)
   {
     var character_ = AgentManager.agents[c]; 
+    agent_evaluated = character_;
     var animator = character_.animator;
     var skeleton = character_.skeleton;
 
     //  ULTRAMEGAREQUETESUPERHARDCODEADO --> HACER GESTION DE ZONAS Y BLACKBOARDS
     // checkZone(character_);
     if(!skeleton || !skeleton.skeleton_container) continue;
-    if(skeleton.skeleton_container.getGlobalPosition()[0] > 0)
-    {
-      character_.blackboard = blackboard2;
-    }
-    else{
-      character_.blackboard = blackboard;
-    }
 
     if(!skeleton.root_bone)
       continue;
@@ -188,6 +153,7 @@ function update(dt)
     {
       var anim_name = skeleton.anim_name.split("/");
       animator.base_animation = getAnimationByName(anim_name[2].slice(0, -4));
+      animator.base_animation.current_time = 0;
       animator.merge_animations = [];
       setting_done = true;
     }
@@ -195,27 +161,20 @@ function update(dt)
     if(!setting_done)
       return;
 
-    BT.rootnode.tick(character_);
+    if(!BT.rootnode)
+      return;
 
-    /*if(character_.inTarget(character_.current_waypoint.pos, 250))
-    {
-      character_.current_waypoint.visited = true;
-      if(character_.path.indexOf(character_.current_waypoint) == character_.path.length-1)
-      {
-        // console.log("Vuelve al primero");
-        character_.restorePath();
-      }
-      character_.getNextWaypoint();
-    }*/
-    // console.log(dt);
-    character_.moveTo(character_.getWayPoint(150), dt);
+    node_editor.graph.clearTriggeredSlots();
+    node_editor.graph.description_stack = [];
+    node_editor.graph.runStep(1,false);
+    if(BT.fixed_node)
+      BT.fixed_node.tick(character_, dt);
+    else
+      BT.rootnode.tick(character_, dt);
+    
+    character_.moveTo(character_.properties.target, dt);
     animator.clearMergeAnims();
-
     animator.animate(skeleton, dt, SIMPLE, weight_of_merge);
-    animator.last_current_time += dt;
-  
-    if(updateTime)
-      animator.current_time += dt;
   }  
 }
 
@@ -240,16 +199,15 @@ function onStartParsing()
 	start_time = Date.now();
 }
 
-function createBtree(editor)
+function clearPath(upath)
 {
-  
-  // var is_raining = BT.addConditionalNode(2,"rain", 0.5);
-  // var walk = BT.addAnimationNode(3, [{anim: "Walking", weight:1.0}], 1, 3);
-  // var run = BT.addAnimationNode(4, [{anim: "Running", weight:1.0}], 1, 5);
-
-  // BT.rootnode.addChildren(is_raining); //conditional
-  // BT.rootnode.addChildren(walk);       //action
-  // is_raining.addChildren(run);         //action
+  var path = upath
+  for(var i in path)
+  {
+    var wp = path[i];
+    wp.visited = false;
+  }
+  return path;
 }
 
 function updateTargetPos()
@@ -275,60 +233,13 @@ String.prototype.capitalize = function() {
 
 function disselectCharacter()
 {
-  for(var i in characters)
+  for(var i in AgentManager.agents)
   {
-    var char = characters[i];
+    var char = AgentManager.agents[i];
     char.is_selected = false;
     char.changeColor();
   }
 }
-
-function createDefaultAreas()
-{
-  area1 = new RD.SceneNode();
-  area1.name = "area1";
-  area1.mesh = "planeXZ";
-  area1.position = [2500, 0, 0];
-  area1.blend_mode = RD.BLEND_ALPHA;
-  area1.flags.depth_test = false;
-  area1.scale([5000, 1, 10000]);
-  area1.color = [0,1,1,0.05];
-  GFX.scene.root.addChild(area1);
-
-  area2 = new RD.SceneNode();
-  area2.name = "area2";
-  area2.mesh = "planeXZ";
-  area2.position = [-2500, 0, 0];
-  area2.blend_mode = RD.BLEND_ALPHA;
-  area2.flags.depth_test = false;
-  area2.scale([5000, 1, 10000]);
-  area2.color = [0.25,1,0,0.05];
-  GFX.scene.root.addChild(area2);
-
-  area3 = new RD.SceneNode();
-  area3.name = "area3";
-  area3.mesh = "planeXZ";
-  area3.texture = "sunny.png";
-  area3.position = [-300, 2, 0];
-  area3.blend_mode = RD.BLEND_ALPHA;
-  area3.flags.depth_test = false;
-  area3.scale([500, 1, 500]);
-  area3.rotate(90*DEG2RAD, [0,-1,0]);
-  GFX.scene.root.addChild(area3);
-
-  area4 = new RD.SceneNode();
-  area4.name = "area4";
-  area4.mesh = "planeXZ";
-  area4.scale([500, 1, 500]);
-  area4.blend_mode = RD.BLEND_ALPHA;
-  area4.flags.depth_test = false;
-  area4.texture = "rainy.png";
-  area4.position = [300, 0, 0];
-  area4.rotate(90*DEG2RAD, [0,1,0]);
-  GFX.scene.root.addChild(area4);
-}
-
-//init();
 
 function guidGenerator() {
   var S4 = function() {

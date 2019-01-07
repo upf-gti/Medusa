@@ -15,10 +15,53 @@ class Player{
         CORE.GUI.menu.panel.content.appendChild(buttons);
         window.state = STOP;
 
+        this.mode_buttons = [];
+
         var stats = this.stats = document.createElement("div");
         stats.className = "stats";
         CORE.Player.panel.content.appendChild(stats);
         // CORE.GUI.menu.panel.content.appendChild(current_cont)
+
+        var micro_tools = this.micro_tools = document.createElement("div");
+        micro_tools.id = "micro-tools";
+        CORE.Player.panel.content.appendChild(micro_tools);
+
+        var nav_mode_btn = this.nav_mode_btn = document.createElement("div");
+        nav_mode_btn.className = "tool-btn";
+        nav_mode_btn.classList.add("active");
+        nav_mode_btn.id = "navigate-mode-btn";
+        nav_mode_btn.innerHTML = '&#9974';
+        nav_mode_btn.title = "Navigation mode";
+        nav_mode_btn.addEventListener("click", function(){
+            if(!this.classList.contains("active"))
+            {
+                this.classList.add("active");
+                // ip_creation_mode = false;
+            }
+            scene_mode = NAV_MODE;
+            CORE.Player.disableModeButtons(this.id);
+
+        });
+        this.mode_buttons.push(nav_mode_btn);
+        micro_tools.appendChild(nav_mode_btn);
+
+        var ip_mode_btn = this.ip_mode_btn = document.createElement("div");
+        ip_mode_btn.className = "tool-btn";
+        ip_mode_btn.id = "ip-mode-btn";
+        ip_mode_btn.innerHTML = '&#9964';
+        ip_mode_btn.title = "Interest Point creation mode";
+        ip_mode_btn.addEventListener("click", function(){
+            if(!this.classList.contains("active"))
+            {
+                this.classList.add("active");
+                // ip_creation_mode = false;
+            }
+            scene_mode = IP_CREATION_MODE;
+            CORE.Player.disableModeButtons(this.id);
+
+        });
+        this.mode_buttons.push(ip_mode_btn);
+        micro_tools.appendChild(ip_mode_btn);
         
         this.addButton( "<div id='play-btn' class='' >&#x25b6</div>", (e)=>{
             switch(window.state){
@@ -69,6 +112,15 @@ class Player{
         this.buttons.appendChild(button);
     }
 
+    disableModeButtons( id )
+    {
+        for(var i in this.mode_buttons)
+        {
+            if(this.mode_buttons[i].classList.contains("active") && this.mode_buttons[i].id!=id)
+                this.mode_buttons[i].classList.remove("active");
+        }
+    }
+
     postInit(){
         this.player = GFX.renderer;
         CORE.Player.resize();
@@ -96,8 +148,7 @@ class Player{
             throw "stats div not created / ready yet";
 
         var text = "";
-
-        text += "Agents: " + CORE.AgentManager.agents.length;
+        text += "Agents: " + Object.keys(CORE.AgentManager.agents).length;
         text += " | Zones: " + 2;//TODO
 
         this.stats.innerText = text;

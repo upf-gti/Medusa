@@ -24,26 +24,25 @@ function Character(name, skeleton, animator)
 //Solo necesitamos saber el archivo
 Character.prototype._ctor = function()
 {
-    //this.name = null;
-    //this.skeleton = null;
-    //this.animator = null;
-    //this.btree = null;
-    //this.blackboard = blackboard;
+    // this.name = null;
+    // this.skeleton = null;
+    // this.animator = null;
+    // this.btree = null;
+    // this.blackboard = blackboard;
     //vector de vec3: [[0,0,0], [10,0,0], ...]
     //   this.path = [{pos:[0,0,0],visited:false}, [300,0,-100], [700,0,-200], [800,0,0], [700,0,300], [300,0,400],  [0,0,300]];
     this.path = [{pos:[0,0,0],visited:false}, {pos: [-100,0,1400],visited:false}, 
     {pos:[1400,0,1000],visited:false},{pos:[2000,0,800],visited:false},{pos:[2600,0,1400],visited:false}, 
     {pos:[1800,0,1400],visited:false}, {pos:[1600,0,-800],visited:false}, {pos:[-1200,0,-1000],visited:false}, {pos:[-400,0,0],visited:false}];
     this.state = {age:20, target: this.path[1].pos, in_target:false, position:null, has_umbrella:false, has_smartphone:false, attitude:50};
-    
     this.target = this.path[this.path.length-1].pos;
     this.in_target = false;
-    
     this.current_waypoint = this.path[0];
 
     this.tmp_vec = vec3.create();
 
     this.visualizePath();
+
 }
 
 var tmp = {
@@ -167,6 +166,7 @@ Character.prototype.orientCharacter = function( skeleton, target )
     // tmp.axis2 = GFX.rotateVector(tmp.inv_mat, tmp.axis);
 
      //rotate de gl-matrix es el rotateLocal
+    debugger;
     skeleton.rotate( 0.02, tmp.axis );
     // skeleton.rotate( 0.02, [0,tmp.axis[1],0] )
     // console.log("Despues de asignar fromMatrix", skeleton.getGlobalMatrix());
@@ -179,7 +179,7 @@ Character.prototype.inTarget = function( target, threshold)
     current_pos[1] = this.skeleton.skeleton_container.getGlobalPosition()[2];
 
     var a = vec2.fromValues(current_pos[0],current_pos[1]);
-    var b = vec2.fromValues(target[0],target[2]);
+    var b = vec2.fromValues(target.pos[0],target.pos[2]);
 
     var dist = vec2.distance(a,b);
     // console.log("dist", dist);
