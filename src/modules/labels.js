@@ -69,7 +69,9 @@ class Labels {
             ctx.strokeStyle = "rgb(255, 0, 0)";
             ctx.fillStyle = "rgba(33, 33, 33, .5)";
 
-            ctx.fillRoundedRect(screenpos[0] - 10, this.canvas.height - screenpos[1] - 21, node.name.length * 10 + 10, 32, 5);
+            var name = node.name || node.mesh || node.id;
+
+            ctx.fillRoundedRect(screenpos[0] - 10, this.canvas.height - screenpos[1] - 21, name.length * 10 + 10, 32, 5);
             
             ctx.fillStyle = "#FFFFFF";
             ctx.fillText(node.name,screenpos[0], this.canvas.height - screenpos[1]);

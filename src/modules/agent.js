@@ -231,13 +231,14 @@ class Agent{
         path.closed = true;
         path.type = LS.Path.LINE;
 
-        for(var i = 0; i <this.path.length; ++i)
+        for(let i = 0; i <this.path.length; ++i)
         {
             var waypoint_pos = this.path[i];
             // path.addPoint(waypoint_pos.pos);
             vertices.push(waypoint_pos.pos[0], waypoint_pos.pos[1], waypoint_pos.pos[2] );
             var node = new RD.SceneNode();
             node.mesh = "sphere";
+            node.name = "wp"+i;
             node.position = waypoint_pos.pos;
             node.color = [1,1,1,1];
             node.scaling = 4;
