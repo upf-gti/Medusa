@@ -167,34 +167,34 @@ var GFX = {
             else
             {
                 GFX.init_time_clicked = null;
-                var actions = [
-                {
-                    title: "Create ", //text to show
-                    has_submenu: true,
-                    submenu: {
-                        options: 
-                        [{
-                            title: "Interest Point",
-                            callback: function() 
-                            { 
-                                var x = e.canvasx;
-                                var y = e.canvasy;
-                                var position = GFX.testCollision(x, y);
-                                CORE.Scene.addInterestPoint(position[0], position[2]); 
-                            }
-                        }, 
-                        {
-                            title: "Agent",
-                            callback: function() 
-                            { 
-                               alert("Functionality on developement. Sorry!");
-                            }
-                        }
-                        ]
-                    }
-                }
-                ];
-                var contextmenu = new LiteGUI.ContextMenu( actions, { event: e });
+                // var actions = [
+                // {
+                //     title: "Create ", //text to show
+                //     has_submenu: true,
+                //     submenu: {
+                //         options: 
+                //         [{
+                //             title: "Interest Point",
+                //             callback: function() 
+                //             { 
+                //                 var x = e.canvasx;
+                //                 var y = e.canvasy;
+                //                 var position = GFX.testCollision(x, y);
+                //                 CORE.Scene.addInterestPoint(position[0], position[2]); 
+                //             }
+                //         }, 
+                //         {
+                //             title: "Agent",
+                //             callback: function() 
+                //             { 
+                //                alert("Functionality on developement. Sorry!");
+                //             }
+                //         }
+                //         ]
+                //     }
+                // }
+                // ];
+                // var contextmenu = new LiteGUI.ContextMenu( actions, { event: e });
             }    
 
         }

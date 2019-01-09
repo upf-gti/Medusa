@@ -313,14 +313,13 @@ class Agent{
         var global_parent = head_parent._global_matrix;
         var mat = mat4.create();
         var local_target = vec3.create();
-        mat4.invert(mat, global_parent);
+        mat4.invert(mat, global_parent); //inverse head-parent-bone model
         vec3.transformMat4(local_target, target, mat);
 
         var tmpMat4 = mat4.create(), tmpQuat = quat.create();
-        var g_pos = head.getGlobalPosition();
-        mat4.lookAt(tmpMat4, local_target, g_pos, RD.UP);
+        mat4.lookAt(tmpMat4, local_target, [0,0,0], RD.UP);
         quat.fromMat4(tmpQuat, tmpMat4);
-        quat.slerp(tmpQuat, tmpQuat, head.rotation, 0.975);
+        quat.slerp(tmpQuat, tmpQuat, head.rotation, 0.15);
         head._rotation = tmpQuat;
         head.updateMatrices();
     }
