@@ -110,13 +110,13 @@ var AgentManager = {
                     inspector.widgets_per_row = 1;
                     agent.dialog.adjustSize();
             }
+            agent.dialog.adjustSize();
             agent.dialog.setPosition(10,125);
             agent.dialog.add(inspector);
             inspector.refresh();
 
             CORE.Player.renderStats();
         }
-
     },
 
     save_agents()
@@ -156,13 +156,12 @@ class Agent{
         this.btree = null;
         this.blackboard = blackboard;
 
-        // this.path = [{pos:[0,0,100],visited:false}, {pos: [-100,0,1400],visited:false}, {pos:[1400,0,1000],visited:false},{pos:[2000,0,800],visited:false},{pos:[2600,0,1400],visited:false}, {pos:[1800,0,1400],visited:false}, {pos:[1600,0,-800],visited:false}, {pos:[-1200,0,-1000],visited:false}, {pos:[-400,0,0],visited:false}];
         this.path = [{id:1,pos:[1300,0,0],visited:false},{id:2,pos: [0,0,1000],visited:false} ,{id:3,pos: [-1300,0,0],visited:false}];
         this.current_waypoint = this.path[0];
 
         // var random = vec3.random(vec3.create(), 100);
         //   position = position || vec3.add(vec3.create(), vec3.create(), vec3.fromValues(random[0], 0, random[2]));
-        
+        this.skeletal_animations = {};
         this.properties = {
             name: "Billy-" + guidGenerator(),
             age: 35,
@@ -170,12 +169,19 @@ class Agent{
             money:20,
             hungry:false,
             umbrella: false,
-            target: this.path[0]
+            target: this.path[0], 
+            look_at_pos: [1000,0,500]
         }
 
         this.skeleton = new Skeleton( LS.generateUId('skeleton'), "src/assets/Walking.dae", [0,0,0], false);
         this.animator = new Animator();
+        var animation = animation_manager.animations["Walking"];
+        var skeletal_animation = new SkeletalAnimation("Walking", animation);
+        this.skeletal_animations["Walking"] = skeletal_animation; 
+        this.animator.base_animation = skeletal_animation;
         this.animator.animations = animations; //toremove
+        // this.head_node = this.getHeadNode(this.skeleton.name);
+        // console.log(this.head_node);
         animators.push( this.animator );//toremove 
 
         //Store agents 
@@ -201,12 +207,16 @@ class Agent{
         agent.current_waypoint = agent.path[0];
         agent.properties = o.properties;
         agent.properties.target = agent.path[0];
-        // agent.skeleton = o.skeleton;
-        // agent.animator = o.animator;
-        agent.skeleton = new Skeleton( LS.generateUId('skeleton'), "src/assets/Walking.dae", [0,0,0], false);
-        agent.animator = new Animator();
-        agent.animator.animations = animations; //toremove
-        animators.push( agent.animator );//toremove 
+        this.skeletal_animations = {};
+
+        this.skeleton = new Skeleton( LS.generateUId('skeleton'), "src/assets/Walking.dae", [0,0,0], false);
+        this.animator = new Animator();
+        var animation = animation_manager.animations["Walking"];
+        var skeletal_animation = new SkeletalAnimation("Walking", animation);
+        this.skeletal_animations["Walking"] = skeletal_animation; 
+        this.animator.base_animation = skeletal_animation;
+        this.animator.animations = animations; //toremove
+        animators.push( this.animator );//toremove 
 
         AgentManager.agents[agent.uid] = agent;
 
@@ -232,7 +242,6 @@ class Agent{
         for(var i = 0; i <this.path.length; ++i)
         {
             var waypoint_pos = this.path[i];
-            // path.addPoint(waypoint_pos.pos);
             vertices.push(waypoint_pos.pos[0], waypoint_pos.pos[1], waypoint_pos.pos[2] );
             var node = new RD.SceneNode();
             node.mesh = "sphere";
@@ -243,26 +252,6 @@ class Agent{
             GFX.scene.root.addChild(node);
         }
 
-        // path._max_points = 10000;
-        // path._mesh = path._mesh || GL.Mesh.load( { vertices: new Float32Array( path._max_points * 3 ) } );
-        // var vertices_buffer = path._mesh.getVertexBuffer("vertices");
-        // var vertices_data = vertices_buffer.data;
-        // var total;
-        // if(path.type == LS.Path.LINE)
-        //     total = path.getSegments() + 1;
-        // else
-        //     total = path.getSegments() * 120; //10 points per segment
-        // if(total > path._max_points)
-        //     total = path._max_points;
-        // path.samplePointsTyped( total, vertices_data );
-        // vertices_buffer.upload( gl.STREAM_TYPE );
-        
-        // GFX.renderer.meshes["path"] = path._mesh;
-        // path._range = total;
-
-        // var waypoint_pos_ = this.path[0];
-        // vertices.push(waypoint_pos_.pos[0], waypoint_pos_.pos[1], waypoint_pos_.pos[2] );
-        // // console.log(vertices);
         var path_mesh = "path_mesh"
         var lines_mesh = GL.Mesh.load({ vertices: vertices });
 
@@ -274,7 +263,6 @@ class Agent{
         linea.mesh = path_mesh;
         linea.color = [1,1,1,1];
         linea.flags.depth_test = false;
-        //linea.render_priority = RD.PRIORITY_HUD;
         GFX.scene.root.addChild(linea);
     }
 
@@ -297,8 +285,50 @@ class Agent{
         quat.fromMat4(tmpQuat, tmpMat4);
         quat.slerp(tmpQuat, tmpQuat, skeleton.rotation, 0.975);
         skeleton._rotation = tmpQuat;
+        skeleton.updateMatrices();
+    
     }
 
+    lookAt( target, dt)
+    {
+        //significa que se debe poner mirando al horizonte
+        if(!target)
+        {
+            var direction = GFX.rotateVector(this.skeleton.skeleton_container.getGlobalMatrix(), [0,0,1]);
+            direction = vec3.multiply(direction, direction, [10000, 10000, 10000]);
+            this.orientHead(this.head_node, direction);
+        }
+        //han seteado el look at externamente 
+        else{
+            console.log("Rotating head");
+            this.orientHead(this.head_node, target);
+            // this.head_node.updateMatrices();
+        }
+    }
+
+    orientHead( head, target)
+    {
+        //pasar el target a coordenadas locales del padre del head!!! Y luego hacer el resto
+        var head_parent = head._parent;
+        var global_parent = head_parent._global_matrix;
+        var mat = mat4.create();
+        var local_target = vec3.create();
+        mat4.invert(mat, global_parent);
+        vec3.transformMat4(local_target, target, mat);
+
+        var tmpMat4 = mat4.create(), tmpQuat = quat.create();
+        var g_pos = head.getGlobalPosition();
+        mat4.lookAt(tmpMat4, local_target, g_pos, RD.UP);
+        quat.fromMat4(tmpQuat, tmpMat4);
+        quat.slerp(tmpQuat, tmpQuat, head.rotation, 0.975);
+        head._rotation = tmpQuat;
+        head.updateMatrices();
+    }
+
+    getHeadNode(name)
+    {
+        return GFX.scene._nodes_by_id[name + "/mixamorig_Head"]
+    }
     inTarget( target, threshold)
     {
         var current_pos = []; 
@@ -313,13 +343,12 @@ class Agent{
 
         if(dist < threshold)
         {
-                for(var i  in this.path)
-                    if(this.path[i].id == target.id)
-                        this.path[i].visited = true;
+            for(var i  in this.path)
+                if(this.path[i].id == target.id)
+                    this.path[i].visited = true;
             
             return true;
-        }
-        
+        } 
         return false;
     }
 
@@ -330,8 +359,6 @@ class Agent{
             if(this.path[i].visited == false)
             {
                 this.current_waypoint = this.path[i];
-                // if(i == this.path.length -1)
-                //     this.restorePath();
                 return this.path[i];
             }
         }
@@ -339,15 +366,12 @@ class Agent{
 
     restorePath()
     {
-        // console.log("restoring path");
         for(var i in this.path)
             this.path[i].visited = false;
-        // this.current_waypoint = this
     }
 
     changeColor()
     {
-        // debugger;
         if(this.is_selected)
         {
             this.skeleton.line_color = [1,0,0,1];

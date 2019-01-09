@@ -1,7 +1,7 @@
 Skeleton.animations = {};
 Skeleton.uid = 0;
 
-function Skeleton(name, path, root_pos, only_animation)
+function Skeleton(name, path, root_pos)
 {
   if(this.constructor !== Skeleton)
 	 throw("You must use new to create Skeleton");
@@ -10,7 +10,7 @@ function Skeleton(name, path, root_pos, only_animation)
     this.rootPos = root_pos;
 
 	if(path)
-		this.load( path, only_animation );
+		this.load( path );
   if(name)
     this.name = name;
 
@@ -35,38 +35,19 @@ Skeleton.prototype._ctor = function()
   this.animationsToMix = [];
 }
 
-Skeleton.prototype.load = function(path, only_animation)
+Skeleton.prototype.load = function(path)
 {
   var that = this;
   Collada.load( path, function(scene){
       that.scene = scene;
       that.anim_name = path;
-      that.onParsed(path, only_animation);
+      that.onParsed(path);
   } );
 }
 
-Skeleton.prototype.onParsed = function(path, only_animation)
+Skeleton.prototype.onParsed = function(path)
 {
   clearInterval(timer);
-  // console.log(this.scene);
-
-  for ( var i in this.scene.resources )
-  {
-    var animation = new LS.Animation();
-    animation.configure( this.scene.resources[i] );
-
-    var filename = path.substring(path.lastIndexOf('/')+1)
-    animation.name = filename.substring(0,filename.lastIndexOf('.'))
-
-    animation.takes["default"].optimizeTracks();
-    animation.current_time = 0;
-    animations.push(animation);
-    //animator.animations.push(animation);
-    current_animation = animation;
-  }
-  if(only_animation)
-    return
-
   if(!this.scene)
     document.body.innerHTML = "Error, check console";
   else if(typeof(this.scene) == "string")

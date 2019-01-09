@@ -150,6 +150,7 @@ BTEditor.prototype.init = function()
         that.addNodeByType(type, properties, [data.canvasX,data.canvasY]); 
     }
 
+    /*************** Draww summary of what is happening on the tree *****************/
     this.graph_canvas.onDrawOverlay = function( ctx )
     {
         if( this.graph.description_stack.length > 0 )
@@ -626,7 +627,6 @@ SimpleAnimate.prototype.onDrawBackground = function(ctx, canvas)
 {
     ctx.font = "12px Arial";
     ctx.fillStyle = "#AAA";
-    // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
     ctx.fillText(`Animation: ${this.data.anims[0].anim}`,10,15);
     ctx.fillText(`Motion speed: ${this.data.motion}`,10,35);
     ctx.fillText(`Animation speed: ${this.data.speed}`,10,55);
@@ -634,7 +634,6 @@ SimpleAnimate.prototype.onDrawBackground = function(ctx, canvas)
 
 SimpleAnimate.prototype.onConfigure = function(info)
 {
-    // debugger;
     onConfig(info, this.graph);
     // this.data.g_node = this;
 
@@ -654,7 +653,6 @@ function EQSNearestInterestPoint()
     this.ip_type = null;
     var w = 200;
     var h = 55;
-    // this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
     this.addOutput("value","vec3", {pos:[w,15], dir:LiteGraph.LEFT});
     this.size = [w, h]; 
     var that = this;
@@ -668,7 +666,6 @@ function EQSNearestInterestPoint()
     this.slider = this.addWidget("combo","List", Object.keys(CORE.Scene.properties.interest_points)[0], function(v){that.ip_type = v;}, { values:function(widget, node){
         return Object.keys(CORE.Scene.properties.interest_points);
     }} );
-    // this.slider = this.addWidget("combo","List", Object.keys(CORE.Scene.properties.interest_points)[0], function(v){that.ip_type = v;}, { values:Object.keys(CORE.Scene.properties.interest_points)} );
 
     this.editable = { property:"value", type:"number" };
     this.flags = { resizable: false };
@@ -678,7 +675,6 @@ EQSNearestInterestPoint.prototype.onDrawBackground = function(ctx, canvas)
 {
     ctx.font = "12px Arial";
     ctx.fillStyle = "#AAA";
-    // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
     ctx.fillText(`List evaluated`,10,15);
 }
 EQSNearestInterestPoint.prototype.onExecute = function()
@@ -687,7 +683,6 @@ EQSNearestInterestPoint.prototype.onExecute = function()
     var min = 99999999999;
     if(!this.ip_type)
         this.ip_type = "shops";
-    // console.log(CORE.Scene.properties.interest_points);
     var types = Object.keys(CORE.Scene.properties.interest_points);
     for(var i in types)
     {
@@ -763,9 +758,47 @@ EQSDistanceTo.prototype.onConfigure = function(info)
 
 }
 
+function LookAt()
+{
+    this.shape = 2;
+    this.color = "#1B662D"
+    this.bgcolor = "#384837";
+    this.boxcolor = "#999";
+    var w = 200;
+    var h = 65;
+    this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
+    this.addInput("target","vec3", {pos:[0,10], dir:LiteGraph.LEFT});
+    this.size = [w, h];    
+    this.editable = { property:"value", type:"number" };
+    this.flags = { resizable: false };
+    this.data = {target:null, motion:1}
+}
 
+LookAt.prototype.onDrawBackground = function(ctx, canvas)
+{
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#AAA";
+    // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
+    ctx.fillText(`Look at Node`,10,35);
+}
 
-LiteGraph.registerNodeType("btree/EQSDistanceTo", EQSDistanceTo);
+LookAt.prototype.onExecute = function(ctx, canvas)
+{
+    var data = this.getInputData(1);
+    if(data)
+        this.data.target = data;
+    if(this.btree)
+    {
+        this.btree.updateNodeInfo(this.id, this.data);
+        return;
+    }
+}
+
+LookAt.prototype.onConfigure = function(info)
+{
+    onConfig(info, this.graph);
+}
+LiteGraph.registerNodeType("btree/LookAt", LookAt);
 
 
 
