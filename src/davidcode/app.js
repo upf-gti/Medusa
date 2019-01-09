@@ -87,15 +87,16 @@ function appinit()
   GFX.initCanvas();
   Collada.init({ forceParser: false,  dataPath: "", workerPath: "../src/", libsPath: "../external/" });
   window.onresize = resize;
+  //This animation manager will manage the gets and new Animations, not Skeletal Animations
+  animation_manager = new AnimationManager();
 
-  skeleton2 = new Skeleton("skeleton2", "src/assets/Running.dae", [150, 0, 0], true);
-  skeleton3 = new Skeleton("skeleton2", "src/assets/Old_Man_Walk.dae", [100, 0, 0], true);
-  skeleton4 = new Skeleton("skeleton2", "src/assets/Idle.dae", [100, 0, 0], true);
-  skeleton5 = new Skeleton("skeleton2", "src/assets/Walking.dae", [150, 0, 0], true);
-  skeleton5 = new Skeleton("skeleton2", "src/assets/Waving.dae", [150, 0, 0], true);
-  skeleton5 = new Skeleton("skeleton2", "src/assets/Umbrella.dae", [150, 0, 0], true);
-  skeleton5 = new Skeleton("skeleton2", "src/assets/StandUp.dae", [150, 0, 0], true);
-  skeleton5 = new Skeleton("skeleton2", "src/assets/Tripping.dae", [150, 0, 0], true);
+  animation_manager.newAnimation("src/assets/Walking.dae");
+  animation_manager.newAnimation("src/assets/Running.dae");
+  animation_manager.newAnimation("src/assets/Old_Man_Walk.dae");
+  animation_manager.newAnimation("src/assets/Idle.dae");
+  animation_manager.newAnimation("src/assets/Umbrella.dae");
+  animation_manager.newAnimation("src/assets/StandUp.dae");
+  animation_manager.newAnimation("src/assets/Tripping.dae");
   
   BT = new BehaviourTree();
   node_editor = new BTEditor(BT);
@@ -123,13 +124,17 @@ function resize()
 /*********************************************************************************/
 function update(dt)
 {
-  // updateTargetPos();
   if(state == STOP)
     return;
   
   if(enable_update_camera)
     GFX.updateCamera();
 
+  //Clear the path of the bt to avoid confusions when changes the path
+  node_editor.graph.clearTriggeredSlots();
+  //Clear the description to show as maybe the agent selected is changed or the path
+  node_editor.graph.description_stack = [];
+  //Evaluate each agent on the scene
   for(var c in AgentManager.agents)
   {
     var character_ = AgentManager.agents[c]; 
@@ -137,35 +142,27 @@ function update(dt)
     var animator = character_.animator;
     var skeleton = character_.skeleton;
 
-    //  ULTRAMEGAREQUETESUPERHARDCODEADO --> HACER GESTION DE ZONAS Y BLACKBOARDS
-    // checkZone(character_);
+    if(!character_.head_node)
+    {
+      character_.head_node = character_.getHeadNode(character_.skeleton.name);
+      console.log(character_.head_node);
+      var lookatnode = new RD.SceneNode();
+      lookatnode.mesh = "cube";
+      lookatnode.position = character_.properties.look_at_pos;
+      lookatnode.color = [1,0,0,1];
+      lookatnode.scaling = 10;
+      lookatnode.render_priority = 1;
+      GFX.scene.root.addChild(lookatnode);
+    }
+
     if(!skeleton || !skeleton.skeleton_container) continue;
 
     if(!skeleton.root_bone)
       continue;
 
-    if(animator.current_animation == null){
-      var anim_name = skeleton.anim_name.split("/");
-      animator.current_animation = getAnimationByName(anim_name[2].slice(0, -4));
-    }
-  
-    if(!animator.base_animation)
-    {
-      var anim_name = skeleton.anim_name.split("/");
-      animator.base_animation = getAnimationByName(anim_name[2].slice(0, -4));
-      animator.base_animation.current_time = 0;
-      animator.merge_animations = [];
-      setting_done = true;
-    }
-  
-    if(!setting_done)
-      return;
-
     if(!BT.rootnode)
       return;
 
-    node_editor.graph.clearTriggeredSlots();
-    node_editor.graph.description_stack = [];
     node_editor.graph.runStep(1,false);
     if(BT.fixed_node)
       BT.fixed_node.tick(character_, dt);
@@ -173,6 +170,8 @@ function update(dt)
       BT.rootnode.tick(character_, dt);
     
     character_.moveTo(character_.properties.target, dt);
+    character_.lookAt( character_.properties.look_at_pos, dt);
+    // character_.orientCharacter(skeleton.skeleton_container, character_.properties.target.pos, dt);
     animator.clearMergeAnims();
     animator.animate(skeleton, dt, SIMPLE, weight_of_merge);
   }  

@@ -185,6 +185,7 @@ BehaviourTree.prototype.addConditionalNode = function(id, options, g_node )
                 {
                     if(agent.is_selected)
                     {
+                        // console.log(agent);
                         var g_child = child.g_node;
                         var chlid_input_link_id = g_child.inputs[0].link;
                         this.g_node.triggerSlot(0, null, chlid_input_link_id);
@@ -385,6 +386,7 @@ BehaviourTree.prototype.addSequencerNode = function( id, options, g_node )
                 this.executing_child_index += 1;
                 if(agent.is_selected)
                 {
+                    console.log(agent);
                     var g_child = child.g_node;
                     var chlid_input_link_id = g_child.inputs[0].link;
                     this.g_node.triggerSlot(0, null, chlid_input_link_id);
@@ -741,6 +743,30 @@ BehaviourTree.prototype.addAnimationNode = function( id, options, g_node )
             this.description = 'Playing ' + this.anims[0].anim;
             return this.action(agent);
         }
+    }
+    this.node_pool.push(node);
+    return node;
+}
+
+BehaviourTree.prototype.addLooKAtNode = function( id, options, g_node)
+{
+    let node = new Node();
+    node.properties = options;
+    node.g_node = g_node;
+    node.id = id;
+    node.type = "animation";
+    // var target = node.properties.target;
+
+    node.tick = function(agent, dt)
+    {
+        // debugger;
+        if(this.properties.look_at_pos){
+            agent.properties.look_at_pos = this.properties.look_at_pos;
+            this.description = 'Look At updated: New look at position set to the input';
+
+            return STATUS.success;
+        }
+        return STATUS.fail;
     }
     this.node_pool.push(node);
     return node;
