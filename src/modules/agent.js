@@ -14,7 +14,7 @@ var AgentManager = {
     }),
     
     init(){
-        CORE.GUI.menu.add("Agent/+ new Agent", () => {let agent = new Agent(); agent.dialog.show('fade'); } );
+        CORE.GUI.menu.add("Agent/+ new Agent", () => new Agent() );
     },
 
     createGUIParams( agent ){
@@ -27,7 +27,7 @@ var AgentManager = {
                 agent.dialog.setPosition(10,125);
             } });
             CORE.GUI.menu.remove("Agent/+ new Agent");
-            CORE.GUI.menu.add("Agent/+ new Agent", () => {let agent = new Agent(); agent.dialog.show('fade'); } );
+            CORE.GUI.menu.add("Agent/+ new Agent", () => new Agent() );
         }
         if(!agent.inspector){
             var inspector = agent.inspector = new LiteGUI.Inspector(),
@@ -197,7 +197,6 @@ class Agent{
             this.moveTo(p,global_dt);
         }).bind(this));
     }
-
     
     configure( o, agent )
     {
@@ -235,19 +234,17 @@ class Agent{
     }
     visualizePath()
     {
-        if(!this.path) return;
         var vertices = [];
         var path = new LS.Path();
         path.closed = true;
         path.type = LS.Path.LINE;
 
-        for(let i = 0; i <this.path.length; ++i)
+        for(var i = 0; i <this.path.length; ++i)
         {
             var waypoint_pos = this.path[i];
             vertices.push(waypoint_pos.pos[0], waypoint_pos.pos[1], waypoint_pos.pos[2] );
             var node = new RD.SceneNode();
             node.mesh = "sphere";
-            node.name = "wp"+i;
             node.position = waypoint_pos.pos;
             node.color = [1,1,1,1];
             node.scaling = 4;
@@ -352,15 +349,6 @@ class Agent{
             return true;
         } 
         return false;
-    }
-
-    getWayPoint(threshold){   
-        var count = this.path.length;
-        while(vec3.distance(this.skeleton.skeleton_container.position, this.path[this.current_waypoint].pos) <= threshold && count > 0){
-            this.current_waypoint = (this.current_waypoint+1)%this.path.length;
-            count--;
-        } 
-        return this.path[this.current_waypoint].pos;
     }
 
     getNextWaypoint()

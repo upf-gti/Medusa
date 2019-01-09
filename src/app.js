@@ -89,8 +89,7 @@ request("src/config.json")
 let count = 0;
 var CORE = {
 
-    modules: {},
-    components:{},
+    modules: [],
 
     init: function() {
         //Load all scripts
@@ -124,24 +123,5 @@ var CORE = {
         if (instance)
             CORE[name] = this.modules[name] = instance;
 
-    },
-
-    registerComponent: function(component, name = null){
-        if (!component.constructor)
-            return console.error("[0] Invalid component type", component);
-
-
-        switch (component.constructor.name) {
-            case "Object":
-                if (component.name && !name) name = component.name;
-                break;
-            case "Function":
-                if (!name) name = component.name;//Gives function name
-                break;
-            default:
-                console.error("[1] Invalid component type", component);
-        }
-
-            this.components[name] = component;
     }
 }

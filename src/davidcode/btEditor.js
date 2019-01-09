@@ -176,22 +176,6 @@ BTEditor.prototype.init = function()
     }
 
 }
-// BTEditor.prototype.updateTree = function(gnode_id)
-// {
-//     var g_node = node_editor.graph.getNodeById(gnode_id);
-//     if(g_node.children && g_node.children.length > 0) 
-//     {
-//         var bt_node = BT.getNodeById(gnode_id);
-//         if(BT.rootnode.children.length == 0)
-//             BT.rootnode.children.push(bt_node);
-//         for(var i = 0; i < g_node.children.length; i++)
-//         {   
-//             bt_node.children[i] = BT.getNodeById(g_node.children[i]);
-//             var new_gnode = g_node.children[i];
-//             this.updateTree(new_gnode);
-//         }
-//     }
-// }
 
 BTEditor.prototype.addNodeByType = function(type, properties, pos)
 {

@@ -18,7 +18,6 @@
         "src/davidcode/extra/tinyxml.js",
         "src/davidcode/extra/litegraph.js",
         "src/davidcode/extra/Canvas2DtoWebGL.js",
-        "src/davidcode/extra/patches.js",
         "src/davidcode/animator.js",
         "src/davidcode/animationManager.js",
         "src/davidcode/skeletalAnimation.js",
@@ -39,9 +38,6 @@
         "src/modules/graph.js",
         "src/modules/gui.js",
         "src/modules/player.js",
-        "src/modules/scene.js",
-        "src/modules/labels.js",
-
-        "src/components/protosceneparser.js"
+        "src/modules/scene.js"
     ]
 }

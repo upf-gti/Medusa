@@ -36,7 +36,6 @@ class Player{
             if(!this.classList.contains("active"))
             {
                 this.classList.add("active");
-                // ip_creation_mode = false;
             }
             scene_mode = NAV_MODE;
             CORE.Player.disableModeButtons(this.id);
@@ -54,7 +53,6 @@ class Player{
             if(!this.classList.contains("active"))
             {
                 this.classList.add("active");
-                // ip_creation_mode = false;
             }
             scene_mode = IP_CREATION_MODE;
             CORE.Player.disableModeButtons(this.id);
