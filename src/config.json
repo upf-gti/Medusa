@@ -20,6 +20,8 @@
         "src/davidcode/extra/Canvas2DtoWebGL.js",
         "src/davidcode/extra/patches.js",
         "src/davidcode/animator.js",
+        "src/davidcode/animationManager.js",
+        "src/davidcode/skeletalAnimation.js",
         "src/davidcode/behaviors.js",
         "src/davidcode/skeleton.js",
         "src/davidcode/character.js",

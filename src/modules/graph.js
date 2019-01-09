@@ -274,7 +274,8 @@ var GraphManager = {
                         var nodes = graph.nodes;
                         for(var i in nodes)
                         {   
-                            delete nodes[i].data["g_node"];
+                            if(node_editor.data)
+                                delete nodes[i].data["g_node"];
                         }
                         scene_obj.behavior = graph;
                         var agents = CORE.AgentManager.save_agents();

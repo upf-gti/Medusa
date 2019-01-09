@@ -12,6 +12,7 @@ Animator.addAnimation = function( animation ){
 
 Animator.prototype._ctor = function()
 {
+  this.id = "Animator_" + Math.round(Math.random()*100);
   this.animations = [];
   this.current_animation = null;
   this.last_animation = null;
@@ -130,14 +131,14 @@ Animator.prototype.animateSimple = function( skeleton, animation, dt, TYPE )
 }
 
 /* 
-* base anim is only an animation
+* base anim is only an skeletalanimation
 * animations is an array of [anim,weigh,target_weight]  on the future, anim.type t o determine if we reproduce
   looping or just one time and a anim.time_to_reproduce if we set an animations for a set time*/
 
 Animator.prototype.animateMix = function( skeleton, base_anim, m_animations, dt, TYPE)
 {
   var anim_samples_array = new Array();
-  var base_duration = base_anim.takes["default"].duration;
+  var base_duration = base_anim.animation.takes["default"].duration;
   this.smoothSpeed();
   this.smoothMotion();
   for(var h = 0; h < m_animations.length; h++)
@@ -147,13 +148,10 @@ Animator.prototype.animateMix = function( skeleton, base_anim, m_animations, dt,
     var weight = m_animations[h].weight;
     var tgt_weight = m_animations[h].target_weight;
 
-    // debugger;
-    // console.log("NoLoopAnim");
     if(m_animations[h].type == 1)
     {
       if(anim_current_time * this.speed > animation.takes["default"].duration)
       {
-        // debugger;
         this.deleteFromMergeAnims(animation.name);
         continue;
       }
@@ -163,39 +161,38 @@ Animator.prototype.animateMix = function( skeleton, base_anim, m_animations, dt,
     {
       if(m_animations[h].type != 1 && animation.name != this.base_animation.name)
       {
-        // console.log(m_animations);
-        this.base_animation = base_anim= getAnimationByName(animation.name);
+        // this.changeBaseAnimation(animation, m_animations[h]) //ToDo
+        this.base_animation.animation = base_anim.animation = animation_manager.animations[animation.name];
         this.base_animation.current_time = base_anim.current_time = m_animations[h].current_time;
-        // console.log(this.base_animation);
+        this.base_animation.name = base_anim.name = animation.name;
         this.deleteFromMergeAnims(animation.name);
-        // console.log("Cambiando base anim", animation.name);
         continue;
       }
-      // return;
     }
     if(m_animations.length)
       weigth = this.smoothTransition(m_animations[h], weight, tgt_weight);
 
     var animation_samples = new Array();
     var duration2 = animation.takes["default"].duration;
-    var ponderation = duration2/base_duration;
 
     for( var j = 0; j < animation.takes["default"].tracks.length; j++)
     {
       var track_m = animation.takes["default"].tracks[j];
-      // animation_samples.push(track_m.getSample(this.current_time * ponderation * this.speed, true ));
       animation_samples.push(track_m.getSample(anim_current_time  * this.speed, true ));
     }
+
     anim_samples_array.push({animation_samples, weight});
-    // debugger;
     m_animations[h].current_time += dt;
+
     if(m_animations[h].current_time * this.speed > animation.takes["default"].duration)
       m_animations[h].current_time = 0;
   }
 
-  for( var k = 0; k < base_anim.takes["default"].tracks.length; k++)
+  for( var k = 0; k < base_anim.animation.takes["default"].tracks.length; k++)
   {
-    var track = base_anim.takes["default"].tracks[k];
+    var track = base_anim.animation.takes["default"].tracks[k];
+    if(track._property_path[0] == "mixamorig_Head")
+      continue;
     var id_search = skeleton.name + "/" + track._property_path[0];
     var node = GFX.scene._nodes_by_id[ id_search ];
     //sample will contain the tansform
@@ -244,10 +241,12 @@ Animator.prototype.animateMix = function( skeleton, base_anim, m_animations, dt,
     skeleton.addLines(skeleton.vertices);
     skeleton.addPoints(skeleton.vertices);
   }
-  base_anim.current_time += dt;
+  this.base_animation.current_time += dt;
 
-  if(base_anim.current_time * this.speed > base_anim.takes["default"].duration)
+  if(base_anim.current_time * this.speed > base_anim.animation.takes["default"].duration)
+  {
     base_anim.current_time = 0;
+  }
 }
 
 Animator.prototype.animateOnBlending = function(skeleton, animations, dt, weight, last_anim_time, TYPE)
@@ -327,34 +326,6 @@ Animator.prototype.interpolateSamples = function( track, node, sample1, sample2,
   // node.updateMatrices();
 }
 
-// Animator.prototype.translateRoot = function( that, skeleton )
-// {
-//   if(!that.pathX)
-//   {
-//     that.pathX = skeleton.root_bone.position[0] - that.initialX;
-//     that.pathY = skeleton.root_bone.position[1] - that.initialY;
-//     console.log("PATHY: ", skeleton.root_bone.position[1]);
-//     that.pathZ = skeleton.root_bone.position[2] - that.initialZ;
-//   }
-
-//   console.log("Container" , skeleton.skeleton_container.position);
-//   console.log("Root bone", skeleton.root_bone.position);
-
-//   that.initialX = skeleton.skeleton_container.position[0] + skeleton.root_bone.position[0];
-//   that.initialY = skeleton.skeleton_container.position[1] + skeleton.root_bone.position[1];
-//   that.initialZ = skeleton.skeleton_container.position[2] + skeleton.root_bone.position[2];
-
-//   skeleton.skeleton_container.removeChild( skeleton.root_bone );
-
-//   skeleton.skeleton_container.position[0] += that.pathX;
-//   skeleton.skeleton_container.position[1] += that.pathY;
-//   skeleton.skeleton_container.position[2] += that.pathZ;
-
-//   skeleton.skeleton_container.updateMatrices();
-
-//   skeleton.skeleton_container.addChild( skeleton.root_bone );
-// }
-
 Animator.prototype.setUpAnim = function(animation, speed)
 {
   this.last_animation = this.current_animation;
@@ -406,14 +377,14 @@ Animator.prototype.addAnimToMerge = function(name, weight, type)
 {
   if(name == this.base_animation.name)
     return;
-  var anim = {anim_name: name}
-  anim.animation = getAnimationByName(name);
-  anim.weight = 0;
-  anim.target_weight = weight;
-  anim.type = type;
-  anim.current_time = 0.0;
+  var anim = animation_manager.animations[name];
+  var skeletal_anim = new SkeletalAnimation(name, anim);
+  skeletal_anim.weight = 0;
+  skeletal_anim.target_weight = weight;
+  skeletal_anim.type = type;
+  skeletal_anim.current_time = 0.0;
 
-  this.merge_animations.push(anim);
+  this.merge_animations.push(skeletal_anim);
   this.merge_anim_names.push(name);
 }
 
@@ -422,7 +393,7 @@ Animator.prototype.getMergeAnim = function(name)
   for(var i = 0; i<this.merge_animations.length; i++)
   {
     var merge_anim = this.merge_animations[i];
-    if(merge_anim.anim_name == name)
+    if(merge_anim.name == name)
       return merge_anim;
   }
 }
@@ -434,7 +405,7 @@ Animator.prototype.checkMergeAnimByName = function(name)
   for(var i = 0; i < this.merge_animations.length; i++)
   {
     // console.log("MERGE ANIMS",this.merge_animations)
-    var anim_name = this.merge_animations[i].anim_name;
+    var anim_name = this.merge_animations[i].name;
     if(anim_name == name)
       return true;
   }
@@ -539,10 +510,12 @@ Animator.prototype.applyBehaviour = function( behaviour )
     this.target_speed = behaviour.params.speed;
     this.target_motion_speed = behaviour.params.motion;
 
-    // console.log(behaviour.animations_to_merge[0].weight);
     for(var i = 0; i < behaviour.animations_to_merge.length; i++)
     {
+      // debugger;
       var animation = behaviour.animations_to_merge[i];
+      if(animation.anim == this.base_animation.animation.name)
+        continue;
       if( !this.checkMergeAnimByName( animation.anim ) )
       {
           this.addAnimToMerge(animation.anim, animation.weight, animation.type);

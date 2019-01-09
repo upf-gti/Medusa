@@ -168,26 +168,34 @@ var GFX = {
             else
             {
                 GFX.init_time_clicked = null;
-                var actions = [
-                {
-                    title: "Create ", //text to show
-                    has_submenu: true,
-                    submenu: {
-                        options: 
-                        [{
-                            title: "Interest Point",
-                            callback: function() 
-                            { 
-                                var x = e.canvasx;
-                                var y = e.canvasy;
-                                var position = GFX.testCollision(x, y);
-                                CORE.Scene.addInterestPoint(position[0], position[2]); 
-                            }
-                        }]
-                    }
-                }
-                ];
-                var contextmenu = new LiteGUI.ContextMenu( actions, { event: e });
+                // var actions = [
+                // {
+                //     title: "Create ", //text to show
+                //     has_submenu: true,
+                //     submenu: {
+                //         options: 
+                //         [{
+                //             title: "Interest Point",
+                //             callback: function() 
+                //             { 
+                //                 var x = e.canvasx;
+                //                 var y = e.canvasy;
+                //                 var position = GFX.testCollision(x, y);
+                //                 CORE.Scene.addInterestPoint(position[0], position[2]); 
+                //             }
+                //         }, 
+                //         {
+                //             title: "Agent",
+                //             callback: function() 
+                //             { 
+                //                alert("Functionality on developement. Sorry!");
+                //             }
+                //         }
+                //         ]
+                //     }
+                // }
+                // ];
+                // var contextmenu = new LiteGUI.ContextMenu( actions, { event: e });
             }    
 
         }
@@ -199,6 +207,7 @@ var GFX = {
                     return;
     
                 var dif = Date.now() - GFX.init_time_clicked;
+                //check if the action is drag or a fast click
                 if(dif < 200)
                 {
                     var x = e.canvasx;
@@ -238,15 +247,13 @@ var GFX = {
                 return;
                 
                 var dif = Date.now() - GFX.init_time_clicked;
+                //check if the action is drag or a fast click
                 if(dif < 200)
                 {
-                    console.log("Add code to create Interest Points");
-                    console.log(e);
                     var x = e.canvasx;
                     var y = e.canvasy;
                     var position = GFX.testCollision(x, y);
                     CORE.Scene.addInterestPoint(position[0], position[2]);
-                    console.log(position);
                 }
             }
         }
@@ -317,19 +324,10 @@ var GFX = {
         var result = vec3.create();
         var ray = GFX.camera.getRay(x, y);
         var node = GFX.scene.testRay(ray, result, undefined, 0x1, true);
-        if (node) {
+        if (node) 
             return result;
-            // console.log(node.name);
-            // console.log(result);
-            // var node = new RD.SceneNode();
-            // node.mesh = "sphere";
-            // node.position = result;
-            // node.scaling = 10;
-            // node.color = [1,0,0,1]; 
-
-            // GFX.scene.root.addChild(node);
-        }
     },
+
     getAgentFromTestCollision: function(x, y) {
         var result = vec3.create();
         var ray = GFX.camera.getRay(x, y);
