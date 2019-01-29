@@ -14,7 +14,8 @@ var AgentManager = {
     }),
     
     init(){
-        CORE.GUI.menu.add("Agent/+ new Agent", () => new Agent() );
+        CORE.GUI.menu.add("Actions/· Create/· New Agent", () => new Agent() );
+        CORE.GUI.menu.add("Agents");
     },
 
     createGUIParams( agent ){
@@ -22,12 +23,12 @@ var AgentManager = {
         if(!agent.dialog){
             var dialog = agent.dialog = new LiteGUI.Dialog( { id:"Settings", title:'Agent: '+ ((agent.properties && agent.properties.name)? agent.properties.name : agent.uid), close: true, minimize: false, width: 300, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
             agent.dialog.setPosition(10,125);
-            CORE.GUI.menu.add("Agent/" + ((agent.properties && agent.properties.name)? agent.properties.name : agent.uid), {callback: function() { 
+            CORE.GUI.menu.add("Agents/" + ((agent.properties && agent.properties.name)? agent.properties.name : agent.uid), {callback: function() { 
                 dialog.show('fade');             
                 agent.dialog.setPosition(10,125);
             } });
-            CORE.GUI.menu.remove("Agent/+ new Agent");
-            CORE.GUI.menu.add("Agent/+ new Agent", () => new Agent() );
+            // CORE.GUI.menu.remove("Agent/+ new Agent");
+            // CORE.GUI.menu.add("Agent/+ new Agent", () => new Agent() );
         }
         if(!agent.inspector){
             var inspector = agent.inspector = new LiteGUI.Inspector(),
@@ -38,7 +39,10 @@ var AgentManager = {
                 properties = agent.properties,
                 inspector.clear();
                 for(let p in properties){
+                    
                     let widget = null;
+                    if(properties[p] == null) continue;
+
                     switch(properties[p].constructor.name){
                         case "Number" : widget = inspector.addNumber( p, properties[p], { key: p, callback: function(v){ properties[this.options.key] = v } } );    break;
                         case "String" : { 
@@ -131,8 +135,21 @@ var AgentManager = {
             agent_.properties = agent.properties;
             agents_to_save.push(agent_);
         }
-        console.log(agents_to_save);
+        // console.log(agents_to_save);
         return agents_to_save;
+    },
+    
+    deleteAgent(uid)
+    {
+        var agent = AgentManager.agents[uid];
+        var skeleton = agent.skeleton;
+        skeleton.lines_mesh.delete();
+        skeleton.points_mesh.delete();
+        skeleton.line_node.destroy();
+        skeleton.points_node.destroy();
+        skeleton.skeleton_container.destroy();
+        // GFX.renderer.meshes[agent.path_mesh].delete()
+        delete AgentManager.agents[uid];
     }
 
     
@@ -170,7 +187,7 @@ class Agent{
             hungry:false,
             umbrella: false,
             target: this.path[0], 
-            look_at_pos: [1000,0,500]
+            look_at_pos: [0,0,10000]
         }
 
         this.skeleton = new Skeleton( LS.generateUId('skeleton'), "src/assets/Walking.dae", [0,0,0], false);
@@ -185,6 +202,7 @@ class Agent{
         animators.push( this.animator );//toremove 
 
         //Store agents 
+        this.bt_info = {};
         AgentManager.agents[this.uid] = this;
 
         this.visualizePath();//whe should remove this
@@ -200,6 +218,7 @@ class Agent{
     
     configure( o, agent )
     {
+        // console.log(o);
         agent.uid = o.uid;
         agent.btree = null;
         agent.blackboard = blackboard;
@@ -209,7 +228,9 @@ class Agent{
         agent.properties.target = agent.path[0];
         this.skeletal_animations = {};
 
-        this.skeleton = new Skeleton( LS.generateUId('skeleton'), "src/assets/Walking.dae", [0,0,0], false);
+        var agent_position = o.position || [0,0,0];
+        // console.log(agent_position);
+        this.skeleton = new Skeleton( LS.generateUId('skeleton'), "src/assets/Walking.dae", agent_position, false);
         this.animator = new Animator();
         var animation = animation_manager.animations["Walking"];
         var skeletal_animation = new SkeletalAnimation("Walking", animation);
@@ -217,7 +238,7 @@ class Agent{
         this.animator.base_animation = skeletal_animation;
         this.animator.animations = animations; //toremove
         animators.push( this.animator );//toremove 
-
+        this.bt_info = {};
         AgentManager.agents[agent.uid] = agent;
 
         agent.visualizePath();//whe should remove this
@@ -235,9 +256,9 @@ class Agent{
     visualizePath()
     {
         var vertices = [];
-        var path = new LS.Path();
-        path.closed = true;
-        path.type = LS.Path.LINE;
+        // var path = new LS.Path();
+        // path.closed = true;
+        // path.type = LS.Path.LINE;
 
         for(var i = 0; i <this.path.length; ++i)
         {
@@ -245,23 +266,25 @@ class Agent{
             vertices.push(waypoint_pos.pos[0], waypoint_pos.pos[1], waypoint_pos.pos[2] );
             var node = new RD.SceneNode();
             node.mesh = "sphere";
+            node.name = "path_waypoint"
             node.position = waypoint_pos.pos;
             node.color = [1,1,1,1];
             node.scaling = 4;
             node.render_priority = 1;
             GFX.scene.root.addChild(node);
         }
-
-        var path_mesh = "path_mesh"
+        
+        var path_mesh = "path_mesh";
         var lines_mesh = GL.Mesh.load({ vertices: vertices });
-
+        
         GFX.renderer.meshes[path_mesh] = lines_mesh;
         var linea = new RD.SceneNode();
         linea.name = "Path";
         linea.flags.ignore_collisions = true;
         linea.primitive = gl.LINE_STRIP;
         linea.mesh = path_mesh;
-        linea.color = [1,1,1,1];
+        this.path_mesh = path_mesh;
+        linea.color = [174/255, 213/255, 215/255, 0.5]; 
         linea.flags.depth_test = false;
         GFX.scene.root.addChild(linea);
     }
@@ -300,9 +323,7 @@ class Agent{
         }
         //han seteado el look at externamente 
         else{
-            console.log("Rotating head");
             this.orientHead(this.head_node, target);
-            // this.head_node.updateMatrices();
         }
     }
 
@@ -319,7 +340,7 @@ class Agent{
         var tmpMat4 = mat4.create(), tmpQuat = quat.create();
         mat4.lookAt(tmpMat4, local_target, [0,0,0], RD.UP);
         quat.fromMat4(tmpQuat, tmpMat4);
-        quat.slerp(tmpQuat, tmpQuat, head.rotation, 0.15);
+        quat.slerp(tmpQuat, tmpQuat, head.rotation, 0.95);
         head._rotation = tmpQuat;
         head.updateMatrices();
     }
@@ -328,6 +349,7 @@ class Agent{
     {
         return GFX.scene._nodes_by_id[name + "/mixamorig_Head"]
     }
+
     inTarget( target, threshold)
     {
         var current_pos = []; 
@@ -351,6 +373,25 @@ class Agent{
         return false;
     }
 
+    canSeeElement( target, limit_angle )
+    {
+        var target_pos = target.pos;
+        var direction = GFX.rotateVector(this.skeleton.skeleton_container.getGlobalMatrix(), [0,0,1]);
+        var target_v = vec3.create();
+        vec3.subtract(target_v, target_pos, this.skeleton.skeleton_container.getGlobalPosition());
+
+        vec3.normalize(direction, direction);
+        vec3.normalize(target_v, target_v);
+        var dot = vec3.dot(direction, target_v);
+        var angle = Math.acos(dot)*RAD2DEG;
+
+
+        if(Math.abs(angle) > limit_angle)   return false;
+
+        // console.log("Angulo", Math.abs(angle))
+        return true;
+
+    }
     getNextWaypoint()
     {
         for(var i in this.path)
@@ -367,6 +408,8 @@ class Agent{
     {
         for(var i in this.path)
             this.path[i].visited = false;
+        
+        this.properties.target = this.path[0];
     }
 
     changeColor()
@@ -391,6 +434,10 @@ class Agent{
                 return this.path[i];
         }
         return false;
+    }
+    generateRandomProperties()
+    {
+
     }
 
 }

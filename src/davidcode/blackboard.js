@@ -10,7 +10,10 @@ Blackboard.prototype._ctor = function()
     this.stress = 0;
     this.avg_age = 20;
     this.rain = 50;
-    this.bbvariables = ["stress", "rain"];
+    this.temperature = 20;
+    this.light = 80;
+    this.noise = 35;
+    this.bbvariables = ["stress", "rain", "temperature", "light", "noise"];
     this.area = [-2500,-2500,2500,2500];
 }
 

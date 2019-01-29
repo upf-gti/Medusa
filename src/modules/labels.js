@@ -5,6 +5,8 @@
 class Labels {
     constructor(){
         this.labels = {};
+        this.agent_label_visibility = false;
+        this.ip_label_visibility = false;
         var canvas = this.canvas = document.createElement('canvas');
         this.canvas.classList.add("canvas-labels");
         this.ctx = canvas.getContext('2d');
@@ -12,7 +14,7 @@ class Labels {
         if (!this.ctx.constructor.prototype.fillRoundedRect) {
             // Extend the canvaseContext class with a fillRoundedRect method
             this.ctx.constructor.prototype.fillRoundedRect = 
-              function (xx,yy, ww,hh, rad, fill, stroke) {
+              function (xx,yy, ww, hh, rad, fill, stroke) {
                 if (typeof(rad) == "undefined") rad = 5;
                 this.beginPath();
                 this.moveTo(xx+rad, yy);
@@ -48,34 +50,66 @@ class Labels {
     }
 
     update(){
-        if( !this.toogled && false )    return;
+        // console.log(this.visible);
 
-        let children = GFX.scene._root.children;
+        let agents_list = CORE.AgentManager.agents;
+        let interest_points = CORE.Scene.properties.interest_points;
         let ctx =  this.ctx;
+
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        ctx.font = "16px Arial";
         
-        for(let c in children){
-            let node = children[c];
+        ctx.font = "14px Arial";
+        ctx.strokeStyle = "rgb(255, 0, 0)";
+        ctx.fillStyle = "rgba(33, 33, 33, .5)";
 
-            if( !node.visible || !node.mesh ) 
-                continue;
+        if(this.agent_label_visibility)
+            for(let i in agents_list)
+            {
+                let agent = agents_list[i];
+                if(!agent.skeleton.skeleton_container) 
+                    continue;
+                var position = agent.skeleton.skeleton_container.getGlobalPosition(false, true);
+                var name = agent.properties.name || agent.id;
+                this.drawLabel(ctx, position, name)
+            }
 
-            let screenpos = GFX.camera.project(node.getGlobalPosition(false, true));
-            
-            //skip if behind camera
-            if(screenpos[2] > 1) continue;
+        if(this.ip_label_visibility)
+            for(let j in interest_points)
+            {
+                let interest_p_type = interest_points[j];
+                for(let h in interest_p_type)
+                {
+                    let interest_p = interest_p_type[h];
+                    if(!interest_p.pos) 
+                        continue;
 
-            ctx.strokeStyle = "rgb(255, 0, 0)";
-            ctx.fillStyle = "rgba(33, 33, 33, .5)";
+                    var name = interest_p.name || interest_p.id;
+                    this.drawLabel(ctx, interest_p.pos, name);
+                }
+            }
+    }
 
-            var name = node.name || node.mesh || node.id;
+    drawLabel(ctx,  position, text )
+    {
+        let screenpos = GFX.camera.project(position);
+                    
+        //skip if behind camera
+        if(screenpos[2] > 1) return;
 
-            ctx.fillRoundedRect(screenpos[0] - 10, this.canvas.height - screenpos[1] - 21, name.length * 10 + 10, 32, 5);
-            
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillText(node.name,screenpos[0], this.canvas.height - screenpos[1]);
-        }
+        // var w = text.length * 14;
+        var w = ctx.measureText(text).width + 20;
+        // console.log(ctx.measureText("hola"));
+        ctx.save();
+        ctx.globalAlpha = 0.8;
+        ctx.fillRoundedRect(screenpos[0] - 5, this.canvas.height - screenpos[1] - 21, w , 32, 5);
+        ctx.textAlign = "center";
+        
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillText(text, screenpos[0] + w*0.5, this.canvas.height - screenpos[1]);
+        
+        ctx.fillStyle = "rgba(33, 33, 33, .5)";
+        ctx.globalAlpha = 1;
+        ctx.restore();
     }
 }
 

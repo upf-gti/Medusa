@@ -64,6 +64,7 @@ var creation_mode = false;
 var path_mode = false;
 
 var agent_selected = null;
+var agent_selected_name = null;
 var current_graph_node = null;
 var agent_evaluated = null;
 //stats
@@ -88,15 +89,7 @@ function appinit()
   Collada.init({ forceParser: false,  dataPath: "", workerPath: "../src/", libsPath: "../external/" });
   window.onresize = resize;
   //This animation manager will manage the gets and new Animations, not Skeletal Animations
-  animation_manager = new AnimationManager();
-
-  animation_manager.newAnimation("src/assets/Walking.dae");
-  animation_manager.newAnimation("src/assets/Running.dae");
-  animation_manager.newAnimation("src/assets/Old_Man_Walk.dae");
-  animation_manager.newAnimation("src/assets/Idle.dae");
-  animation_manager.newAnimation("src/assets/Umbrella.dae");
-  animation_manager.newAnimation("src/assets/StandUp.dae");
-  animation_manager.newAnimation("src/assets/Tripping.dae");
+  animation_manager = new AnimationManager(); 
   
   BT = new BehaviourTree();
   node_editor = new BTEditor(BT);
@@ -145,14 +138,6 @@ function update(dt)
     if(!character_.head_node)
     {
       character_.head_node = character_.getHeadNode(character_.skeleton.name);
-      console.log(character_.head_node);
-      var lookatnode = new RD.SceneNode();
-      lookatnode.mesh = "cube";
-      lookatnode.position = character_.properties.look_at_pos;
-      lookatnode.color = [1,0,0,1];
-      lookatnode.scaling = 10;
-      lookatnode.render_priority = 1;
-      GFX.scene.root.addChild(lookatnode);
     }
 
     if(!skeleton || !skeleton.skeleton_container) continue;

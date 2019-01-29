@@ -204,6 +204,7 @@ Skeleton.prototype.addPoints = function( points )
     points.mesh = skeleton_points_mesh;
     points.color = [1,1,0,1];
     points.shader = "point";
+    this.points_node = points;
 
     //linea.flags.depth_test = true;
     //linea.render_priority = RD.PRIORITY_HUD;

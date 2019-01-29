@@ -17,6 +17,7 @@
         "src/davidcode/extra/path.js",
         "src/davidcode/extra/tinyxml.js",
         "src/davidcode/extra/litegraph.js",
+        "src/davidcode/extra/jquery.js",
         "src/davidcode/extra/Canvas2DtoWebGL.js",
         "src/davidcode/animator.js",
         "src/davidcode/animationManager.js",
@@ -33,9 +34,11 @@
 
 
         "src/css/style.css",
+        "src/css/litegraph.css",
         "src/modules/agent.js",
         "src/modules/davidcode.js",
         "src/modules/graph.js",
+        "src/modules/labels.js",
         "src/modules/gui.js",
         "src/modules/player.js",
         "src/modules/scene.js"

@@ -5,44 +5,19 @@ class Scene{
 
     preInit(){
         
-        CORE.GUI.menu.add("Scene",{ 
+        CORE.GUI.menu.add("Scene/· Scene Properties",{ 
             callback:( ()=>{ 
                 this.toggleSceneProperties()
             }).bind(this) 
-        });
-        // CORE.GUI.menu.add("Tools/  - Switch create Agent onClick",{ 
-        //     callback:( ()=>{ 
-        //         creation_mode = !creation_mode;
-        //     }).bind(this) 
-        // });
-
-       
+        });       
     }
 
     init(){
         this.zones = {};
-
         window.blackboard = this.addZone("zone1" ,new Blackboard());
-        // window.blackboard.setArea(-2500,-2500,0,2500);
-
-        this.properties.interest_points = 
-        {
-            // shops:[
-            //     { pos:[0,0,-1000], a_properties:{umbrella:true}, bb_properties:{}, name: "Shop1", id:10}, 
-            //     { pos:[1000.5,0.7,1000.4], a_properties:{umbrella:true}, bb_properties:{}, name: "Shop2", id:11}
-            // ], 
-
-            // banks:[
-            //     { pos:[200,0,2000], a_properties:{money:50}, bb_properties:{}, name: "Bank1", id:12}
-            // ],
-
-            // restaurants:[
-            //     { pos:[-500,0,1100], a_properties:{hungry:false}, bb_properties:{}, name: "McDonalds", id:13}, 
-            // ], 
-
-        }; 
-
+        this.properties.interest_points = {}; 
         this.behaviors = gen_behaviors;
+        CORE.GUI.menu.add("Actions/· Create/· New Interest Point", function(){ CORE.Scene.addInterestPoint();} );
     }
     
     loadScene( o )
@@ -68,7 +43,6 @@ class Scene{
         if(!this.dialog){
             var dialog = this.dialog = new LiteGUI.Dialog( { id:"Settings", title:'Scene Properties', close: true, minimize: false, width: 300, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
             this.dialog.setPosition(10,270);
-
         }
         var dlg = this.dialog;
 
@@ -86,7 +60,7 @@ class Scene{
                 
                 for(let z in zones)
                 {
-                    inspector.addTitle(z);
+                    // inspector.addTitle(z);
                     inspector.addSeparator();
                     for(let p in zones[z].bbvariables)
                     {
@@ -138,6 +112,177 @@ class Scene{
         this.dialog.setPosition(10,325);
 
     }
+
+    openNewInteresPointDialog( node )
+    {
+        var interest_points = CORE.Scene.properties.interest_points;
+        var ip_types_list = Object.keys(interest_points);
+        var new_ip_type;
+        var a_properties = {};
+        var bb_properties = {};
+
+        var dialog = new LiteGUI.Dialog( { id:"ip-creation", title:'New Interest Point', close: true, minimize: false, width: 300, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
+        var ip_inspector = this.ip_creaton_inspector = new LiteGUI.Inspector();
+
+        console.log(node);
+        ip_inspector.on_refresh = function()
+        {
+            ip_inspector.clear();
+            var name = node.name || "";
+            ip_inspector.addString("Name", name, {width:"100%", callback:function(v){
+                node.name = v;
+            }});
+
+            var type = new_ip_type || "";
+            ip_inspector.addString("New Type", type, {width:"100%", callback:function(v){
+                new_ip_type = v;
+            }});
+            
+            ip_inspector.addCombo("Type", ip_types_list[0], { values: ip_types_list, width:"100%", callback: function(v){
+                new_ip_type = v;
+            }});
+
+            ip_inspector.addVector3("Position", node.position, { values: ip_types_list, width:"100%", callback: function(v){
+                node.position = v;
+            }});
+
+
+            // ip_inspector.addSeparator();
+            ip_inspector.addTitle("Agent Properties");
+
+            ip_inspector.widgets_per_row = 2;
+            for(var i in a_properties)
+            {
+                let key = i;
+                let value = a_properties[i];
+                ip_inspector.addInfo(key, value, {width:"100%"});
+            }
+            ip_inspector.widgets_per_row = 3;
+            ip_inspector.addSeparator();
+
+            var _k,_v;
+            ip_inspector.addString(null, "",  { width:"45%", placeHolder:"property...",  callback: v => _k = v });
+            ip_inspector.addString(null, "",  { width:"45%", placeHolder:"value...",       callback: v => _v = v });
+            ip_inspector.addButton(null, "+", { width:"10%", callback: e => {
+                if(!_k || !_v) 
+                    return;
+                try{ 
+                    _v = JSON.parse('{ "v":'+_v+'}').v;
+                }catch(e){
+                    //if fails it was a string, so leave it as the string it was.
+                }
+                a_properties[_k] = _v;
+                ip_inspector.refresh();
+            }});
+
+            // ip_inspector.addSeparator();
+            ip_inspector.addTitle("Blackboard Properties");
+            ip_inspector.widgets_per_row = 2;
+            for(var i in bb_properties)
+            {
+                let key = i;
+                let value = bb_properties[i];
+                ip_inspector.addInfo(key, value, {width:"100%"});
+            }
+            ip_inspector.widgets_per_row = 3;
+            ip_inspector.addSeparator();
+
+
+            var _k2,_v2;
+            ip_inspector.addString(null, "",  { width:"45%", placeHolder:"property...",  callback: v => _k2 = v });
+            ip_inspector.addString(null, "",  { width:"45%", placeHolder:"value...",       callback: v => _v2 = v });
+            ip_inspector.addButton(null, "+", { width:"10%", callback: e => {
+                console.log("nbkdbhekhbd");
+                if(!_k2 || !_v2) 
+                    return;
+                try{ 
+                    _v2 = JSON.parse('{ "v":'+_v2+'}').v;
+                }catch(e){
+                    //if fails it was a string, so leave it as the string it was.
+                }
+                bb_properties[_k2] = _v2;
+                ip_inspector.refresh();
+
+            }});
+
+            ip_inspector.addSeparator();
+
+            ip_inspector.addButton(null, "Create", {width:"100%", callback:function(){
+
+                console.log(bb_properties);
+                console.log(a_properties);
+                var interest_point = {};
+                interest_point.pos = node.position;
+                interest_point.name = node.name;
+                interest_point.id = node.id;
+                interest_point.a_properties = a_properties;
+                interest_point.bb_properties = bb_properties;
+                if(!CORE.Scene.properties.interest_points[new_ip_type])
+                    CORE.Scene.properties.interest_points[new_ip_type] = [];
+                CORE.Scene.properties.interest_points[new_ip_type].push(interest_point);
+                GFX.scene.root.addChild(node);
+                dialog.close();
+            }})
+            dialog.adjustSize();
+        }
+
+        dialog.add(ip_inspector);
+        ip_inspector.refresh();
+        dialog.show('fade');
+        dialog.setPosition(270,270);
+    }
+    showInterestPointInfo(ip_info, x, y)
+    {
+        var ip = ip_info.ip;
+        // console.log(ip);
+        var type = ip_info.ip_type;
+        var dialog = new LiteGUI.Dialog( { id:"show-ip-info", title:'Interest Point ID: ' + ip.id, close: true, minimize: false, width: 250, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
+        var show_ip_inspector = new LiteGUI.Inspector();
+
+        show_ip_inspector.on_refresh = function()
+        {
+            show_ip_inspector.clear();
+            var name = ip.name || "";
+            show_ip_inspector.addInfo("Name", name, {name_width:"40%",width:"100%"});
+
+            // var type_ = type || "";
+            show_ip_inspector.addInfo("Type", type, {name_width:"40%",width:"100%"});
+
+            show_ip_inspector.addTitle("Agent Properties");
+
+            show_ip_inspector.widgets_per_row = 2;
+            for(var i in ip.a_properties)
+            {
+                let key = i;
+                let value = ip.a_properties[i];
+                show_ip_inspector.addInfo(key, value, {name_width:"40%",width:"100%"});
+            }
+
+            // show_ip_inspector.addSeparator();
+            show_ip_inspector.addTitle("Blackboard Properties");
+            show_ip_inspector.widgets_per_row = 2;
+            for(var i in ip.bb_properties)
+            {
+                let key = i;
+                let value = ip.bb_properties[i];
+                show_ip_inspector.addInfo(key, value, {name_width:"40%",width:"100%"});
+            }
+
+            show_ip_inspector.addSeparator();
+
+            // show_ip_inspector.addButton(null, "Delete", {width:"100%", callback:function(){
+
+            //     dialog.close();
+            // }})
+            dialog.adjustSize();
+        }
+
+        dialog.add(show_ip_inspector);
+        show_ip_inspector.refresh();
+        dialog.show('fade');
+        dialog.setPosition(x + 10,window.innerHeight-y - 50);
+    }
+
     applyTargetProperties( target,  agent )
     {
         // Hacerlo por ID!!!
@@ -181,7 +326,7 @@ class Scene{
                 node.mesh = "sphere";
                 node.name = ip.name;
                 node.position = ip.pos;
-                node.scale(20,20,20);
+                node.scale(40,40,40);
                 node.render_priority = 1;
                 GFX.scene.root.addChild(node);
             }
@@ -192,10 +337,14 @@ class Scene{
     {
         var color = [Math.random()+0.2, Math.random()+0.2, Math.random()+0.2]
         var node = new RD.SceneNode();
+        node.id = 200+ Math.floor(Math.random()*100);
         node.color = color;
         node.shader = "phong";
         node.mesh = "sphere";
-        node.position = [x,0,z];
+        if(!x && !z)
+            node.position = [0,0,0];
+        else if(x && z)
+            node.position = [x,0,z];
         node.scale(20,20,20);
         node.render_priority = 1;
         this.openNewInteresPointDialog(node);
@@ -203,117 +352,59 @@ class Scene{
 
     }
 
-    openNewInteresPointDialog( node )
+    populateScenario(num_agents, min_age, max_age)
     {
-        var interest_points = CORE.Scene.properties.interest_points;
-        var ip_types_list = Object.keys(interest_points);
-        var new_ip_type;
-        var a_properties = {};
-        var bb_properties = {};
-
-        var dialog = new LiteGUI.Dialog( { id:"ip-creation", title:'New Interest Point', close: true, minimize: false, width: 300, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
-        var inspector = this.inspector = new LiteGUI.Inspector();
-
-        inspector.on_refresh = function()
+        for(var i = 0; i < num_agents; i++)
         {
-            console.log(node);
-            inspector.clear();
-            inspector.addInfo("New Interest Point creation", "",{width:"100%"});
-            var name = node.name || "";
-            inspector.addString("Name", name, {width:"100%", callback:function(v){
-                node.name = v;
-            }});
+            var data = {};
+            var properties = {};
+            data.uid = LS.generateUId('agent');  
 
-            var type = new_ip_type || "";
-            inspector.addString("New Type", type, {width:"100%", callback:function(v){
-                new_ip_type = v;
-            }});
-            
-            inspector.addCombo("Type", ip_types_list[0], { values: ip_types_list, width:"100%", callback: function(v){
-                new_ip_type = v;
-            }});
+            data.btree = null;
+            data.blackboard = blackboard;
+            data.path = [{id:1,pos:[1300,0,0],visited:false},{id:2,pos: [0,0,1000],visited:false} ,{id:3,pos: [-1300,0,0],visited:false}];
+            data.position = [-1000 +Math.floor(Math.random()*2000), 0, -1000 + Math.floor(Math.random()*1000)];
 
-            // inspector.addSeparator();
-            inspector.addTitle("Agent Properties");
+            properties.name=  "Billy-" + guidGenerator();
+            properties.age = Math.random() * (max_age - min_age) + min_age;
+            properties.hurry = Math.random() * (max_age - min_age) + min_age;
+            properties.money = Math.random() * (max_age - min_age) + min_age;
+            properties.hungry = Boolean(Math.round(Math.random()));
+            properties.umbrella = Boolean(Math.round(Math.random()));
+            properties.look_at_pos = [0,0,10000];
 
-            inspector.widgets_per_row = 2;
-            for(var i in a_properties)
-            {
-                let key = i;
-                let value = a_properties[i];
-                inspector.addInfo(key, value, {width:"100%"});
-            }
-            inspector.widgets_per_row = 3;
-            inspector.addSeparator();
+            data.properties = properties;
 
-            var _k,_v;
-            inspector.addString(null, "",  { width:"45%", placeHolder:"propery...",  callback: v => _k = v });
-            inspector.addString(null, "",  { width:"45%", placeHolder:"value...",       callback: v => _v = v });
-            inspector.addButton(null, "+", { width:"10%", callback: e => {
-                if(!_k || !_v) 
-                    return;
-                try{ 
-                    _v = JSON.parse('{ "v":'+_v+'}').v;
-                }catch(e){
-                    //if fails it was a string, so leave it as the string it was.
-                }
-                a_properties[_k] = _v;
-                inspector.refresh();
-            }});
-
-            // inspector.addSeparator();
-            inspector.addTitle("Blackboard Properties");
-            inspector.widgets_per_row = 2;
-            for(var i in bb_properties)
-            {
-                let key = i;
-                let value = a_properties[i];
-                inspector.addInfo(key, value, {width:"100%"});
-            }
-            inspector.widgets_per_row = 3;
-            inspector.addSeparator();
-
-
-            var _k2,_v2;
-            inspector.addString(null, "",  { width:"45%", placeHolder:"propery...",  callback: v => _k2 = v });
-            inspector.addString(null, "",  { width:"45%", placeHolder:"value...",       callback: v => _v2 = v });
-            inspector.addButton(null, "+", { width:"10%", callback: e => {
-                if(!_k2 || !_v2) 
-                    return;
-                try{ 
-                    _v2 = JSON.parse('{ "v":'+_v2+'}').v;
-                }catch(e){
-                    //if fails it was a string, so leave it as the string it was.
-                }
-                bb_properties[_k2] = _v2;
-            }});
-
-            inspector.addSeparator();
-
-            inspector.addButton(null, "Create", {width:"100%", callback:function(){
-
-                console.log(bb_properties);
-                console.log(a_properties);
-                var interest_point = {};
-                interest_point.pos = node.position;
-                interest_point.name = node.name;
-                interest_point.id = 50 + Math.round(Math.random()*100);
-                interest_point.a_properties = a_properties;
-                interest_point.bb_properties = bb_properties;
-                if(!CORE.Scene.properties.interest_points[new_ip_type])
-                    CORE.Scene.properties.interest_points[new_ip_type] = [];
-                CORE.Scene.properties.interest_points[new_ip_type].push(interest_point);
-                GFX.scene.root.addChild(node);
-                dialog.close();
-            }})
-            dialog.adjustSize();
+            var agent = new Agent(data);
         }
-
-        dialog.add(inspector);
-        inspector.refresh();
-        dialog.show('fade');
-        dialog.setPosition(270,270);
     }
+
+    restartScenario()
+    {
+        for(var c in AgentManager.agents)
+        {
+            var agent = AgentManager.agents[c];
+            agent.restorePath();
+            agent.skeleton.skeleton_container.position = [-200 + Math.floor(Math.random()*400),0,-200 + Math.floor(Math.random()*400)];
+            agent.skeleton.skeleton_container.updateMatrices();
+            agent.bt_info.running_node_index = null;
+        }
+    }
+
+    // getCanvasImage()
+    // {
+    //     var canvas = node_editor.graph_canvas.canvas;
+    //     var image = canvas.toDataURL("image/png");
+
+    //     var aLink = document.createElement('a');
+
+    //     aLink.download = 'image.png';
+    //     aLink.href = image;
+    //     document.body.appendChild(aLink);
+        
+    //     console.log(aLink);
+    // }
+    
 }
 
 CORE.registerModule( Scene );

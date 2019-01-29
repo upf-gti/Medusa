@@ -60,7 +60,7 @@ BehaviourTree.prototype.deleteNode = function(node_id, parent_id)
             parent_node.children.splice(index, 1);
         
     }
-    if(node.children)
+    if(node && node.children)
     {
         for(var j in node.children)
         {
@@ -148,7 +148,6 @@ BehaviourTree.prototype.addConditionalNode = function(id, options, g_node )
         if(agent.blackboard[property] != null)
         {
             //comprobar el tipo de comparativa ( <, >, ==)
-
             if(agent.blackboard[property] > this.properties.limit_value)
                 return true;
             else    
@@ -304,7 +303,6 @@ BehaviourTree.prototype.addInTargetNode = function(id, options, g_node )
     {
         if(agent.inTarget(agent.properties.target, this.threshold))
         {
-            // console.log("Intarget");
             // check if the target is in some special list and  some properties to apply to
             // the agent or to the blackboard
             CORE.Scene.applyTargetProperties(agent.properties.target, agent);
@@ -361,9 +359,9 @@ BehaviourTree.prototype.addSequencerNode = function( id, options, g_node )
 
     node.tick = function(agent, dt)
     {
-        if(this.executing_child_index != null)
+        if(agent.bt_info.running_node_index != null)
         {
-            let child = this.children[this.executing_child_index];
+            let child = this.children[agent.bt_info.running_node_index];
             var value = child.tick(agent, dt);
             if(value == STATUS.running)
             {
@@ -381,12 +379,16 @@ BehaviourTree.prototype.addSequencerNode = function( id, options, g_node )
                }
                 return STATUS.success;
             }
+            if(agent.bt_info.running_node_index == this.children.length-1 && value == STATUS.success)
+            {
+                agent.bt_info.running_node_index = null;
+                return STATUS.success;
+            }
             if(value == STATUS.success )
             {
-                this.executing_child_index += 1;
+                agent.bt_info.running_node_index ++;
                 if(agent.is_selected)
                 {
-                    console.log(agent);
                     var g_child = child.g_node;
                     var chlid_input_link_id = g_child.inputs[0].link;
                     this.g_node.triggerSlot(0, null, chlid_input_link_id);
@@ -398,14 +400,11 @@ BehaviourTree.prototype.addSequencerNode = function( id, options, g_node )
                     }
                 }
             }
-            if(this.executing_child_index == this.children.length && value == STATUS.success)
-            {
-                this.executing_child_index = null;
-                return STATUS.success;
-            }
             //Value debería ser success, fail, o running
-            if(value == STATUS.fail)
+            if(value == STATUS.fail){
+                agent.bt_info.running_node_index = null;
                 return value;
+            }
         }
         else
         {
@@ -416,7 +415,7 @@ BehaviourTree.prototype.addSequencerNode = function( id, options, g_node )
                 var value = child.tick(agent, dt);
                 if(value == STATUS.running)
                 {
-                    this.executing_child_index = parseInt(n);
+                    agent.bt_info.running_node_index = parseInt(n);
                     if(agent.is_selected)
                     {
                         var g_child = child.g_node;
@@ -446,7 +445,7 @@ BehaviourTree.prototype.addSequencerNode = function( id, options, g_node )
                         }
                     }
                 }
-                if(n == this.children.length-1 && value == STATUS.success && this.executing_child_index == null)
+                if(n == this.children.length-1 && value == STATUS.success && agent.bt_info.running_node_index == null)
                     return STATUS.success;
                 //Value debería ser success, fail, o running
                 if(value == STATUS.fail)
@@ -685,22 +684,29 @@ BehaviourTree.prototype.addWaitNode = function(id, options, g_node )
     node.properties.current_time = 0;
     node.g_node = g_node;
     node.id = id;
-    node.type = "wait";
-    // var target = node.properties.target;
+    node.type = "t";
 
     node.tick = function(agent, dt)
     {
-        // debugger;
         this.description = 'Waiting ' + this.properties.total_time + ' seconds ';
-        if(this.properties.current_time > this.properties.total_time){
-            this.properties.current_time = 0;
-            // console.log(agent);
-            return STATUS.success;
-        }
-        else
-        {
-            this.properties.current_time += dt;
+
+        if(!agent.waiting_time){
+            agent.waiting_time = this.properties.total_time;
+            agent.current_waiting_time = 0;
             return STATUS.running;
+        }
+
+        else{
+            if(agent.current_waiting_time > agent.waiting_time)
+            {
+                agent.waiting_time = null;
+                agent.current_waiting_time = 0;
+                return STATUS.success;
+            }
+            else{
+                agent.current_waiting_time += dt;
+                return STATUS.running;
+            }
         }
     }
     this.node_pool.push(node);
@@ -723,14 +729,11 @@ BehaviourTree.prototype.addAnimationNode = function( id, options, g_node )
     node.action = function(agent)
     {
         var behaviour = {};
-        // console.log("AGENT", agent);
-        // console.log(anims);
         behaviour.animations_to_merge = this.anims;
         behaviour.params = this.params;
         behaviour.type = this.type;
         behaviour.type2 = "mixing";
         behaviour.author = "manuel";
-        // console.log("Action", behaviour.animations_to_merge);
         LEvent.trigger( agent, "applyBehaviour", behaviour);
 
         return STATUS.success;
@@ -748,25 +751,68 @@ BehaviourTree.prototype.addAnimationNode = function( id, options, g_node )
     return node;
 }
 
-BehaviourTree.prototype.addLooKAtNode = function( id, options, g_node)
+BehaviourTree.prototype.addLookAtNode = function( id, options, g_node)
 {
     let node = new Node();
     node.properties = options;
     node.g_node = g_node;
     node.id = id;
-    node.type = "animation";
+    node.type = "look_at";
     // var target = node.properties.target;
 
     node.tick = function(agent, dt)
     {
-        // debugger;
-        if(this.properties.look_at_pos){
-            agent.properties.look_at_pos = this.properties.look_at_pos;
-            this.description = 'Look At updated: New look at position set to the input';
+        agent.properties.look_at_pos = this.properties.look_at.pos;
+        this.description = 'Look At updated: New look at position set to the input';
+        return STATUS.success;
+    }
+    this.node_pool.push(node);
+    return node;
+}
 
-            return STATUS.success;
+BehaviourTree.prototype.addCanSeeNode = function( id, options, g_node)
+{
+    let node = new Node();
+    node.properties = options;
+    node.g_node = g_node;
+    node.id = id;
+    node.type = "can_see";
+
+    node.tick = function(agent, dt)
+    {
+        var lookat = this.properties.look_at;
+        if(agent.canSeeElement(lookat, this.properties.limit_angle))
+        {
+            this.description = 'Agent can see the input';
+            for(var n in this.children)
+            {
+                var child = this.children[n];
+                var value = child.tick(agent, dt);
+                //Value debería ser success, fail, o running
+                if(value == STATUS.success)
+                {
+                    if(agent.is_selected)
+                    {
+                        var g_child = child.g_node;
+                        var chlid_input_link_id = g_child.inputs[0].link;
+                        this.g_node.triggerSlot(0, null, chlid_input_link_id);
+    
+                        if(child.description)
+                        {
+                            var graph = child.g_node.graph;
+                            graph.description_stack.push(child.description); 
+                        } 
+                    }
+                    return STATUS.success;
+                }
+            }
+            
         }
-        return STATUS.fail;
+        else
+        {
+            agent.properties.look_at_pos = null;
+            return STATUS.fail;
+        }
     }
     this.node_pool.push(node);
     return node;

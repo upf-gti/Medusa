@@ -68,7 +68,7 @@ var GFX = {
         // grid.mesh = "grid";
         // grid.scaling = 300;
         // grid.color = [0.2,0.2,0.2,0.7];
-        // grid.primitive = gl.LINES;
+        // grid.primitive = gl.LINES;   
         // this.scene.root.addChild(grid);
         // GFX.createEnviroment();
 
@@ -91,7 +91,7 @@ var GFX = {
 
             GFX.renderer.clear([0, 0, 0, 0.1]);
             GFX.renderer.render(GFX.scene, GFX.camera);
-            // CORE.Labels.update();
+            CORE.Labels.update();
             
             GFX.scene.update(dt);
             update(dt);
@@ -143,6 +143,9 @@ var GFX = {
                     var node = node_editor.graph_canvas.selected_nodes[i];
                     node_editor.graph.remove(node);
                 }
+            }
+            if(e.keyCode == 82){
+                AgentManager.deleteAgent(agent_selected.uid);
             }
         }
     },
@@ -214,12 +217,18 @@ var GFX = {
                     var x = e.canvasx;
                     var y = e.canvasy;
                     //testRay with that spheres
-                    var agent = GFX.getAgentFromTestCollision(x, y);
+                    var agent = GFX.getElementFromTestCollision(x, y, 1);
                     if (!agent) 
                     {
                         disselectCharacter();
                         agent_selected = null;
+                        agent_selected_name = null;
                         CORE.GraphManager.renderStats();
+                        //try with interest points
+                        var ip_info = GFX.getElementFromTestCollision(x, y, 2);
+                        if(ip_info)
+                            // console.log("meh");
+                            CORE.Scene.showInterestPointInfo(ip_info, x, y);
                         return;
                     }
     
@@ -228,7 +237,9 @@ var GFX = {
                         AgentManager.agents[i].changeColor();
                     
                     agent.is_selected = true;
-                    agent_selected = agent.properties.name;
+                    agent_selected_name = agent.properties.name;
+                    agent_selected = agent;
+                    
                     agent.changeColor();
     
                     var agents = CORE.AgentManager.agents;
@@ -238,7 +249,7 @@ var GFX = {
                         ag.dialog.close();
                     }
                     agent.dialog.show();
-                    agent.dialog.setPosition(10, 70);
+                    agent.dialog.setPosition(10,125);
                     CORE.GraphManager.renderStats();
                 }
             }
@@ -329,25 +340,48 @@ var GFX = {
             return result;
     },
 
-    getAgentFromTestCollision: function(x, y) {
+    getElementFromTestCollision: function(x, y, type) {
         var result = vec3.create();
         var ray = GFX.camera.getRay(x, y);
-        return GFX.testRayWithSpheres(ray, 70);
+        return GFX.testRayWithSpheres(ray, 70, type);
     },
 
-    testRayWithSpheres: function(ray, radius) {
-        var agents = CORE.AgentManager.agents;
-        // console.log(agents);
-        for (var i in agents) {
-            var agent = agents[i];
-            var center = agent.skeleton.skeleton_container.getGlobalPosition();
-            center[1] = 100;
-            var collision = ray.testSphere(center, radius, 10000);
-            // console.log(collision);
+    testRayWithSpheres: function(ray, radius, type) {
 
-            if (collision) {
-                // console.log(agent);
-                return agent;
+        if(type == 1)
+        {
+            var agents = CORE.AgentManager.agents;
+            // console.log(agents);
+            for (var i in agents) {
+                var agent = agents[i];
+                var center = agent.skeleton.skeleton_container.getGlobalPosition();
+                center[1] = 100;
+                var collision = ray.testSphere(center, radius, 10000);
+                // console.log(collision);
+    
+                if (collision) {
+                    // console.log(agent);
+                    return agent;
+                }
+            }
+        }
+        else if(type == 2)
+        {
+            var interest_points = CORE.Scene.properties.interest_points;
+
+            for(var i in interest_points)
+            {   
+                var type_ = i;
+                var type_list = interest_points[i];
+                for(var j in type_list)
+                {
+                    var ip = type_list[j];
+                    var position = ip.pos;
+                    var collision = ray.testSphere(position, 40, 10000);
+                    if(collision)
+                        return {ip:ip,ip_type:type_};
+                    
+                }
             }
         }
     }

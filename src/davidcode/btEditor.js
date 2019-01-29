@@ -58,6 +58,10 @@ BTEditor.prototype.init = function()
                 that.btree.addInTargetNode(node.id, node.data, node)
             } break;
 
+            case "btree/CanSee":{
+                that.btree.addCanSeeNode(node.id, node.data, node)
+            } break;
+
             case "btree/Sequencer":{
                 that.btree.addSequencerNode(node.id, node.data, node);
             } break;
@@ -65,8 +69,6 @@ BTEditor.prototype.init = function()
             case "btree/Selector":{
                 that.btree.addSelectorNode(node.id, node.data, node);
             } break;
-
-            case "btree/selector": break; 
 
             case "btree/FindNextTarget":{
                 that.btree.addFindNextTargetNode(node.id, node.data, node);
@@ -80,7 +82,10 @@ BTEditor.prototype.init = function()
             case "btree/Wait":{
                 that.btree.addWaitNode(node.id, node.data, node);
             } break;
-
+            case "btree/LookAt":{
+                that.btree.addLookAtNode(node.id, node.data, node);
+            } break;
+            
             case "btree/EQSDistanceTo":{
                 that.btree.addEQSDistanceToNode(node.id, node.data, node);
             }
@@ -145,7 +150,6 @@ BTEditor.prototype.init = function()
     { 
         var type = data.dataTransfer.getData("type");
         var properties = data.dataTransfer.getData("obj");
-        console.log(type);
         properties = JSON.parse(properties);
         that.addNodeByType(type, properties, [data.canvasX,data.canvasY]); 
     }
@@ -274,7 +278,8 @@ function Conditional()
     this.slider = this.addWidget("slider","Threshold", this.properties.value, function(v){ that.properties.value = v; that.data.limit_value = v; }, this.properties  );
 
     this.editable = { property:"value", type:"number" };
-    this.flags = { widgets_up: true };
+    // this.flags = { widgets_up: true };
+    this.widgets_up = true;
 
 }
 
@@ -351,7 +356,9 @@ function BoolConditional()
     this.slider = this.addWidget("toggle","Success if value is:", this.properties.value, function(v){ console.log(v);that.properties.value = v; that.data.bool_state = v; }, this.properties  );
 
     this.editable = { property:"value", type:"number" };
-    this.flags = { widgets_up: true };
+    // this.flags = { widgets_up: true };
+    this.widgets_up = true;
+
 
 }
 
@@ -418,6 +425,7 @@ function InTarget()
     this.editable = { property:"value", type:"number" };
     this.flags = { resizable: false };
     this.data = {threshold:100};
+    this.widgets_up = true;
 }
 
 InTarget.title = "InTarget";
@@ -431,6 +439,83 @@ InTarget.prototype.onConfigure = function(info)
 
 LiteGraph.registerNodeType("btree/InTarget", InTarget);
 
+function CanSee()
+{
+    this.shape = 2;
+    this.color = "#005557";
+    this.bgcolor = "#2d4243";
+    this.boxcolor = "#999";
+    this.data = {title:"", look_at:null, limit_angle:90}
+    var w = 200;
+    var h = 45;
+    this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
+    this.addInput("look_at","vec3", {pos:[0,10], dir:LiteGraph.LEFT});
+    this.addOutput("","path", {pos:[w*0.5,h], dir:LiteGraph.DOWN});
+    this.size = [w, h];    
+    // var that = this;
+    // this.properties = {
+    //     value: that.data.limit_value,
+    //     min: 0,
+    //     max: 100,
+    //     text: "threshold"
+    // };
+    // this.slider = this.addWidget("slider","Threshold", this.properties.value, function(v){ that.properties.value = v; that.data.limit_value = v; }, this.properties  );
+
+    this.editable = { property:"value", type:"number" };
+    // this.flags = { widgets_up: true };
+    this.widgets_up = true;
+
+}
+
+CanSee.prototype.onDrawBackground = function(ctx, canvas)
+{
+    ctx.font = "12px Arial";
+    ctx.fillStyle = "#AAA";
+    ctx.fillText(`Agent looks at the input position`,10,35);
+}
+
+// CanSee.prototype.onDblClick = function(node)
+// {
+//     CORE.GUI.showNodeInfo(this);
+// }
+
+CanSee.prototype.onPropertyChanged = function(name,value)
+{
+    if(name == "value"){
+        this.slider.value = value;
+        // this.data.limit_value = value;
+    }
+}
+CanSee.prototype.onExecute = function()
+{
+    var data = this.getInputData(1);
+    // console.log(data);
+    if(data)
+        // this.data.look_at = [0,0,500];
+        this.data.look_at = data;
+    if(this.btree)
+    {
+        this.btree.updateNodeInfo(this.id, this.data);
+        return;
+    }
+}
+
+CanSee.title = "CanSee"
+CanSee.desc = "Testing own nodes";
+
+CanSee.prototype.onConfigure = function(info)
+{
+    onConfig(info, this.graph);
+    // this.data.g_node = this;
+
+}
+CanSee.prototype.onSerialize = function(info)
+{
+
+}
+
+LiteGraph.registerNodeType("btree/CanSee", CanSee);
+
 function Sequencer()
 {
     this.shape = 2;
@@ -443,6 +528,8 @@ function Sequencer()
     this.editable = { property:"value", type:"number" };
     this.data = {}
     this.flags = { horizontal: true };
+    this.widgets_up = true;
+
 }
 
 Sequencer.prototype.onDrawBackground = function(ctx, canvas)
@@ -472,6 +559,8 @@ function Selector()
     this.editable = { property:"value", type:"number" };
     this.data = {}
     this.flags = { horizontal: true };
+    this.widgets_up = true;
+
 }
 
 Selector.prototype.onDrawBackground = function(ctx, canvas)
@@ -497,13 +586,15 @@ function MoveTo()
     this.bgcolor = "#384837";
     this.boxcolor = "#999";
     var w = 200;
-    var h = 65;
+    var h = 45;
     this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
     this.addInput("target","vec3", {pos:[0,10], dir:LiteGraph.LEFT});
     this.size = [w, h];    
     this.editable = { property:"value", type:"number" };
     this.flags = { resizable: false };
     this.data = {target:null, motion:1}
+    this.widgets_up = true;
+
 
 }
 
@@ -513,8 +604,9 @@ MoveTo.prototype.onDrawBackground = function(ctx, canvas)
     ctx.font = "12px Arial";
     ctx.fillStyle = "#AAA";
     // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
-    ctx.fillText(`move to: ${this.data.target}`,10,35);
-    ctx.fillText(`Motion speed: ${this.data.motion}`,10,55);
+    if(this.data.target)
+        ctx.fillText(`move to: ${this.data.target.pos}`,10,35);
+    // ctx.fillText(`Motion speed: ${this.data.motion}`,10,55);
 }
 MoveTo.prototype.onExecute = function()
  {
@@ -552,6 +644,8 @@ function FindNextTarget()
     this.editable = { property:"value", type:"number" };
     this.flags = { resizable: false };
     this.data = {}
+    this.widgets_up = true;
+
 
 }
 
@@ -585,6 +679,8 @@ function Wait()
     this.size = [200,45];
     this.editable = { property:"value", type:"number" };
     this.flags = { horizontal: true };
+    this.widgets_up = true;
+
     this.data = {total_time:5, current_time:0}
     var that = this;
     this.properties = {
@@ -636,7 +732,6 @@ SimpleAnimate.prototype.onConfigure = function(info)
 {
     onConfig(info, this.graph);
     // this.data.g_node = this;
-
 }
 
 LiteGraph.registerNodeType("btree/SimpleAnimate", SimpleAnimate);
@@ -664,11 +759,14 @@ function EQSNearestInterestPoint()
     };
     // this.size = [80,60];
     this.slider = this.addWidget("combo","List", Object.keys(CORE.Scene.properties.interest_points)[0], function(v){that.ip_type = v;}, { values:function(widget, node){
+        // console.log(CORE.Scene.properties.interest_points);
         return Object.keys(CORE.Scene.properties.interest_points);
     }} );
 
     this.editable = { property:"value", type:"number" };
     this.flags = { resizable: false };
+    this.widgets_up = true;
+
 }
 
 EQSNearestInterestPoint.prototype.onDrawBackground = function(ctx, canvas)
@@ -679,11 +777,13 @@ EQSNearestInterestPoint.prototype.onDrawBackground = function(ctx, canvas)
 }
 EQSNearestInterestPoint.prototype.onExecute = function()
 {
+    // debugger;
     var nearest = [0,0,-1000];
-    var min = 99999999999;
-    if(!this.ip_type)
-        this.ip_type = "shops";
+    var min = 999999999;
     var types = Object.keys(CORE.Scene.properties.interest_points);
+    if(!this.ip_type)
+        if(types[0])
+            this.ip_type = types[0];
     for(var i in types)
     {
         var type = types[i];
@@ -712,9 +812,7 @@ EQSNearestInterestPoint.prototype.onConfigure = function(info)
 
 }
 
-
 LiteGraph.registerNodeType("btree/EQSNearestInterestPoint", EQSNearestInterestPoint);
-
 
 function EQSDistanceTo()
 {
@@ -732,6 +830,7 @@ function EQSDistanceTo()
     this.editable = { property:"value", type:"number" };
     this.flags = { resizable: false };
     this.data = {pos:[0, 0, 0]}
+    this.widgets_up = true;
 }
 
 EQSDistanceTo.prototype.onDrawBackground = function(ctx, canvas)
@@ -771,7 +870,8 @@ function LookAt()
     this.size = [w, h];    
     this.editable = { property:"value", type:"number" };
     this.flags = { resizable: false };
-    this.data = {target:null, motion:1}
+    this.data = {look_at:null}
+    this.widgets_up = true;
 }
 
 LookAt.prototype.onDrawBackground = function(ctx, canvas)
@@ -786,7 +886,7 @@ LookAt.prototype.onExecute = function(ctx, canvas)
 {
     var data = this.getInputData(1);
     if(data)
-        this.data.target = data;
+        this.data.look_at = data;
     if(this.btree)
     {
         this.btree.updateNodeInfo(this.id, this.data);
