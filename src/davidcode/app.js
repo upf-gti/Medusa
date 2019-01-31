@@ -90,6 +90,7 @@ function appinit()
   window.onresize = resize;
   //This animation manager will manage the gets and new Animations, not Skeletal Animations
   animation_manager = new AnimationManager(); 
+  animation_manager.loadAnimation("src/assets/Walking.dae");
   
   BT = new BehaviourTree();
   node_editor = new BTEditor(BT);
