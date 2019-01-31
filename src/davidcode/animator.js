@@ -13,7 +13,7 @@ Animator.addAnimation = function( animation ){
 Animator.prototype._ctor = function()
 {
   this.id = "Animator_" + Math.round(Math.random()*100);
-  this.animations = [];
+  // this.animations = [];
   this.current_animation = null;
   this.last_animation = null;
 

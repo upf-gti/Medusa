@@ -226,8 +226,8 @@ var GraphManager = {
         if(!this.load_inspector){
             var docked = new LiteGUI.Panel("load_panel");
             var tabs_widget = new LiteGUI.Tabs();
-            tabs_widget.addTab("Animations",{width:"100%"});
             tabs_widget.addTab("Behaviors", {width:"100%"});
+            tabs_widget.addTab("Animations",{width:"100%"});
             
             
             var load_inspector = this.load_inspector = new LiteGUI.Inspector(),
@@ -284,9 +284,10 @@ var GraphManager = {
                 for(let i in animation_manager.animations)
                 {
                     console.log("bla");
-                    let scene = CORE.Scene.behaviors[i];
                     load_inspector2.addButton(i,"Load",{name_width:"70%",callback:function(){
                         // console.log("Loading: ", JSON.parse(behavior));
+                        // animation_manager.loadAnimation(i);
+
                        
                         dlg.close();
                     }})

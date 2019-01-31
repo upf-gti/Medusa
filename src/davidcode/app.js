@@ -134,7 +134,14 @@ function update(dt)
     agent_evaluated = character_;
     var animator = character_.animator;
     var skeleton = character_.skeleton;
-
+    if(!animator.base_animation)
+      if(isEmpty(animation_manager.animations))
+        return;
+      else{
+        var skeletal_animation = new SkeletalAnimation("Walking", animation_manager.animations["Walking"]);
+        character_.skeletal_animations["Walking"] = skeletal_animation; 
+        animator.base_animation = skeletal_animation;
+      }
     if(!character_.head_node)
     {
       character_.head_node = character_.getHeadNode(character_.skeleton.name);

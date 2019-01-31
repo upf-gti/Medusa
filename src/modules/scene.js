@@ -87,8 +87,8 @@ class Scene{
 
                     var _k,_v,_z;
                     _z = JSON.parse(JSON.stringify(z));
-                    inspector.addString(null, "",  { width:"45%", placeHolder:"param name...",  callback: v => _k = v });
-                    inspector.addString(null, "",  { width:"45%", placeHolder:"value...",       callback: v => _v = v });
+                    inspector.addString(null, "",  { width:"45%", placeHolder:"param name",  callback: v => _k = v });
+                    inspector.addString(null, "",  { width:"45%", placeHolder:"value",       callback: v => _v = v });
                     inspector.addButton(null, "+", { zone: z, width:"10%", callback: function(e)
                     {
                     if(!_k || !_v)return;
@@ -161,8 +161,8 @@ class Scene{
             ip_inspector.addSeparator();
 
             var _k,_v;
-            ip_inspector.addString(null, "",  { width:"45%", placeHolder:"property...",  callback: v => _k = v });
-            ip_inspector.addString(null, "",  { width:"45%", placeHolder:"value...",       callback: v => _v = v });
+            ip_inspector.addString(null, "",  { width:"45%", placeHolder:"property",  callback: v => _k = v });
+            ip_inspector.addString(null, "",  { width:"45%", placeHolder:"value",       callback: v => _v = v });
             ip_inspector.addButton(null, "+", { width:"10%", callback: e => {
                 if(!_k || !_v) 
                     return;
@@ -189,8 +189,8 @@ class Scene{
 
 
             var _k2,_v2;
-            ip_inspector.addString(null, "",  { width:"45%", placeHolder:"property...",  callback: v => _k2 = v });
-            ip_inspector.addString(null, "",  { width:"45%", placeHolder:"value...",       callback: v => _v2 = v });
+            ip_inspector.addString(null, "",  { width:"45%", placeHolder:"property",  callback: v => _k2 = v });
+            ip_inspector.addString(null, "",  { width:"45%", placeHolder:"value",       callback: v => _v2 = v });
             ip_inspector.addButton(null, "+", { width:"10%", callback: e => {
                 console.log("nbkdbhekhbd");
                 if(!_k2 || !_v2) 

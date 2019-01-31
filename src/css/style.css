@@ -132,9 +132,15 @@ body {
 }
  
 /* Dialog */
+.litemenubar-panel{
+    border-bottom: 2px solid rgb(100, 165, 165);
+}
 .litepanel .panel-header, .litedialog .panel-header {
-    font-size: 1.25em;
+    font-size: 1.1em;
     padding: 0.333em 0 0 0.5em;
+}
+.litedialog{
+    border-bottom: 2px solid rgb(100, 165, 165)
 }
 .inspector{
     margin-top: 5px;

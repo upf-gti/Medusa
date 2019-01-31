@@ -96,8 +96,8 @@ var AgentManager = {
                     inspector.widgets_per_row = 3;
     
                     var _k,_v;
-                    inspector.addString(null, "",  { width:"45%", placeHolder:"param name...",  callback: v => _k = v });
-                    inspector.addString(null, "",  { width:"45%", placeHolder:"value...",       callback: v => _v = v });
+                    inspector.addString(null, "",  { width:"45%", placeHolder:"param name",  callback: v => _k = v });
+                    inspector.addString(null, "",  { width:"45%", placeHolder:"value",       callback: v => _v = v });
                     inspector.addButton(null, "+", { width:"10%", callback: e => {
                         if(!_k || !_v) 
                             return;
@@ -193,10 +193,13 @@ class Agent{
         this.skeleton = new Skeleton( LS.generateUId('skeleton'), "src/assets/Walking.dae", [0,0,0], false);
         this.animator = new Animator();
         var animation = animation_manager.animations["Walking"];
-        var skeletal_animation = new SkeletalAnimation("Walking", animation);
-        this.skeletal_animations["Walking"] = skeletal_animation; 
-        this.animator.base_animation = skeletal_animation;
-        this.animator.animations = animations; //toremove
+        if(animation)
+        {
+            var skeletal_animation = new SkeletalAnimation("Walking", animation);
+            this.skeletal_animations["Walking"] = skeletal_animation; 
+            this.animator.base_animation = skeletal_animation;
+        }
+        // this.animator.animations = animations; //toremove
         // this.head_node = this.getHeadNode(this.skeleton.name);
         // console.log(this.head_node);
         animators.push( this.animator );//toremove 
