@@ -41,7 +41,7 @@ class Scene{
 
     toggleSceneProperties(){
         if(!this.dialog){
-            var dialog = this.dialog = new LiteGUI.Dialog( { id:"Settings", title:'Scene Properties', close: true, minimize: false, width: 300, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
+            var dialog = this.dialog = new LiteGUI.Dialog( { id:"Settings", title:'Scene Properties', close: true, minimize: true, width: 300, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
             this.dialog.setPosition(10,270);
         }
         var dlg = this.dialog;
@@ -121,7 +121,7 @@ class Scene{
         var a_properties = {};
         var bb_properties = {};
 
-        var dialog = new LiteGUI.Dialog( { id:"ip-creation", title:'New Interest Point', close: true, minimize: false, width: 300, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
+        var dialog = new LiteGUI.Dialog( { id:"ip-creation", title:'New Interest Point', close: true, minimize: true, width: 300, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
         var ip_inspector = this.ip_creaton_inspector = new LiteGUI.Inspector();
 
         console.log(node);
@@ -217,6 +217,8 @@ class Scene{
                 interest_point.id = node.id;
                 interest_point.a_properties = a_properties;
                 interest_point.bb_properties = bb_properties;
+                if(!new_ip_type)
+                    new_ip_type = "default";
                 if(!CORE.Scene.properties.interest_points[new_ip_type])
                     CORE.Scene.properties.interest_points[new_ip_type] = [];
                 CORE.Scene.properties.interest_points[new_ip_type].push(interest_point);
@@ -234,7 +236,7 @@ class Scene{
     showInterestPointInfo(ip_info, x, y)
     {
         var ip = ip_info.ip;
-        // console.log(ip);
+        console.log(ip);
         var type = ip_info.ip_type;
         var dialog = new LiteGUI.Dialog( { id:"show-ip-info", title:'Interest Point ID: ' + ip.id, close: true, minimize: false, width: 250, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
         var show_ip_inspector = new LiteGUI.Inspector();
@@ -270,10 +272,20 @@ class Scene{
 
             show_ip_inspector.addSeparator();
 
-            // show_ip_inspector.addButton(null, "Delete", {width:"100%", callback:function(){
+            show_ip_inspector.addButton(null, "Delete", {width:"100%", callback:function(){
+                var interest_points = CORE.Scene.properties.interest_points;
+                console.log(interest_points[type]);
+                for(var i in interest_points[type])
+                {
+                    if(interest_points[type][i].id == ip.id)
+                    interest_points[type].splice(i,1);
+                }
+                var node = GFX.scene._nodes_by_id[ip.id];
+                if(node)
+                    node.destroy();
 
-            //     dialog.close();
-            // }})
+                dialog.close();
+            }})
             dialog.adjustSize();
         }
 

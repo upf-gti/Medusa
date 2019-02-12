@@ -236,11 +236,12 @@ Animator.prototype.animateMix = function( skeleton, base_anim, m_animations, dt,
     }
     
     node.updateMatrices();
-    skeleton.vertices = [];
-    skeleton.updateLinesVertices( skeleton.root_bone );
-    skeleton.addLines(skeleton.vertices);
-    skeleton.addPoints(skeleton.vertices);
+    
   }
+  skeleton.vertices = [];
+  skeleton.updateLinesVertices( skeleton.root_bone );
+  skeleton.addLines(skeleton.vertices);
+  skeleton.addPoints(skeleton.vertices);
   this.base_animation.current_time += dt;
 
   if(base_anim.current_time * this.speed > base_anim.animation.takes["default"].duration)

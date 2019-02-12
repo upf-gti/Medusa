@@ -100,7 +100,7 @@ var GFX = {
 
         }
         this.renderer.setPointSize(4);
-        this.renderer.context.captureKeys();
+        this.renderer.context.captureKeys(true);
         this.renderer.context.captureMouse(true);
         this.renderer.context.onmousemove = function(e) {
             GFX.onmouse(e);
@@ -109,34 +109,35 @@ var GFX = {
             
         }
         this.renderer.context.onkeydown = function(e) {
-            if (e.keyCode == 87)
-                tgt_node_up = true;
+        
+            if(e.shiftKey){
+                
+                if(e.keyCode == 37) {
 
-            if (e.keyCode == 83)
-                tgt_node_down = true;
+                    if(window.tmp_graph_container)
+                    return;
 
-            if (e.keyCode == 65)
-                tgt_node_left = true;
+                    window.tmp_graph_container = CORE.GraphManager.graphcanvas.canvas.parentNode;
+                    $("#full").append( CORE.GraphManager.graphcanvas.canvas).show();
+                    node_editor.graph_canvas.resize();
+                }
 
+                if(e.keyCode == 39) {
 
-            if (e.keyCode == 68)
-                tgt_node_right = true;
+                    if(!window.tmp_graph_container)
+                    return;
 
+                    $(window.tmp_graph_container).append( CORE.GraphManager.graphcanvas.canvas);
+                    $("#full").hide();
+                    window.tmp_graph_container = null;
+                    node_editor.graph_canvas.resize();
+                }
+               
+            }
         }
 
         this.renderer.context.onkeyup = function(e) {
 
-            if (e.keyCode == 87)
-                tgt_node_up = false;
-
-            if (e.keyCode == 83)
-                tgt_node_down = false;
-
-            if (e.keyCode == 65)
-                tgt_node_left = false;
-
-            if (e.keyCode == 68)
-                tgt_node_right = false;
             if(e.keyCode == 46){
                 for(var i in node_editor.graph_canvas.selected_nodes)
                 {
@@ -147,7 +148,10 @@ var GFX = {
             if(e.keyCode == 82){
                 AgentManager.deleteAgent(agent_selected.uid);
             }
+
+           
         }
+            
     },
 
     onmouse: function(e) {
@@ -271,20 +275,20 @@ var GFX = {
         }
     },
 
-    updateCamera: function() {
-        var pos = current_skeleton.root_bone.getGlobalPosition();
+    // updateCamera: function() {
+    //     var pos = current_skeleton.root_bone.getGlobalPosition();
 
-        var direction = GFX.rotateVector(current_skeleton.skeleton_container.getGlobalMatrix(), [0, 0, -1]);
-        direction = vec3.multiply(direction, direction, [200, 200, 200]);
+    //     var direction = GFX.rotateVector(current_skeleton.skeleton_container.getGlobalMatrix(), [0, 0, -1]);
+    //     direction = vec3.multiply(direction, direction, [200, 200, 200]);
 
-        var eye = vec3.create();
-        vec3.add(eye, pos, direction);
-        vec3.add(eye, eye, [0, 100, 0]);
+    //     var eye = vec3.create();
+    //     vec3.add(eye, pos, direction);
+    //     vec3.add(eye, eye, [0, 100, 0]);
 
 
-        GFX.camera.lookAt(
-            eye, [pos[0], 120, pos[2]], [0, 1, 0]);
-    },
+    //     GFX.camera.lookAt(
+    //         eye, [pos[0], 120, pos[2]], [0, 1, 0]);
+    // },
 
     createEnviroment: function() {
         var cube = new RD.SceneNode();

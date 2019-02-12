@@ -167,6 +167,7 @@ class Player{
     }
 
     resize() {
+        console.log("player resize");
         if(!this.player || !this.player.canvas) return;
 
         // Lookup the size the browser is displaying the canvas.

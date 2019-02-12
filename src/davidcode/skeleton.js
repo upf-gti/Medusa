@@ -143,7 +143,7 @@ Skeleton.prototype.updateLinesVertices = function( parentbone )
   if(parentbone.children)
 	{
 		for(var i in parentbone.children)
-		{
+		{ 
 				var parent_pos = parentbone.getGlobalPosition();
 				this.vertices.push( parent_pos );
 
@@ -155,8 +155,6 @@ Skeleton.prototype.updateLinesVertices = function( parentbone )
 		}
 	}
 }
-
-
 
 Skeleton.prototype.addLines = function( points )
 {

@@ -9,14 +9,13 @@
         "https://cdn.jsdelivr.net/gh/jagenjo/litegl.js@15e49a6c817907296fa6c6af70404aab9939a7bd/build/litegl.js",
         "https://cdn.jsdelivr.net/gh/jagenjo/rendeer.js@f30925c840c25ef8e7b7c56f6c967081c71ebcce/build/rendeer.js",
         "https://cdn.jsdelivr.net/gh/jagenjo/litescene.js@97f22f5f3b292bfe66545f135c97a1236aabd4a8/build/litescene.js",
-        "https://cdn.jsdelivr.net/gh/jagenjo/litegui.js@9178e3148f751f29c92cc5e4b79d4ab8d22912c0/build/litegui.js",
-        "https://cdn.jsdelivr.net/gh/jagenjo/litegui.js@9178e3148f751f29c92cc5e4b79d4ab8d22912c0/build/litegui.css",
         "https://cdn.jsdelivr.net/gh/jagenjo/Canvas2DtoWebGL@436433f81f8559dc5f321aafd9e622a0ed034fda/src/Canvas2DtoWebGL.js",
 
       
         "src/davidcode/extra/path.js",
         "src/davidcode/extra/tinyxml.js",
         "src/davidcode/extra/litegraph.js",
+        "src/davidcode/extra/litegui.js",
         "src/davidcode/extra/jquery.js",
         "src/davidcode/extra/Canvas2DtoWebGL.js",
         "src/davidcode/animator.js",
@@ -35,6 +34,7 @@
 
         "src/css/style.css",
         "src/css/litegraph.css",
+        "src/css/litegui.css",
         "src/modules/agent.js",
         "src/modules/davidcode.js",
         "src/modules/graph.js",

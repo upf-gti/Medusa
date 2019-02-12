@@ -239,7 +239,7 @@ class Agent{
         var skeletal_animation = new SkeletalAnimation("Walking", animation);
         this.skeletal_animations["Walking"] = skeletal_animation; 
         this.animator.base_animation = skeletal_animation;
-        this.animator.animations = animations; //toremove
+        // this.animator.animations = animations; //toremove
         animators.push( this.animator );//toremove 
         this.bt_info = {};
         AgentManager.agents[agent.uid] = agent;

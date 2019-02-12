@@ -58,7 +58,7 @@ body {
     background-color: var(--button-primary-color);
     box-shadow: 0 2px 10px rgba(0,0,0,0.5);
     line-height: 33px;
-    margin: 4px 1px;
+    margin: 3px 2px;
     border-radius: 3px;
 }
 
@@ -74,6 +74,15 @@ body {
 #player-area{
   /* q  background-color: rgb(52, 103, 128); */
 
+}
+.load-icon{
+    /* background-image: url(src/assets/bticon.png); */
+    height: 260px;
+    border-bottom: 1px solid rgb(37, 37, 37) !important; 
+    margin-bottom: 2px;   
+}
+.load-behavior-info{
+    color: rgb(167, 167, 167);
 }
 #player-buttons{
     position: absolute;
@@ -133,7 +142,7 @@ body {
  
 /* Dialog */
 .litemenubar-panel{
-    border-bottom: 2px solid rgb(100, 165, 165);
+    border-bottom: 2px solid rgb(100, 165, 165) !important;
 }
 .litepanel .panel-header, .litedialog .panel-header {
     font-size: 1.1em;
@@ -181,9 +190,9 @@ body {
 
 #micro-tools{
     position:absolute;
-    left: 8px;
+    left: 0px;
     margin-right: 10px;
-    top:60px;
+    top:45px;
     user-select: none;
 }
 
@@ -194,7 +203,7 @@ body {
     /* position: relative; */
     display: inline-block;
     /* border: 1px solid red; */
-    margin: 5px;
+    margin: 3px;
   
     padding: 2px;
     border-radius: 5px; 
@@ -211,13 +220,21 @@ body {
 .tool-btn.active{
     background-color: rgb(0, 83, 79);
 }
+
 .slider-text.fixed.nano{
     width: 2.3em !important;
     padding: 2px;
 }
+
 .slider-container canvas{
     width:calc(100% - 2.8em) !important;
 }
 .slider-container{
     width:calc(100% - 2.8em) !important;
+}
+
+#full{
+    width: 100%;
+    height: 100%;
+    display: none;
 }
