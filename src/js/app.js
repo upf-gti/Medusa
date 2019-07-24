@@ -39,12 +39,17 @@ var IP_CREATION_MODE = 1;
 var AGENT_CREATION_MODE = 2;
 var scene_mode = NAV_MODE;
 
+var behaviour = null;
+
 var tmp = {
   vec : vec3.create(),
   axis : vec3.create(),
   axis2 : vec3.create(),
   inv_mat : mat4.create()
 }
+var RENDER_PATHS = true;
+var RENDER_SCENARIO = true;
+var RENDER_FPS = true;
 
 var stats = null;
 
@@ -127,8 +132,18 @@ function update(dt)
     if(!skeleton.root_bone)
       continue;
 
-    node_editor.graph.runBehavior(character_, dt);
-    
+    behaviour = node_editor.graph.runBehavior(character_, dt);
+	
+	if(!behaviour.type)
+	{
+		LiteGUI.alert("Incomplete HBT: Add at least 1 success node (i.e. a SimpleAnimate)");
+		var button = document.getElementById("play-btn");
+		button.click();
+		return;
+	}
+	
+	character_.applyBehaviour(behaviour);
+
     character_.moveTo(character_.properties.target, dt);
     //character_.lookAt( character_.properties.look_at_pos, dt);
     // character_.orientCharacter(skeleton.skeleton_container, character_.properties.target.pos, dt);
@@ -193,5 +208,14 @@ function guidGenerator() {
   };
   return (S4()+S4());//+"-"+S4());//+"-"+S4() +"-"+S4());
 }
+
+
+//gl.canvas.addEventListener("drop", function(event) {
+//  event.preventDefault();
+//  var data = event.dataTransfer.getData("JSON");
+//  console.log(data);
+////  event.target.appendChild(document.getElementById(data));
+////  document.getElementById("demo").innerHTML = "The p element was dropped";
+//});
 
 

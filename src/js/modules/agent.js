@@ -15,8 +15,21 @@ var AgentManager = {
     }),
     
     init(){
-		CORE.GUI.menu.add("Agents/· New Agent", () => new Agent() );
-        CORE.GUI.menu.add("Actions/· Create/· New Agent", () => new Agent() );
+		CORE.GUI.menu.add("Agents/· New Agent", () => {
+
+			var btn = document.getElementById("agent-mode-btn");
+			scene_mode = AGENT_CREATION_MODE;
+//            CORE.Player.disableModeButtons(this.id);
+			document.getElementById("main_canvas").style.cursor = "cell";
+		} );
+        
+		CORE.GUI.menu.add("Tools/· Create/· New Agent", () => {
+
+			var btn = document.getElementById("agent-mode-btn");
+			scene_mode = AGENT_CREATION_MODE;
+//            CORE.Player.disableModeButtons(this.id);
+			document.getElementById("main_canvas").style.cursor = "cell";
+		} );
 
 //        CORE.GUI.menu.add("Agents");
     },
@@ -156,6 +169,8 @@ var AgentManager = {
     deleteAgent(uid)
     {
         var agent = AgentManager.agents[uid];
+		agent.dialog.close();
+		CORE.GUI.menu.remove("Agents/" + agent.properties.name);
         var skeleton = agent.skeleton;
         skeleton.lines_mesh.delete();
         skeleton.points_mesh.delete();
@@ -164,8 +179,9 @@ var AgentManager = {
         skeleton.skeleton_container.destroy();
         // GFX.renderer.meshes[agent.path_mesh].delete()
         delete AgentManager.agents[uid];
-    }
 
+		
+    }
     
 }
 
@@ -187,7 +203,7 @@ class Agent{
         this.btree = null;
         this.blackboard = blackboard;
 
-        this.path = [{id:1,pos:[1300,0,-1500],visited:false},{id:2,pos: [1300,0,-750],visited:false} ,{id:3,pos: [-1500,0,-750],visited:false}, {id:4,pos: [-1500,0,100],visited:false}, {id:5,pos: [1000,0,0],visited:false}, {id:6,pos: [1000,0,750],visited:false}, {id:7,pos: [0,0,750],visited:false}];
+        this.path = [{id:1,pos:[2800,0,-2500],visited:false},{id:2,pos: [1900,0,1000],visited:false} ,{id:3,pos: [1300,0,1800],visited:false}, {id:4,pos: [-1500,0,1800],visited:false}, {id:5,pos: [-1300,0,0],visited:false}, {id:6,pos: [0,0,-750],visited:false}, {id:7,pos: [1500,0,-1050],visited:false}, {id:8,pos: [2500,0,-2500],visited:false}];
         this.current_waypoint = this.path[0];
 
         // var random = vec3.random(vec3.create(), 100);
@@ -206,7 +222,7 @@ class Agent{
             target: this.path[0], 
             look_at_pos: [0,0,10000]
         }
-		var sk_pos = pos || [0,0,-1600];
+		var sk_pos = pos || [Math.random()*600 ,0,Math.random()*200];
         this.skeleton = new Skeleton( LS.generateUId('skeleton'), "assets/Walking.dae", sk_pos, false);
         this.animator = new Animator();
 		this.animator.agent_id = this.uid;
@@ -245,23 +261,29 @@ class Agent{
         agent.uid = o.uid;
         agent.btree = null;
         agent.blackboard = blackboard;
-        agent.path = clearPath(o.path);
+        agent.path = this.path = [{id:1,pos:[2800,0,-2500],visited:false},{id:2,pos: [1900,0,1000],visited:false} ,{id:3,pos: [1300,0,1800],visited:false}, {id:4,pos: [-1500,0,1800],visited:false}, {id:5,pos: [-1300,0,0],visited:false}, {id:6,pos: [0,0,-750],visited:false}, {id:7,pos: [1500,0,-1050],visited:false}, {id:8,pos: [2500,0,-2500],visited:false}];
         agent.current_waypoint = agent.path[0];
         agent.properties = o.properties;
         agent.properties.target = agent.path[0];
-        this.skeletal_animations = {};
+        agent.skeletal_animations = {};
 
         var agent_position = o.position || [0,0,0];
         // console.log(agent_position);
-        this.skeleton = new Skeleton( LS.generateUId('skeleton'), "src/assets/Walking.dae", agent_position, false);
-        this.animator = new Animator();
-        var animation = animation_manager.animations["Walking"];
-        var skeletal_animation = new SkeletalAnimation("Walking", animation);
-        this.skeletal_animations["Walking"] = skeletal_animation; 
-        this.animator.base_animation = skeletal_animation;
+        agent.skeleton = new Skeleton( LS.generateUId('skeleton'), "assets/Walking.dae", agent_position, false);
+        agent.animator = new Animator();
+		agent.animator.agent_id = o.uid;
+		agent.animator.stylizer = new PoseStylizer();
+		var animation = animation_manager.animations["Walking"];
+        if(animation)
+        {
+            var skeletal_animation = new SkeletalAnimation("Walking", animation);
+            agent.skeletal_animations["Walking"] = skeletal_animation; 
+            agent.animator.base_animation = skeletal_animation;
+        }
         // this.animator.animations = animations; //toremove
-        animators.push( this.animator );//toremove 
-        this.bt_info = {};
+        animators.push( agent.animator );//toremove 
+        agent.bt_info = {};
+
         AgentManager.agents[agent.uid] = agent;
 
         agent.visualizePath();//whe should remove this
@@ -278,6 +300,8 @@ class Agent{
     }
     visualizePath()
     {
+		if(GFX.scene._nodes_by_id["Path"])
+			return;
         var vertices = [];
         // var path = new LS.Path();
         // path.closed = true;
@@ -287,14 +311,14 @@ class Agent{
         {
             var waypoint_pos = this.path[i];
             vertices.push(waypoint_pos.pos[0], waypoint_pos.pos[1], waypoint_pos.pos[2] );
-            var node = new RD.SceneNode();
-            node.mesh = "sphere";
-            node.name = "path_waypoint"
-            node.position = waypoint_pos.pos;
-            node.color = [1,1,1,1];
-            node.scaling = 4;
-            node.render_priority = 1;
-            GFX.scene.root.addChild(node);
+//            var node = new RD.SceneNode();
+//            node.mesh = "sphere";
+//            node.name = "path_waypoint"
+//            node.position = waypoint_pos.pos;
+//            node.color = [1,1,1,1];
+//            node.scaling = 4;
+//            node.render_priority = 1;
+//            GFX.scene.root.addChild(node);
         }
         
         var path_mesh = "path_mesh";
@@ -302,12 +326,12 @@ class Agent{
         
         GFX.renderer.meshes[path_mesh] = lines_mesh;
         var linea = new RD.SceneNode();
-        linea.name = "Path";
+        linea.id = "Path";
         linea.flags.ignore_collisions = true;
         linea.primitive = gl.LINE_STRIP;
         linea.mesh = path_mesh;
         this.path_mesh = path_mesh;
-        linea.color = [174/255, 213/255, 215/255, 0.5]; 
+        linea.color = [255/255, 182/255, 84/255, 0.5]; 
         linea.flags.depth_test = false;
         GFX.scene.root.addChild(linea);
     }
@@ -325,7 +349,7 @@ class Agent{
     }
 
     orientCharacter( skeleton, target )
-    {         
+    {			
         var tmpMat4 = mat4.create(), tmpQuat = quat.create();
         mat4.lookAt(tmpMat4, target, skeleton.getGlobalPosition(), [0,1,0]);
         quat.fromMat4(tmpQuat, tmpMat4);
@@ -464,6 +488,27 @@ class Agent{
 
     }
 
+	applyBehaviour( behaviour )
+	{
+		var behaviour_type = behaviour.type;
+		switch(behaviour_type)
+		{
+			case B_TYPE.moveTo: 
+				this.properties.target = behaviour.data;
+				break;
+			case B_TYPE.lookAt:
+				this.properties.look_at = behaviour.data;
+				break;
+			case B_TYPE.animateSimple: 
+				this.animator.applyBehaviour(behaviour.data);
+				break;
+			case B_TYPE.wait:
+				break;
+			case B_TYPE.nextTarget:
+				this.properties.target = this.checkNextTarget();
+				break;
+		}
+	}
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------------

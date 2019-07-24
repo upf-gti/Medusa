@@ -20,7 +20,7 @@ class Scene{
         this.behaviors = gen_behaviors;
 		this.initial_behaviour = init_behaviour;
 		this.bprops = this.zones["zone1"].bbvariables;
-        CORE.GUI.menu.add("Actions/· Create/· New Interest Point", function(){ CORE.Scene.addInterestPoint();} );
+        CORE.GUI.menu.add("Tools/· Create/· New Interest Point", function(){ CORE.Scene.addInterestPoint();} );
     }
     
     loadScene( o )
@@ -329,8 +329,8 @@ class Scene{
     applyTargetProperties( target,  agent )
     {
         // Hacerlo por ID!!!
-		if(this.last_target_id == target.id) 
-				return;
+//		if(this.last_target_id == target.id) 
+//				return;
 		this.last_target_id = target.id;
         for(var i in this.properties.interest_points)
         {
@@ -409,9 +409,12 @@ class Scene{
             data.btree = null;
             data.blackboard = blackboard;
             data.path = [{id:1,pos:[1300,0,0],visited:false},{id:2,pos: [0,0,1000],visited:false} ,{id:3,pos: [-1300,0,0],visited:false}];
-            data.position = [-1000 +Math.floor(Math.random()*2000), 0, -1000 + Math.floor(Math.random()*1000)];
+            data.position = [500 + Math.floor(Math.random()*7000), 0, -7000 + Math.floor(Math.random()*5000)];
 
             properties.name=  "Billy-" + guidGenerator();
+			properties.happiness = Math.random() * 200 - 100;
+			properties.energy = 0;
+			properties.relax = 0;
             properties.age = Math.random() * (max_age - min_age) + min_age;
             properties.hurry = Math.random() * (max_age - min_age) + min_age;
             properties.money = Math.random() * (max_age - min_age) + min_age;

@@ -24,18 +24,29 @@ var GFX = {
         this.context.onmouse = this.onmouse.bind(this);
 		this.context.canvas.id = "main_canvas";
         this.camera = new RD.Camera();
+
         //pos, target, ?
         this.camera.lookAt([0, 1000, 2500], [0, 70, 0], [0, 1, 0]);
-        this.camera.perspective(45, this.context.canvas.width / this.context.canvas.height, 0.1, 20000);
+        this.camera.perspective(45, this.context.canvas.width / this.context.canvas.height, 100, 2000000);
+
+		
+
+		scenario = new RD.SceneNode();
+		scenario.mesh = "square.WBIN";
+		scenario.name = "scenario";
+		scenario.shader = "phong_shadow";
+		scenario.color = [1.0,1.0,1.0,1.0];
+		scenario.position = [0,0,0];
+		this.scene.root.addChild(scenario);
 
         floor = new RD.SceneNode();
         floor.name = "floor";
         floor.mesh = "planeXZ"
-        floor.texture = "floor4.jpg";
+        floor.texture = "floor6.jpg";
         floor.shader = "phong_texture_shadow";
         floor.position = [0, -5, 0];
-        floor.scaling = 10000;
-        floor.uniforms.u_tiling = vec2.fromValues(20, 20);
+        floor.scaling = 100000;
+        floor.uniforms.u_tiling = vec2.fromValues(600, 600);
         this.scene.root.addChild(floor);
 
         this.renderer = new RD.Renderer(this.context, {
@@ -45,20 +56,63 @@ var GFX = {
 
         });
 
-        // declare uniforms
+		var tex = Texture.cubemapFromURL("assets/cubemap3.png", {is_cross: true});
+		gl.textures["skyboxTex"] = tex;
 
+		
+		skybox = new RD.SceneNode();
+
+		skybox.mesh = "cube";
+		skybox.name = "skybox";
+		skybox.scaling = 100000;
+		skybox.texture = "skyboxTex";
+		skybox.position = [0, 100, 0];
+		skybox.shader = "skybox";
+		skybox.flags.depth_test = false;
+		skybox.flags.flip_normals = true;
+		skybox.render_priority = RD.PRIORITY_BACKGROUND;
+		this.scene.root.addChild(skybox);
+		
+
+		gl.canvas.ondragover = () => {return false};
+		gl.canvas.ondragend = () => {return false};
+		gl.canvas.ondrop = function(e){
+			
+			e.preventDefault();
+			e.stopPropagation();
+			var file = e.dataTransfer.files[0];
+			var reader = new FileReader();
+
+			// Closure to capture the file information.
+			reader.onload = function(e) {
+//				debugger;
+				var data = JSON.parse(e.target.result);
+				CORE.GUI.openImportDialog(data, file);
+//			    CORE.Scene.loadScene(data.scene);
+//				node_editor.graph.configure(data.behavior);
+//				animation_manager.loadAnimations(data.animations);
+				
+			}
+
+			reader.readAsText(file);
+		  // 
+		}
+
+        // declare uniforms
+		this.background_color = vec3.fromValues(0.7, 0.7, 0.7);
         this.renderer._uniforms['u_ambient_light'] = vec3.fromValues(0.5, 0.5, 0.5),
-            this.renderer._uniforms['u_light_position'] = vec3.fromValues(100, 3000, 100);
+        this.renderer._uniforms['u_light_position'] = vec3.fromValues(10, 3000, 100);
         this.renderer._uniforms['u_light_color'] = vec3.fromValues(0.9, 0.9, 0.9);
         this.renderer._uniforms['u_specular'] = 0.1;
         this.renderer._uniforms['u_glossiness'] = 20;
-        this.renderer._uniforms['u_fresnel'] = 0.9;
+        this.renderer._uniforms['u_fresnel'] = 0.1;
+		this.renderer._uniforms['u_background_color'] = this.background_color;
 
         // gl.lineWidth(5);
 
         //
 
-        this.background_color = vec3.fromValues(1, 1, 1);
+        
 
         this.renderer.context.captureMouse(true);
         this.renderer.context.captureKeys(true);
@@ -89,8 +143,10 @@ var GFX = {
 
             // if(GFX.context2.start2D)
             //   GFX.context2.start2D();
-			
-			stats.begin();
+			if(RENDER_FPS)
+				stats.begin();
+		
+			// skybox.position = GFX.camera.position;
 
             GFX.renderer.clear([0, 0, 0, 0.1]);
             GFX.renderer.render(GFX.scene, GFX.camera);
@@ -98,8 +154,9 @@ var GFX = {
             
             GFX.scene.update(dt);
             update(dt);
-
-			stats.end();
+			
+			if(RENDER_FPS)
+				stats.end();
 	
             //GFX.draw_analysis(GFX.canvas2D, GFX.context2, dt);
 
@@ -150,8 +207,9 @@ var GFX = {
                     node_editor.graph.remove(node);
                 }
             }
-            if(e.keyCode == 82){
-                AgentManager.deleteAgent(agent_selected.uid);
+            if(e.keyCode == 46){
+				if(agent_selected)
+	               AgentManager.deleteAgent(agent_selected.uid);
             }
 
            
@@ -290,16 +348,10 @@ var GFX = {
                     var x = e.canvasx;
                     var y = e.canvasy;
                     var position = GFX.testCollision(x, y);
+					if(!position)
+						return;
 					position[1] = 0;
                     var agent = new Agent(null, position);
-					var btn = document.getElementById("navigate-mode-btn");
-					if(!btn.classList.contains("active"))
-					{
-						btn.classList.add("active");
-					}
-					document.getElementById("main_canvas").style.cursor = "default";
-					scene_mode = NAV_MODE;
-					CORE.Player.disableModeButtons(btn.id);
                 }
 			}
         }
@@ -307,23 +359,29 @@ var GFX = {
 
     updateCamera: function(skeleton) {
         var pos = skeleton.getGlobalPosition();
+		pos[1] += 50;
+		
+		var last = GFX.camera.target;  
 
-        var direction = GFX.rotateVector(skeleton.getGlobalMatrix(), [0, 0, 1]);
-        direction = vec3.multiply(direction, direction, [300, 200, -300]);
+		vec3.lerp(pos, pos, last, 0.9);
+		GFX.camera.target = pos;
 
-        var eye = vec3.create();
-        vec3.add(eye, pos, direction);
-        vec3.add(eye, eye, [0, 100, 0]);
-
-        var final_cam_pos = vec3.fromValues(pos[0] - 300, 200, pos[2] + 300);
-        var final_cam_target = vec3.fromValues(pos[0], 120, pos[2]);
-
-        vec3.lerp(final_cam_pos, GFX.camera.position, final_cam_pos, 0.2);
-        vec3.lerp(final_cam_target, GFX.camera.target, final_cam_target, 0.2);
-
-
-        GFX.camera.lookAt(
-            final_cam_pos, final_cam_target, [0, 1, 0]);
+//        var direction = GFX.rotateVector(skeleton.getGlobalMatrix(), [0, 0, 1]);
+//        direction = vec3.multiply(direction, direction, [300, 200, -300]);
+//
+//        var eye = vec3.create();
+//        vec3.add(eye, pos, direction);
+//        vec3.add(eye, eye, [0, 100, 0]);
+//
+//        var final_cam_pos = vec3.fromValues(pos[0] - 300, 200, pos[2] + 300);
+//        var final_cam_target = vec3.fromValues(pos[0], 120, pos[2]);
+//
+//        vec3.lerp(final_cam_pos, GFX.camera.position, final_cam_pos, 0.2);
+//        vec3.lerp(final_cam_target, GFX.camera.target, final_cam_target, 0.2);
+//
+//
+//        GFX.camera.lookAt(
+//            final_cam_pos, final_cam_target, [0, 1, 0]);
     },
 
     createEnviroment: function() {

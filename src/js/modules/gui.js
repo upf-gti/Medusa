@@ -25,12 +25,12 @@ class GUI{
     }
     init()
     {
-        CORE.GUI.menu.add("Nodes", (()=>{
+        CORE.GUI.menu.add("Animations", (()=>{
 
             //Actions dialog
             this.actions = this.actions || {
-                "Running" : {name:"Running", anims:[{anim:"Running",weight: 1}] , motion:5, speed:1},
-                "Walking" : {name:"Walking",  anims:[{anim:"Walking",weight: 1}], motion:3, speed:1},
+                "Running" : {name:"Running", anims:[{anim:"Running",weight: 1}] , motion:6.2, speed:1},
+                "Walking" : {name:"Walking",  anims:[{anim:"Walking",weight: 1}], motion:2.6, speed:1},
                 "Idle" : {name:"Idle", anims:[{anim:"Idle",weight: 1}], motion:0, speed:0.5},
                 "Old Walk" : {name:"Old_Man_Walk", anims:[{anim:"Old_Man_Walk",weight: 1}], motion:1, speed:0.9},
                 "Umbrella" : {name:"Umbrella", anims:[{anim:"Umbrella",weight: 1}], motion:3, speed:1},
@@ -43,7 +43,7 @@ class GUI{
 
             if(!this.dialog){
     
-                this.dialog = new LiteGUI.Dialog({id:"Nodes", title:"Nodes", close: true, minimize: false, width: 300, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
+                this.dialog = new LiteGUI.Dialog({id:"available_anims", title:"Animations", close: true, minimize: false, width: 200, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
                 var inspector = this.inspector = new LiteGUI.Inspector(),
                    properties = this.actions,
                    properties2 = this.generic_nodes,
@@ -54,28 +54,28 @@ class GUI{
                     inspector.clear();
 
 
-                    inspector.addSection("Generic nodes", {collapsed: false})
-                    for( var t in properties2)
-                    {
-                        let widget2 = null;
-                        switch(properties2[t].name.constructor.name)
-                        {
-                            case "String" : widget2 = inspector.addInfo( t, null, { key: t, callback: function(v){ properties2[ this.options.key ] = v;  } });    break;
-                        }
-                        if(!widget2) continue;
-                        widget2.addEventListener("dragstart", function(a)
-                        {  
-                            var obj = properties2[t];
-                            obj = JSON.stringify(obj);
-                            console.log(obj);
-                            a.dataTransfer.setData("obj", obj);
-                            a.dataTransfer.setData("type", "intarget"); 
-                        });
-                        widget2.setAttribute("draggable", true);
-                    }
-                    inspector.endCurrentSection();
+//                    inspector.addSection("Generic nodes", {collapsed: false})
+//                    for( var t in properties2)
+//                    {
+//                        let widget2 = null;
+//                        switch(properties2[t].name.constructor.name)
+//                        {
+//                            case "String" : widget2 = inspector.addInfo( t, null, { key: t, callback: function(v){ properties2[ this.options.key ] = v;  } });    break;
+//                        }
+//                        if(!widget2) continue;
+//                        widget2.addEventListener("dragstart", function(a)
+//                        {  
+//                            var obj = properties2[t];
+//                            obj = JSON.stringify(obj);
+//                            console.log(obj);
+//                            a.dataTransfer.setData("obj", obj);
+//                            a.dataTransfer.setData("type", "intarget"); 
+//                        });
+//                        widget2.setAttribute("draggable", true);
+//                    }
+//                    inspector.endCurrentSection(s);
 					
-					inspector.addSection("Actions", {collapsed: false})
+//					inspector.addSection("Animations", {collapsed: false})
                     console.log(properties);
                     for( let p in properties )
                     {
@@ -89,6 +89,7 @@ class GUI{
                         {  
                             // console.log(a);
                             var obj = properties[p];
+							obj.filename = properties[p].name;
                             obj = JSON.stringify(obj);
                             a.dataTransfer.setData("obj", obj);
                             a.dataTransfer.setData("type", "action"); 
@@ -107,12 +108,12 @@ class GUI{
 
         }).bind(this));
 
-        CORE.GUI.menu.add("Actions/· Restart simulation", { 
+        CORE.GUI.menu.add("Tools/· Restart simulation", { 
             callback:( ()=>{ 
                 CORE.Scene.restartScenario();
             }).bind(this) 
         });
-        CORE.GUI.menu.add("Actions/· Populate scenario", { 
+        CORE.GUI.menu.add("Tools/· Populate scenario", { 
             callback:( ()=>{ 
                 this.showPopulateDialog()
             }).bind(this) 
@@ -134,9 +135,16 @@ class GUI{
             }).bind(this) 
         });
 
-        CORE.GUI.menu.add("Help");
-        CORE.GUI.menu.add("Help/· About", {callback: function(){
-            LiteGUI.alert("<a href='https://github.com/upf-gti/Sauce'>SAUCE PROJECT Github</a>", {title: "About"})
+		CORE.GUI.menu.add("Scene/· Settings", {
+			callback:( ()=>{ 
+                this.showSettingsDialog()
+            }).bind(this) 
+		});
+
+//        CORE.GUI.menu.add("Help");
+        CORE.GUI.menu.add("Help", {callback: function(){
+            LiteGUI.alert("<a href='https://github.com/upf-gti/Sauce'>Github</a>", {title: "Help"});
+//			LiteGUI.alert("Working on tutorials and guides", {title: "About"})
         }});
     }
 
@@ -155,18 +163,18 @@ class GUI{
             populate_inspector.on_refresh = function()
             {
                 populate_inspector.clear();
-                var num_agents = 1;
-                var min_age = 1;
-                var max_age = 100;
-                populate_inspector.addNumber("Number of agents",1, {name_width:"40%", step:1, min:1, max:300, precision:0, callback:function(v)
+                var num_agents = 10;
+                var min_age = 5;
+                var max_age = 90;
+                populate_inspector.addNumber("Number of agents",10, {name_width:"40%", step:1, min:1, max:70, precision:0, callback:function(v)
                 {
                     num_agents = v;
                 }}); 
-                populate_inspector.addSlider("Minimum age",1, {name_width:"40%", step:1 ,min:5, max:100, precision:0, callback:function(v)
+                populate_inspector.addSlider("Minimum age",5, {name_width:"40%", step:1 ,min:5, max:90, precision:0, callback:function(v)
                 {
                     min_age = v;
                 }}); 
-                populate_inspector.addSlider("Maximum age",1, {name_width:"40%", step:1, min:5, max:100, precision:0, callback:function(v)
+                populate_inspector.addSlider("Maximum age",5, {name_width:"40%", step:1, min:5, max:90, precision:0, callback:function(v)
                 {
                     max_age = v;
                 }}); 
@@ -235,6 +243,29 @@ class GUI{
 		}
 
     }
+	openImportDialog(data, file)
+	{
+		var choice = LiteGUI.choice("", ["Import", "Cancel"], function(v){
+			if(v == "Import")
+			{
+				CORE.Scene.loadScene(data.scene);
+				node_editor.graph.configure(data.behavior);
+				animation_manager.loadAnimations(data.animations);
+			}
+			
+		}, { title: "Importing behaviour" });
+
+
+		var import_inspector = new LiteGUI.Inspector();
+
+		
+		import_inspector.clear();
+		import_inspector.addInfo("Filename  ", file.name || file.filename, {name_width:"40%"});
+		import_inspector.addInfo("Size", file.size/1000 + " KB", {name_width:"40%"});
+
+		choice.content.prepend(import_inspector.root);
+	
+	}
 
     showLoadAnimationsDialog()
     {
@@ -306,6 +337,68 @@ class GUI{
 
         this.save_dialog.show('fade');
         this.save_dialog.setPosition(document.body.clientWidth/2 - 150,200);
+    }
+
+	showSettingsDialog()
+    {
+        if(!this.settings_dialog){
+            var settings_dialog = this.settings_dialog = new LiteGUI.Dialog( { id:"settings_dialog", title:'Settings', close: true, minimize: false, width: 200, height: 300, scroll: false, resizable: false, draggable: true, parent:"body"});
+//            this.settings_dialog.setPosition(document.body.clientWidth/2 - 150,200);
+
+        }
+        var dlg = this.settings_dialog;
+
+        if(!this.save_inspector){
+            var save_inspector = this.save_inspector = new LiteGUI.Inspector(),
+                settings_dialog = this.settings_dialog;
+
+            save_inspector.on_refresh = function()
+            {
+                save_inspector.clear();
+                var name = "";
+                save_inspector.addCheckbox("Render_performance", RENDER_FPS, {name_width:"77%",callback:function(v)
+                {
+                    RENDER_FPS = v;
+					if(v)
+						$(stats.dom).show();
+					else
+						$(stats.dom).hide();
+                }}); 
+
+                save_inspector.addCheckbox("Render_paths", RENDER_PATHS, {name_width:"77%", callback:function(v)
+                {
+                    RENDER_PATHS = v;
+					if(v){
+					
+						var node = GFX.scene._nodes_by_id["Path"];
+						if(node)
+							node.visible = true;
+					}
+					else{
+						var node = GFX.scene._nodes_by_id["Path"];
+						if(node)
+							node.visible = false;
+					}
+                }}); 
+
+				save_inspector.addCheckbox("Render_scenario", RENDER_PATHS, {name_width:"77%", callback:function(v)
+                {
+                    RENDER_PATHS = v;
+					if(v)
+						scenario.visible = true;
+					else
+						scenario.visible = false;
+                }}); 
+               
+                dlg.adjustSize();
+            }
+
+            this.settings_dialog.add(save_inspector);
+            save_inspector.refresh();
+        }
+
+        this.settings_dialog.show('fade');
+//        this.settings_dialog.setPosition(document.body.clientWidth/2 - 150,200);
     }
     /**
      * Toggle between displaying or hidding the content.

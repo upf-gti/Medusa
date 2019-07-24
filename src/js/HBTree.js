@@ -2,7 +2,7 @@
 /*Structure used in the HBTNodes*/
 STATUS = {
 
-	success:1, 
+	success:0, 
 	running:1, 
 	fail:2
 }
@@ -111,6 +111,7 @@ function HBTGraph()
 HBTGraph.prototype._ctor = function()
 {
 	this.graph = new LGraph();
+	this.graph.current_behaviour = new Behaviour();
 	this.root_node = null;
 	this.graph.description_stack = [];
 	this.tmp_tick_result = null,
@@ -125,15 +126,16 @@ HBTGraph.prototype._ctor = function()
 HBTGraph.prototype.runBehavior = function(character, dt, starting_node)
 {
 	this.character_evaluated = character;
+
 	if(starting_node)
 		starting_node.tick;
 
 	else if(this.root_node)
 	{
-		this.graph.runStep(1, false);
+		this.runStep( 1, false );
 
-		this.tmp_tick_result = this.root_node.tick(this.character_evaluated, dt);
-		return this.tmp_tick_result ;
+		this.current_behaviour = this.root_node.tick(this.character_evaluated, dt);
+		return this.current_behaviour;
 	}
 }
 
@@ -142,81 +144,6 @@ HBTGraph.prototype.runBehavior = function(character, dt, starting_node)
 
 
 /****************************************** HBTNodes REPOSITORY ****************************************************/
-function RootNode()
-{
-    this.shape = 2;
-    this.color = "#1E1E1E"
-    this.boxcolor = "#999";
-    this.addOutput("","path");
-	this.properties = {};
-    this.horizontal = true;
-	this.widgets_up = true;
-}
-
-RootNode.prototype.tick = function(agent, dt)
-{
-  var children = this.getOutputNodes(0);
-	for(var n in children)
-	{
-		var child = children[n];
-		var value = child.tick(agent, dt);
-		if(value == STATUS.success)
-		{
-			if(agent.is_selected)
-			{
-				var chlid_input_link_id = child.inputs[0].link;
-				this.triggerSlot(0, null, chlid_input_link_id);
-
-				if(child.description)
-				{
-					var graph = child.graph;
-					graph.description_stack.push(child.description); 
-				} 
-			}
-			return value;
-		}
-	}
-	// console.log("Ninguna rama ha tenido exito");
-	return STATUS.fail; //placeholder ta que lo pensemos bien
-}
-
-RootNode.prototype.onConfigure = function(info)
-{
-    onConfig(info, this.graph);
-	this.graph.root_node =  this;
-}
-
-RootNode.title = "Root";
-RootNode.desc = "Start node of the Hybrid Behavior Tree";
-//reorder the links
-RootNode.prototype.onStart = function()
-{
-  var children = this.getOutputNodes(0);
-  if(!children) return;
-  children.sort(function(a,b)
-  {
-    if(a.pos[0] > b.pos[0])
-    {
-      return 1;
-    }
-    if(a.pos[0] < b.pos[0])
-    {
-      return -1;
-    }
-  });
-	
-  this.outputs[0].links = [];
-  console.log(children);
-  for(var i in children)
-  {
-    this.outputs[0].links.push(children[i].inputs[0].link);
-  }
-}
-
-LiteGraph.registerNodeType("btree/Root", RootNode);
-
-/********************************************** Property node ***************************************************/
-
 function HBTproperty()
 {
     this.shape = 2;
@@ -225,7 +152,7 @@ function HBTproperty()
     this.boxcolor = "#999";
   	var w = 125;
     var h = 25;
-    this.addOutput("","number", {pos:[w,15], dir:LiteGraph.RIGHT});
+    this.addOutput("","", {pos:[w,15], dir:LiteGraph.RIGHT});
     this.flags = {};
   	this.properties = {value:null};
     this.data = {};
@@ -239,7 +166,7 @@ function HBTproperty()
 
 HBTproperty.prototype.onExecute = function()
 {
-	console.log(this.graph);
+//	console.log(this.graph);
 	var value = null;
 	//	Check if its Scene or Agent
 	if(CORE.Scene.bprops.includes(this.title))
@@ -259,200 +186,28 @@ HBTproperty.prototype.onExecute = function()
 
 LiteGraph.registerNodeType("btree/HBTproperty", HBTproperty);
 
-/*************************************************** End HBTProperty *********************************************************/
 
-
-/***************************************************** Composites ************************************************************/
-
-function Sequencer()
-{
-  
-    this.shape = 2;
-    this.color = "#6F0E12";
-    this.bgcolor = "#3f2c2c";
-    this.boxcolor = "#999";
-    this.addInput("","path");
-		this.addOutput("","path");
-		this.addProperty( "value", 1.0 );
-    this.editable = { property:"value", type:"number" };
-    this.data = {}
-    this.flags = { horizontal: true };
- 		this.horizontal = true;
-    this.widgets_up = true;
-  
-}
-Sequencer.prototype.onStart = function()
-{
-  var children = this.getOutputNodes(0);
-  if(!children) return;
-  children.sort(function(a,b)
-  {
-    if(a.pos[0] > b.pos[0])
-    {
-      return 1;
-    }
-    if(a.pos[0] < b.pos[0])
-    {
-      return -1;
-    }
-  });
-	
-  this.outputs[0].links = [];
-  for(var i in children)
-  {
-    this.outputs[0].links.push(children[i].inputs[0].link);
-  }
-}
-Sequencer.prototype.tick = function(agent, dt)
-{
-	/* means that there is some node on running state */
-	if(agent.bt_info.running_node_index != null)
-	{
-    var children = this.getOutputNodes(0);
-    var child = children[agent.bt_info.running_node_index];
-		var value = child.tick(agent, dt);
-		if(value == STATUS.running)
-		{
-			if(agent.is_selected)
-			{
-				var chlid_input_link_id = child.inputs[0].link;
-				this.triggerSlot(0, null, chlid_input_link_id);
-
-				if(child.description)
-				{
-					var graph = child.graph;
-					graph.description_stack.push(child.description); 
-				} 
-			}
-			return STATUS.success;
-		}
-		if(agent.bt_info.running_node_index == this.children.length-1 && value == STATUS.success)
-		{
-			agent.bt_info.running_node_index = null;
-			return STATUS.success;
-		}
-		if(value == STATUS.success )
-		{
-			agent.bt_info.running_node_index ++;
-			if(agent.is_selected)
-			{
-				var chlid_input_link_id = child.inputs[0].link;
-				this.triggerSlot(0, null, chlid_input_link_id);
-
-				if(child.description)
-				{
-					var graph = child.graph;
-					graph.description_stack.push(child.description); 
-				} 
-			}
-		}
-		//Value debería ser success, fail, o running
-		if(value == STATUS.fail){
-			agent.bt_info.running_node_index = null;
-			return value;
-		}
-	}
-
-	else
-	{
-		var children = this.getOutputNodes(0);
-		for(let n in children)
-		{
-			var child = children[n];
-			var value = child.tick(agent, dt);
-			if(value == STATUS.running)
-			{
-				agent.bt_info.running_node_index = parseInt(n);
-				if(agent.is_selected)
-				{
-					var chlid_input_link_id = child.inputs[0].link;
-					this.triggerSlot(0, null, chlid_input_link_id);
-
-					if(child.description)
-					{
-						var graph = child.graph;
-						graph.description_stack.push(child.description); 
-					} 
-				}
-				return STATUS.success;
-			}
-			if(value == STATUS.success)
-			{
-				if(agent.is_selected)
-				{
-					var chlid_input_link_id = child.inputs[0].link;
-					this.triggerSlot(0, null, chlid_input_link_id);
-
-					if(child.description)
-					{
-						var graph = child.graph;
-						graph.description_stack.push(child.description); 
-					} 
-				}
-			}
-			if(n == children.length-1 && value == STATUS.success && agent.bt_info.running_node_index == null)
-				return STATUS.success;
-			//Value debería ser success, fail, o running
-			if(value == STATUS.fail)
-				return value;
-		}
-	}
-}
-
-Sequencer.prototype.onConfigure = function(info)
-{
-    onConfig(info, this.graph);
-}
-
-LiteGraph.registerNodeType("btree/Sequencer", Sequencer);
-
-function Selector()
+function RootNode()
 {
     this.shape = 2;
-    this.color = "#6F0E12";
-    this.bgcolor = "#3f2c2c";
+    this.color = "#1E1E1E"
     this.boxcolor = "#999";
-    this.addInput("","path");
-		this.addOutput("","path");
-		this.addProperty( "value", 1.0 );
-    this.editable = { property:"value", type:"number" };
-    this.data = {}
-    this.flags = { horizontal: true };
- 		this.horizontal = true;
-    this.widgets_up = true;
+    this.addOutput("","path");
+	this.properties = {};
+    this.horizontal = true;
+	this.widgets_up = true;
+}
 
-}
-Selector.prototype.onStart = function()
-{
-  var children = this.getOutputNodes(0);
-  if(!children) return;
-  children.sort(function(a,b)
-  {
-    if(a.pos[0] > b.pos[0])
-    {
-      return 1;
-    }
-    if(a.pos[0] < b.pos[0])
-    {
-      return -1;
-    }
-  });
-	
-  this.outputs[0].links = [];
-  for(var i in children)
-  {
-    this.outputs[0].links.push(children[i].inputs[0].link);
-  }
-}
-Selector.prototype.tick = function(agent, dt)
+
+RootNode.prototype.tick = function(agent, dt)
 {
 	var children = this.getOutputNodes(0);
-  for(let n in children)
-  {
-    var child = children[n];
-    var value = child.tick(agent, dt);
-		//Value debería ser success, fail, o running
-		if(value == STATUS.success){
+	for(var n in children)
+	{
+		var child = children[n];
+		var value = child.tick(agent, dt);
+		if(value.STATUS == STATUS.success)
+		{
 			if(agent.is_selected)
 			{
 				var chlid_input_link_id = child.inputs[0].link;
@@ -468,29 +223,45 @@ Selector.prototype.tick = function(agent, dt)
 		}
 	}
 	// console.log("Ninguna rama ha tenido exito");
-	return STATUS.fail; //placeholder ta que lo pensemos bien
-    
+	this.graph.current_behaviour.STATUS = STATUS.fail;
+	return this.graph.current_behaviour;
 }
-//Selector.prototype.onDrawBackground = function(ctx, canvas)
-//{
-//
-//}
 
-Selector.prototype.onConfigure = function(info)
+
+RootNode.prototype.onConfigure = function(info)
 {
     onConfig(info, this.graph);
-    // this.data.g_node = this;
-
+	this.graph.root_node =  this;
 }
 
-// Selector.prototype.onConfigure = bl();
-LiteGraph.registerNodeType("btree/Selector", Selector);
+RootNode.title = "Root";
+RootNode.desc = "Start node of the Hybrid Behavior Tree";
+//reorder the links
+RootNode.prototype.onStart = function()
+{
+	var children = this.getOutputNodes(0);
+	if(!children) return;
+	children.sort(function(a,b)
+	{
+		if(a.pos[0] > b.pos[0])
+		{
+		  return 1;
+		}
+		if(a.pos[0] < b.pos[0])
+		{
+		  return -1;
+		}
+	});
 
-/***************************************************** End Composites ************************************************************/
+	this.outputs[0].links = [];
+	console.log(children);
+	for(var i in children)
+		this.outputs[0].links.push(children[i].inputs[0].link);
+}
 
-/******************************************************** Decorators *************************************************************/
+LiteGraph.registerNodeType("btree/Root", RootNode);
 
-
+/*******************************************************************************************************************/
 function Conditional()
 {
     this.shape = 2;
@@ -527,25 +298,23 @@ function Conditional()
 
 Conditional.prototype.onStart = function()
 {
-  var children = this.getOutputNodes(0);
-  if(!children) return;
-  children.sort(function(a,b)
-  {
-     if(a.pos[0] > b.pos[0])
-    {
-      return 1;
-    }
-    if(a.pos[0] < b.pos[0])
-    {
-      return -1;
-    }
-  });
-	
-  this.outputs[0].links = [];
-  for(var i in children)
-  {
-    this.outputs[0].links.push(children[i].inputs[0].link);
-  }
+	var children = this.getOutputNodes(0);
+	if(!children) return;
+	children.sort(function(a,b)
+	{
+		 if(a.pos[0] > b.pos[0])
+		{
+		  return 1;
+		}
+		if(a.pos[0] < b.pos[0])
+		{
+		  return -1;
+		}
+	});
+
+	this.outputs[0].links = [];
+	for(var i in children)
+		this.outputs[0].links.push(children[i].inputs[0].link);
 }
 
 Conditional.title = "Conditional"
@@ -554,7 +323,10 @@ Conditional.desc = "Compares an input or a property value with a threshold";
 Conditional.prototype.tick = function(agent, dt )
 {
 	if(this.evaluateCondition && !this.evaluateCondition())
-            return STATUS.fail;
+	{
+		this.graph.current_behaviour.STATUS = STATUS.fail;
+		return this.graph.current_behaviour;
+	}
 	else if(this.evaluateCondition && this.evaluateCondition())
 	{               
 		//this.description = this.properties.property_to_compare + ' property passes the threshold';
@@ -569,7 +341,7 @@ Conditional.prototype.tick = function(agent, dt )
 			var child = children[n];
 			var value = child.tick(agent, dt);
 			//Value debería ser success, fail, o running
-			if(value == STATUS.success)
+			if(value.STATUS == STATUS.success)
 			{
 				if(agent.is_selected)
 				{
@@ -585,7 +357,8 @@ Conditional.prototype.tick = function(agent, dt )
 				return value;
 			}
 		}
-		return STATUS.fail;
+		this.graph.current_behaviour.STATUS = STATUS.fail;
+		return this.graph.current_behaviour;
 	}
 }
 
@@ -619,17 +392,20 @@ Conditional.prototype.onDrawBackground = function(ctx, canvas)
 {
     ctx.font = "12px Arial";
     ctx.fillStyle = "#AAA";
+    //ctx.fillText(`Property: ${this.data.property_to_compare}`,10,65);
 }
 
 Conditional.prototype.onPropertyChanged = function(name,value)
 {
     if(name == "value"){
         this.slider.value = value;
+        // this.data.limit_value = value;
     }
 }
 Conditional.prototype.onExecute = function()
 {
     var data = this.getInputData(1);
+    // console.log(data);
     if(data)
         this.properties.value_to_compare = data;
 }
@@ -638,6 +414,7 @@ Conditional.prototype.onExecute = function()
 Conditional.prototype.onConfigure = function(info)
 {
     onConfig(info, this.graph);
+    // this.data.g_node = this;
 
 }
 Conditional.prototype.onSerialize = function(info)
@@ -648,6 +425,7 @@ Conditional.prototype.onSerialize = function(info)
 LiteGraph.registerNodeType("btree/Conditional", Conditional);
 
 
+/*******************************************************************************************************************/
 function BoolConditional()
 {
     this.shape = 2;
@@ -689,19 +467,17 @@ BoolConditional.prototype.onStart = function()
 	{
 		if(a.pos[0] > b.pos[0])
 		{
-			return 1;
+		  return 1;
 		}
 		if(a.pos[0] < b.pos[0])
 		{
-			return -1;
+		  return -1;
 		}
 	});
 
 	this.outputs[0].links = [];
 	for(var i in children)
-	{
 		this.outputs[0].links.push(children[i].inputs[0].link);
-	}
 }
 
 BoolConditional.title = "BoolConditional"
@@ -710,7 +486,10 @@ BoolConditional.desc = "Success if the boolean parameter is equal to the widget 
 BoolConditional.prototype.tick = function(agent, dt )
 {
 	if(this.evaluateCondition && !this.evaluateCondition())
-            return STATUS.fail;
+	{
+		this.graph.current_behaviour.STATUS = STATUS.fail;
+		return this.graph.current_behaviour;
+	}
 
 	else if(this.evaluateCondition && this.evaluateCondition())
 	{   
@@ -726,7 +505,7 @@ BoolConditional.prototype.tick = function(agent, dt )
 			var child = children[n];
 			var value = child.tick(agent, dt);
 			//Value debería ser success, fail, o running
-			if(value == STATUS.success)
+			if(value.STATUS == STATUS.success)
 			{
 				if(agent.is_selected)
 				{
@@ -742,7 +521,8 @@ BoolConditional.prototype.tick = function(agent, dt )
 				return value;
 			}
 		}
-		return STATUS.fail;
+		this.graph.current_behaviour.STATUS = STATUS.fail;
+		return this.graph.current_behaviour;
 	}
 }
 
@@ -757,6 +537,10 @@ BoolConditional.prototype.onDrawBackground = function(ctx, canvas)
 {
     ctx.font = "12px Arial";
     ctx.fillStyle = "#AAA";
+    // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
+    //ctx.fillText(`Property: ${this.data.property_to_compare}`,10,65);
+    // if(this.data.limit_value)
+    //     ctx.fillText(`Threshold: ${this.data.limit_value}`,10,55);
 }
 
 BoolConditional.prototype.onPropertyChanged = function(name,value)
@@ -770,7 +554,7 @@ BoolConditional.prototype.onExecute = function()
 {
     var data = this.getInputData(1);
     // console.log(data);
-    if(data)
+    if(data !== undefined)
         this.properties.value_to_compare = data;
 }
 
@@ -784,14 +568,13 @@ BoolConditional.prototype.onConfigure = function(info)
 
 LiteGraph.registerNodeType("btree/BoolConditional", BoolConditional);
 
-
+/*******************************************************************************************************************/
 function InTarget()
 {
     this.shape = 2;
     this.color = "#005557";
     this.bgcolor = "#2d4243";
     this.boxcolor = "#999";
-    
     var w = 200;
     var h = 45;
     this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
@@ -800,31 +583,31 @@ function InTarget()
     this.size = [w, h];     
     this.editable = { property:"value", type:"number" };
     this.flags = { resizable: false };
-    this.data = {threshold:100};
-		this.properties = {threshold:100}
+    this.data = {threshold:200};
+	this.properties = {threshold:100}
     this.widgets_up = true;
 }
+
 InTarget.prototype.onStart = function()
 {
-  var children = this.getOutputNodes(0);
-  if(!children) return;
-  children.sort(function(a,b)
-  {
-    if(a.pos[0] > b.pos[0])
-    {
-      return 1;
-    }
-    if(a.pos[0] < b.pos[0])
-    {
-      return -1;
-    }
-  });
-	
-  this.outputs[0].links = [];
-  for(var i in children)
-  {
-    this.outputs[0].links.push(children[i].inputs[0].link);
-  }
+	var children = this.getOutputNodes(0);
+	if(!children) return;
+	children.sort(function(a,b)
+	{
+		if(a.pos[0] > b.pos[0])
+		{
+		  return 1;
+		}
+		if(a.pos[0] < b.pos[0])
+		{
+		  return -1;
+		}
+	});
+
+	this.outputs[0].links = [];
+	for(var i in children)
+		this.outputs[0].links.push(children[i].inputs[0].link);
+  
 }
 InTarget.title = "InTarget";
 InTarget.desc = "Testing own nodes";
@@ -841,7 +624,7 @@ InTarget.prototype.tick = function(agent, dt)
 			var child = children[n];
 			var value = child.tick(agent, dt);
 
-			if(value == STATUS.success)
+			if(value.STATUS == STATUS.success)
 			{
 				if(agent.is_selected)
 				{
@@ -858,8 +641,11 @@ InTarget.prototype.tick = function(agent, dt)
 			}
 		}
 	}
-	else
-		return STATUS.fail;
+	else{
+		this.graph.current_behaviour.STATUS = STATUS.fail;
+		return this.graph.current_behaviour;
+	
+	}
 }
 InTarget.prototype.isInTarget = function(agent)
 {
@@ -908,9 +694,7 @@ InTarget.prototype.onConfigure = function(info)
 
 LiteGraph.registerNodeType("btree/InTarget", InTarget);
 
-/*
-* Check if the agent evaluated can see a scene element or a concrete position
-*/
+/*******************************************************************************************************************/
 function LineOfSight()
 {
     this.shape = 2;
@@ -940,25 +724,24 @@ function LineOfSight()
 
 LineOfSight.prototype.onStart = function()
 {
-  var children = this.getOutputNodes(0);
-  if(!children) return;
-  children.sort(function(a,b)
-  {
-    if(a.pos[0] > b.pos[0])
-    {
-      return 1;
-    }
-    if(a.pos[0] < b.pos[0])
-    {
-      return -1;
-    }
-  });
-	
-  this.outputs[0].links = [];
-  for(var i in children)
-  {
-    this.outputs[0].links.push(children[i].inputs[0].link);
-  }
+	var children = this.getOutputNodes(0);
+	if(!children) return;
+	children.sort(function(a,b)
+	{
+		if(a.pos[0] > b.pos[0])
+		{
+		  return 1;
+		}
+		if(a.pos[0] < b.pos[0])
+		{
+		  return -1;
+		}
+	});
+
+	this.outputs[0].links = [];
+	for(var i in children)
+		this.outputs[0].links.push(children[i].inputs[0].link);
+  
 }
 
 LineOfSight.prototype.tick = function(agent, dt)
@@ -974,7 +757,7 @@ LineOfSight.prototype.tick = function(agent, dt)
 			var value = child.tick(agent, dt);
 
 			//Value debería ser success, fail, o running
-			if(value == STATUS.success)
+			if(value.STATUS == STATUS.success)
 			{
 				if(agent.is_selected)
 				{
@@ -987,14 +770,15 @@ LineOfSight.prototype.tick = function(agent, dt)
 						graph.description_stack.push(child.description); 
 					} 
 				}
-				return STATUS.success;
+				return value;
 			}
 		}
 	}
 	else
 	{
 		agent.properties.look_at_pos = null;
-		return STATUS.fail;
+		this.graph.current_behaviour.STATUS = STATUS.fail;
+		return this.graph.current_behaviour;
 	}
 }
 
@@ -1042,9 +826,237 @@ LineOfSight.prototype.onSerialize = function(info)
 
 LiteGraph.registerNodeType("btree/LineOfSight", LineOfSight);
 
-/***************************************************** End Decorators ************************************************************/
+/*******************************************************************************************************************/
+function Sequencer()
+{
+  
+    this.shape = 2;
+    this.color = "#6F0E12";
+    this.bgcolor = "#3f2c2c";
+    this.boxcolor = "#999";
+    this.addInput("","path");
+	this.addOutput("","path");
+	this.addProperty( "value", 1.0 );
+    this.editable = { property:"value", type:"number" };
+    this.data = {}
+    this.flags = { horizontal: true };
+ 	this.horizontal = true;
+    this.widgets_up = true;
+  
+}
 
-/******************************************************** Leaves *************************************************************/
+Sequencer.prototype.onStart = function()
+{
+	var children = this.getOutputNodes(0);
+	if(!children) return;
+	children.sort(function(a,b)
+	{
+		if(a.pos[0] > b.pos[0])
+		{
+		  return 1;
+		}
+		if(a.pos[0] < b.pos[0])
+		{
+		  return -1;
+		}
+	});
+
+	this.outputs[0].links = [];
+	for(var i in children)
+		this.outputs[0].links.push(children[i].inputs[0].link);
+	
+}
+Sequencer.prototype.tick = function(agent, dt)
+{
+	/* means that there is some node on running state */
+	if(agent.bt_info.running_node_index != null)
+	{
+    var children = this.getOutputNodes(0);
+    var child = children[agent.bt_info.running_node_index];
+		var value = child.tick(agent, dt);
+		if(value.STATUS == STATUS.running)
+		{
+			if(agent.is_selected)
+			{
+				var chlid_input_link_id = child.inputs[0].link;
+				this.triggerSlot(0, null, chlid_input_link_id);
+
+				if(child.description)
+				{
+					var graph = child.graph;
+					graph.description_stack.push(child.description); 
+				} 
+			}
+			value.STATUS = STATUS.success;
+			return value;
+		}
+		if(agent.bt_info.running_node_index == this.children.length-1 && value.STATUS == STATUS.success)
+		{
+			agent.bt_info.running_node_index = null;
+			return STATUS.success;
+		}
+		if(value.STATUS == STATUS.success )
+		{
+			agent.bt_info.running_node_index ++;
+			if(agent.is_selected)
+			{
+				var chlid_input_link_id = child.inputs[0].link;
+				this.triggerSlot(0, null, chlid_input_link_id);
+
+				if(child.description)
+				{
+					var graph = child.graph;
+					graph.description_stack.push(child.description); 
+				} 
+			}
+		}
+		//Value debería ser success, fail, o running
+		if(value.STATUS == STATUS.fail){
+			agent.bt_info.running_node_index = null;
+			return value;
+		}
+	}
+
+	else
+	{
+		var children = this.getOutputNodes(0);
+		for(let n in children)
+		{
+			var child = children[n];
+			var value = child.tick(agent, dt);
+			if(value.STATUS == STATUS.running)
+			{
+				agent.bt_info.running_node_index = parseInt(n);
+				if(agent.is_selected)
+				{
+					var chlid_input_link_id = child.inputs[0].link;
+					this.triggerSlot(0, null, chlid_input_link_id);
+
+					if(child.description)
+					{
+						var graph = child.graph;
+						graph.description_stack.push(child.description); 
+					} 
+				}
+				value.STATUS = success;
+				return value;
+			}
+			if(value.STATUS == STATUS.success)
+			{
+				if(agent.is_selected)
+				{
+					var chlid_input_link_id = child.inputs[0].link;
+					this.triggerSlot(0, null, chlid_input_link_id);
+
+					if(child.description)
+					{
+						var graph = child.graph;
+						graph.description_stack.push(child.description); 
+					} 
+				}
+			}
+			if(n == children.length-1 && value.STATUS == STATUS.success && agent.bt_info.running_node_index == null)
+				return value;
+			//Value debería ser success, fail, o running
+			if(value.STATUS == STATUS.fail)
+				return value;
+		}
+	}
+}
+//Sequencer.prototype.onDrawBackground = function(ctx, canvas)
+//{
+//
+//}
+
+Sequencer.prototype.onConfigure = function(info)
+{
+    onConfig(info, this.graph);
+    // this.data.g_node = this;
+}
+
+// Sequencer.prototype.onConfigure = bl();
+LiteGraph.registerNodeType("btree/Sequencer", Sequencer);
+
+/*******************************************************************************************************************/
+function Selector()
+{
+    this.shape = 2;
+    this.color = "#6F0E12";
+    this.bgcolor = "#3f2c2c";
+    this.boxcolor = "#999";
+    this.addInput("","path");
+	this.addOutput("","path");
+	this.addProperty( "value", 1.0 );
+    this.editable = { property:"value", type:"number" };
+    this.data = {}
+    this.flags = { horizontal: true };
+ 	this.horizontal = true;
+    this.widgets_up = true;
+
+}
+Selector.prototype.onStart = function()
+{
+	var children = this.getOutputNodes(0);
+	if(!children) return;
+	children.sort(function(a,b)
+	{
+		if(a.pos[0] > b.pos[0])
+		{
+		  return 1;
+		}
+		if(a.pos[0] < b.pos[0])
+		{
+		  return -1;
+		}
+	});
+
+	this.outputs[0].links = [];
+	for(var i in children)
+		this.outputs[0].links.push(children[i].inputs[0].link);
+}
+
+Selector.prototype.tick = function(agent, dt)
+{
+	var children = this.getOutputNodes(0);
+	for(let n in children)
+	{
+		var child = children[n];
+		var value = child.tick(agent, dt);
+			//Value debería ser success, fail, o running
+		if(value.STATUS == STATUS.success){
+			if(agent.is_selected)
+			{
+				var chlid_input_link_id = child.inputs[0].link;
+				this.triggerSlot(0, null, chlid_input_link_id);
+
+				if(child.description)
+				{
+					var graph = child.graph;
+					graph.description_stack.push(child.description); 
+				} 
+			}
+			return value;
+		}
+	}
+	// console.log("Ninguna rama ha tenido exito");
+	this.graph.current_behaviour.STATUS = STATUS.fail;
+	return this.graph.current_behaviour; //placeholder ta que lo pensemos bien
+    
+}
+//Selector.prototype.onDrawBackground = function(ctx, canvas)
+//{
+//
+//}
+
+Selector.prototype.onConfigure = function(info)
+{
+    onConfig(info, this.graph);
+    // this.data.g_node = this;
+
+}
+
+// Selector.prototype.onConfigure = bl();
+LiteGraph.registerNodeType("btree/Selector", Selector);
 
 
 function MoveTo()
@@ -1074,8 +1086,11 @@ MoveTo.prototype.tick = function(agent, dt)
 		agent.properties.target = this.properties.target;
 		this.description = 'Target updated: New destination set to the input';
 
+		this.graph.current_behaviour.type = B_TYPE.moveTo;
+		this.graph.current_behaviour.STATUS = STATUS.success;
+		this.graph.current_behaviour.setData(this.properties.target);
 		// console.log(agent);
-		return STATUS.success;
+		return this.graph.current_behaviour;
 	}
 	return STATUS.fail;
 }
@@ -1129,7 +1144,10 @@ FindNextTarget.title = "FindNextTarget ";
 FindNextTarget.prototype.tick = function(agent, dt)
 {
 	if(this.findNextTarget && !this.findNextTarget(agent))
-            return STATUS.fail;
+	{
+		this.graph.current_behaviour.STATUS = STATUS.fail;
+		return this.graph.current_behaviour;
+	}
 	else
 	{   
 		this.description = ' Next waypoint of the path found';
@@ -1137,7 +1155,10 @@ FindNextTarget.prototype.tick = function(agent, dt)
 		// var g_child = child.g_node;
 		// var chlid_input_link_id = g_child.inputs[0].link;
 		// this.g_node.triggerSlot(0, null, chlid_input_link_id);
-		return STATUS.success;
+		this.graph.current_behaviour.type = B_TYPE.nextTarget;
+		this.graph.current_behaviour.STATUS = STATUS.success;
+		this.graph.current_behaviour.setData({});
+		return this.graph.current_behaviour;
 	}
 }
 
@@ -1278,12 +1299,33 @@ SimpleAnimate.prototype.action = function(agent)
 		author: "DaVinci"
 	};
 	
-	LEvent.trigger( agent, "applyBehaviour", behaviour);
+//	LEvent.trigger( agent, "applyBehaviour", behaviour);
+
+	this.graph.current_behaviour.type = B_TYPE.animateSimple;
+	this.graph.current_behaviour.STATUS = STATUS.success;
+	this.graph.current_behaviour.setData(behaviour);
 //	agent.animationBlender.applyBehaviour(behaviour);
 //	agent.animator._base_animation._animation = this.properties.src + this.properties.filename;
-	return STATUS.success;
+	return this.graph.current_behaviour;
 }
 
+SimpleAnimate.prototype.onPropertyChanged = function(name,value)
+{
+    if(name == "filename"){
+        this.widget.value = value;
+        // this.data.limit_value = value;
+    }
+
+    if(name == "motion"){
+        this.number.value = value;
+        // this.data.limit_value = value;
+    }
+
+	if(name == "speed"){
+        this.number2.value = value;
+        // this.data.limit_value = value;
+    }
+}
 
 SimpleAnimate.prototype.onConfigure = function(info)
 {
@@ -1432,9 +1474,13 @@ function LookAt()
 
 LookAt.prototype.tick = function(agent, dt)
 {
+	this.graph.current_behaviour.type = B_TYPE.lookAt;
+	this.graph.current_behaviour.setData(this.properties.look_at.pos);
+	this.graph.current_behaviour.STATUS = STATUS.success; 
+
 	agent.properties.look_at_pos = this.properties.look_at.pos;
 	this.description = 'Look At updated: New look at position set to the input';
-	return STATUS.success;
+	return this.graph.current_behaviour;
 }
 LookAt.prototype.onDrawBackground = function(ctx, canvas)
 {
@@ -1455,6 +1501,38 @@ LookAt.prototype.onConfigure = function(info)
     onConfig(info, this.graph);
 }
 LiteGraph.registerNodeType("btree/LookAt", LookAt);
+
+
+var B_TYPE = {
+	moveTo:0, 
+	lookAt:1, 
+	animateSimple:2, 
+	wait:3, 
+	nextTarget:4
+	
+}
+
+/*To encapsulate the result somewhere*/
+function Behaviour()
+{
+	if(this.constructor !== Behaviour)
+		throw("You must use new to create a Behaviour");
+	this._ctor(  );
+}
+
+Behaviour.prototype._ctor = function()
+{
+	// type can be moveTo, LookAt, setProperty, AnimateSimple...
+	this.type = B_TYPE.moveTo;
+	this.STATUS = STATUS.success;
+	this.data = {};
+	
+}
+
+Behaviour.prototype.setData = function( data )
+{
+	this.data = data;
+}
 
 /*******************************************************************************************************************/
 

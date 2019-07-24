@@ -4,6 +4,8 @@ basic basic.vs basic.fs
 phong_shadow basic.vs phong_shadow.fs
 phong_texture_shadow basic.vs phong_shadow.fs { "USE_TEXTURE":"" }
 
+skybox basic.vs skybox.fs 
+
 \basic.vs 
 
 	precision highp float;
@@ -93,7 +95,31 @@ phong_texture_shadow basic.vs phong_shadow.fs { "USE_TEXTURE":"" }
 
 		//fresnel
 		vec3 bg_color = mix( u_background_color, u_background_color * 0.5, max(0.0,-R.y) );
-		final_color = mix( final_color, vec3(0.05,0.05,0.05), fresnel_factor );
+		final_color = mix( final_color, u_background_color, fresnel_factor );
 
 		gl_FragColor = vec4(final_color, material.a);
+	}
+
+
+\skybox.fs
+
+	precision highp float;
+
+	varying vec3 v_wPosition;
+	varying vec3 v_wNormal;
+	varying vec2 v_coord;
+
+	uniform vec3 u_camera_position;
+	uniform samplerCube u_color_texture;
+
+
+	void main() {
+
+		vec3 N = normalize( v_wNormal );
+		vec3 V = normalize(  v_wPosition - u_camera_position );
+
+		vec4 color = textureCube( u_color_texture, V);
+		
+
+		gl_FragColor = color;
 	}

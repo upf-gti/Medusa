@@ -30,7 +30,7 @@ class Player{
         nav_mode_btn.className = "tool-btn";
         nav_mode_btn.classList.add("active");
         nav_mode_btn.id = "navigate-mode-btn";
-        nav_mode_btn.innerHTML = '<i class="material-icons">crop_free</i>';
+        nav_mode_btn.innerHTML = '<i class="material-icons">control_camera</i>';
         nav_mode_btn.title = "Navigation mode";
         nav_mode_btn.addEventListener("click", function(){
             if(!this.classList.contains("active"))
@@ -51,7 +51,7 @@ class Player{
         agent_mode_btn.className = "tool-btn";
         agent_mode_btn.id = "agent-mode-btn";
         agent_mode_btn.innerHTML = '<i class="material-icons">accessibility_new</i>';
-        agent_mode_btn.title = "Agent creation mode";
+        agent_mode_btn.title = "Create agent";
         agent_mode_btn.addEventListener("click", function(){
             if(!this.classList.contains("active"))
             {
@@ -72,7 +72,7 @@ class Player{
         ip_mode_btn.className = "tool-btn";
         ip_mode_btn.id = "ip-mode-btn";
         ip_mode_btn.innerHTML = '<i class="material-icons">add_location</i>';
-        ip_mode_btn.title = "Interest Point creation mode";
+        ip_mode_btn.title = "Create Interest Point";
         ip_mode_btn.addEventListener("click", function(){
             if(!this.classList.contains("active"))
             {
@@ -92,7 +92,7 @@ class Player{
         agent_label_btn.id = "agent-label--btn";
         // agent_label_btn.innerHTML = '&#9964';
         agent_label_btn.innerHTML = '<i class="material-icons">perm_identity</i>';
-        agent_label_btn.title = "Interest Point creation mode";
+        agent_label_btn.title = "Visualize Agent Labels";
         agent_label_btn.addEventListener("click", function(){
             if(!this.classList.contains("active"))
             {
@@ -112,7 +112,7 @@ class Player{
         ip_label_btn.id = "ip-label-btn";
         // ip_label_btn.innerHTML = '&#9964';
         ip_label_btn.innerHTML = '<i class="material-icons">not_listed_location</i>';
-        ip_label_btn.title = "Interest Point creation mode";
+        ip_label_btn.title = "Visualize Interest Points labels";
         ip_label_btn.addEventListener("click", function(){
             if(!this.classList.contains("active"))
             {
@@ -134,18 +134,21 @@ class Player{
             switch(window.state){
                 case PLAYING: 
                     window.state = STOP;
-                    e.currentTarget.children[0].innerHTML = "&#x25b6";
+				
+                    e.currentTarget.innerHTML = '<i id="play-btn" class="material-icons">play_arrow</i>';
                     e.currentTarget.children[0].classList.remove("play");
 					node_editor.graph.status = 1;
                     break;
                 case STOP: 
                     window.state = PLAYING;
-                    e.currentTarget.children[0].innerHTML = "&#9724";
+                    e.currentTarget.innerHTML = '<i id="play-btn" class="material-icons">stop</i>';
                     e.currentTarget.children[0].classList.add("play");
 					node_editor.graph.start();
                     break;
             }
         });
+
+//		var canvas = document.getElementById("main_canvas");
     }
 
     init(){
@@ -176,9 +179,11 @@ class Player{
 
     addButton( html, callback){
         var button = document.createElement("li");
-        button.innerHTML = html;
+		button.id = "lidemierda"
+        button.innerHTML = '<i id="play-btn" class="material-icons">play_arrow</i>';
         button.addEventListener("click", callback);
-        this.buttons.appendChild(button);
+		CORE.Player.panel.content.appendChild(button);
+//        this.buttons.appendChild(button);
     }
 
     disableModeButtons( id )
