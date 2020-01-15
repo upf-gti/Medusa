@@ -5,15 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link rel="shortcut icon" type="image/png" href="assets/favicon1.png"/>
-    <title> Medusa </title>
+    <title> SAUCE Medusa </title>
     <style> * { padding:0;margin:0; } html, body { width: 100%;height: 100%; } body{ background-color: #000; opacity:0;} </style>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+	<link href="src/css/style.css" rel="stylesheet">
+    <link href="src/css/litegraph.css" rel="stylesheet">
+    <link href="src/css/litegui_mod.css" rel="stylesheet">
 </head>
 <body>
-    <script  src="https://unpkg.com/axios/dist/axios.min.js"></script>
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.7.1/gl-matrix-min.js"></script> -->
-    <script src="src/app.js"></script>
-
+    
     <div id="full"></div>
+	<div id="loading">
+		<div id="img-container"><img id="logo-img" class="box bounce-7" src="https://webglstudio.org/users/dmoreno/projects/ondev/saucemedusa/assets/medusa1.png"></img></div>
+		<div class="lds-ripple"><div></div></div>	
+	</div>
+<!-- 	<div id="loading"><img id="logo-img" src="https://webglstudio.org/users/dmoreno/projects/ondev/saucemedusa/assets/logo.gif"></img></div> -->
+	
+	
+<!-- 	<div id="streaming"><img id="streaming-logo" src="https://webglstudio.org/users/dmoreno/projects/saucemedusa/assets/streaming_logo.jpg"></div> -->
+	
 </body>
+
+	<script  src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+	<script  src="https://www.tamats.com/work/sauce/stream/js/characterStreamer.js"></script>
+	<script  src="src/js/libs/litegui.js"></script>
+    <script	 src="src/globals.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.7.1/gl-matrix-min.js"></script> -->
+	<!-- <script src="src/app.js"></script> -->
+
+<script>
+
+	RM.init();
+
+</script>
+
 </html>

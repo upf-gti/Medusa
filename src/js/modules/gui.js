@@ -6,7 +6,6 @@ class GUI{
         LiteGUI.init();
         var main_area = this.root = new LiteGUI.Area({id:"main-area"});
         LiteGUI.add(main_area);
-
         main_area.split("vertical",["0px", null] );
 
         var menu = this.menu = new LiteGUI.Menubar("menu");
@@ -19,187 +18,379 @@ class GUI{
 
         this.root = main_area.getSection(1);
     }
-
-    postInit(){
-        this.toggleGUI( true );
-    }
-    init()
-    {
-        CORE.GUI.menu.add("Animations", (()=>{
-
-            //Actions dialog
-            this.actions = this.actions || {
-                "Running" : {name:"Running", anims:[{anim:"Running",weight: 1}] , motion:6.2, speed:1},
-                "Walking" : {name:"Walking",  anims:[{anim:"Walking",weight: 1}], motion:2.6, speed:1},
-                "Idle" : {name:"Idle", anims:[{anim:"Idle",weight: 1}], motion:0, speed:0.5},
-                "Old Walk" : {name:"Old_Man_Walk", anims:[{anim:"Old_Man_Walk",weight: 1}], motion:1, speed:0.9},
-                "Umbrella" : {name:"Umbrella", anims:[{anim:"Umbrella",weight: 1}], motion:3, speed:1},
-                // "StandUp" : {name:"StandUp", anims:[{anim:"StandUp",weight: 1}], motion:0, speed:1},
-                // "Fall" : {name:"Fall", anims:[{anim:"Tripping",weight: 1}], motion:0, speed:1},
-            };
-            this.generic_nodes = this.generic_nodes || {
-                "InTarget" : {name:"InTarget", threshold:200}
-            }
-
-            if(!this.dialog){
-    
-                this.dialog = new LiteGUI.Dialog({id:"available_anims", title:"Animations", close: true, minimize: false, width: 200, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
-                var inspector = this.inspector = new LiteGUI.Inspector(),
-                   properties = this.actions,
-                   properties2 = this.generic_nodes,
-                       dialog = this.dialog,
-                          uid = this.uid;
-
-                inspector.on_refresh = function(){
-                    inspector.clear();
-
-
-//                    inspector.addSection("Generic nodes", {collapsed: false})
-//                    for( var t in properties2)
-//                    {
-//                        let widget2 = null;
-//                        switch(properties2[t].name.constructor.name)
-//                        {
-//                            case "String" : widget2 = inspector.addInfo( t, null, { key: t, callback: function(v){ properties2[ this.options.key ] = v;  } });    break;
-//                        }
-//                        if(!widget2) continue;
-//                        widget2.addEventListener("dragstart", function(a)
-//                        {  
-//                            var obj = properties2[t];
-//                            obj = JSON.stringify(obj);
-//                            console.log(obj);
-//                            a.dataTransfer.setData("obj", obj);
-//                            a.dataTransfer.setData("type", "intarget"); 
-//                        });
-//                        widget2.setAttribute("draggable", true);
-//                    }
-//                    inspector.endCurrentSection(s);
-					
-//					inspector.addSection("Animations", {collapsed: false})
-                    console.log(properties);
-                    for( let p in properties )
-                    {
-                        let widget = null;
-                        switch(properties[p].name.constructor.name)
-                        {
-                            case "String" : widget = inspector.addInfo( p, null, { key: p, callback: function(v){ properties[ this.options.key ] = v;  } });    break;
-                        }
-                        if(!widget) continue;
-                        widget.addEventListener("dragstart", function(a)
-                        {  
-                            // console.log(a);
-                            var obj = properties[p];
-							obj.filename = properties[p].name;
-                            obj = JSON.stringify(obj);
-                            a.dataTransfer.setData("obj", obj);
-                            a.dataTransfer.setData("type", "action"); 
-                        });
-                        widget.setAttribute("draggable", true);
-                    }
-                    inspector.endCurrentSection();
-                    dialog.adjustSize();
-                };
-                this.dialog.add(inspector);
-                inspector.refresh();
-            }
-
-            this.dialog.show('fade');
-
-
-        }).bind(this));
-
-        CORE.GUI.menu.add("Tools/· Restart simulation", { 
+	preInit()
+	{
+		CORE.GUI.menu.add("Scene/· Load Project", { 
             callback:( ()=>{ 
-                CORE.Scene.restartScenario();
+//                CORE.Scene.loadProject();
             }).bind(this) 
         });
-        CORE.GUI.menu.add("Tools/· Populate scenario", { 
-            callback:( ()=>{ 
-                this.showPopulateDialog()
-            }).bind(this) 
-        });
-        CORE.GUI.menu.add("Scene/· Load Resources/ · Behaviors", { 
+
+
+		CORE.GUI.menu.add("Scene/· Load Resources/ · Scene Setup", { 
             callback:( ()=>{ 
                 this.showLoadBehaviorsDialog()
             }).bind(this) 
         });
+
+		CORE.GUI.menu.add("Scene/· Save Project", { 
+            callback:( ()=>{ 
+//                CORE.Scene.saveProject();	
+            }).bind(this) 
+        });
+
         CORE.GUI.menu.add("Scene/· Load Resources/ · Animations", { 
             callback:( ()=>{ 
                 this.showLoadAnimationsDialog()
             }).bind(this) 
         });
         
-        CORE.GUI.menu.add("Scene/· Save", { 
+        CORE.GUI.menu.add("Scene/· Save Scenario", { 
             callback:( ()=>{ 
-                this.showSaveDialog()
+                this.showSaveSceneDialog()
             }).bind(this) 
         });
+
 
 		CORE.GUI.menu.add("Scene/· Settings", {
 			callback:( ()=>{ 
                 this.showSettingsDialog()
             }).bind(this) 
 		});
+	}
 
-//        CORE.GUI.menu.add("Help");
-        CORE.GUI.menu.add("Help", {callback: function(){
-            LiteGUI.alert("<a href='https://github.com/upf-gti/Sauce'>Github</a>", {title: "Help"});
-//			LiteGUI.alert("Working on tutorials and guides", {title: "About"})
+    postInit(){
+        this.toggleGUI( true );
+    }
+    init()
+    {
+
+		CORE.GUI.menu.add("Tools/· Create/· Path", { 
+            callback:( ()=>{ 
+				CORE.Player.showPopUpMessage();
+				document.getElementById("main_canvas").style.cursor = "cell";
+				scene_mode = PATH_CREATION_MODE;
+				var new_path = new Path();
+				path_manager.addPath(new_path);
+				current_path = new_path;
+                this.showCreatePathDialog();            
+			}).bind(this) 
+        });
+        CORE.GUI.menu.add("Tools/· Populate/· Pseudorandom population", { 
+            callback:( ()=>{ 
+				CORE.Player.showPopUpMessage();
+				document.getElementById("main_canvas").style.cursor = "cell";
+				scene_mode = POPULATE_CREATION_MODE;
+//                this.showPopulateDialog();
+            }).bind(this) 
+        });
+
+		CORE.GUI.menu.add("Tools/· Restart simulation", { 
+            callback:( ()=>{ 
+                for (var i in AgentManager.agents)
+                {
+					var agent = AgentManager.agents[i];
+					if(agent.last_controlpoint_index)
+					{
+						agent.last_controlpoint_index = -1;
+						agent.checkNextTarget();
+					}
+					agent.scene_node.position = agent.initial_pos;
+                }
+            }).bind(this) 
+        });
+
+		CORE.GUI.menu.add("Tools/· Stream simulation", { 
+            callback:( ()=>{ 
+                this.showOpenStreamDialog();
+            }).bind(this) 
+        });
+
+
+
+//        CORE.GUI.menu.add("Tools/· Populate/· Static group", { 
+//            callback:( ()=>{ 
+//				CORE.Player.showPopUpMessage();
+//				document.getElementById("main_canvas").style.cursor = "cell";
+//				scene_mode = STATIC_GROUP_CREATION_MODE;
+////                this.showPopulateStaticDialog();
+//            }).bind(this) 
+//        });
+//
+//		CORE.GUI.menu.add("Tools/· Populate/· Respawn path", { 
+//            callback:( ()=>{ 
+//				CORE.Player.showPopUpMessage();
+//				document.getElementById("main_canvas").style.cursor = "cell";
+//				scene_mode = PATH_CREATION_MODE;
+//				var new_path = new RespawningPath();
+//				path_manager.addPath(new_path);
+//				current_respawn_path = new_path;
+//                this.showPopulateRespawnDialog();
+//            }).bind(this) 
+//        });
+
+
+        CORE.GUI.menu.add("Help");
+        CORE.GUI.menu.add("Help/· About", {callback: function(){
+//            LiteGUI.alert("<a href='https://github.com/upf-gti/Sauce'>SAUCE PROJECT Github</a>", {title: "About"});
+			LiteGUI.alert("Working on tutorials and guides", {title: "About"})
         }});
     }
 
-    showPopulateDialog(){
-        if(!this.populate_dialog){
-            var populate_dialog = this.populate_dialog = new LiteGUI.Dialog( { id:"populate_scenario", title:'Populate Scenario', close: true, minimize: false, width: 300, height: 300, scroll: false, resizable: false, draggable: true, parent:"body"});
-            this.populate_dialog.setPosition(document.body.clientWidth/2 - 150,200);
+	showCreatePathDialog()
+	{
+		 if(!this.create_path_dialog){
+            var create_path_dialog = this.create_path_dialog = new LiteGUI.Dialog( { id:"populate_scenario", title:'Create Path',  close: true, minimize: false, width: 150, height: 100, scroll: false, resizable: false, draggable: true, parent:"body"});
+            this.create_path_dialog.setPosition(5,260);
 
         }
-        var dlg = this.populate_dialog;
+        var dlg = this.create_path_dialog;
 
-        if(!this.populate_inspector){
-            var populate_inspector = this.populate_inspector = new LiteGUI.Inspector(),
-                populate_dialog = this.populate_dialog;
+        if(!this.create_path_inspector){
+            var create_path_inspector = this.create_path_inspector = new LiteGUI.Inspector(),
+                create_path_dialog = this.create_path_dialog;
 
-            populate_inspector.on_refresh = function()
+            create_path_inspector.on_refresh = function()
             {
-                populate_inspector.clear();
+                create_path_inspector.clear();
+
+                create_path_inspector.addButton(null, "End path creation", {callback:function(){
+					
+					scene_mode = NAV_MODE;
+					document.getElementById("main_canvas").style.cursor = "default";
+					if(current_path.guide_line)
+						current_path.guide_line.destroy(true);
+					delete current_path.guide_line;
+					CORE.Player.disableModeButtons(this.id);
+					var btn = document.getElementById("navigate-mode-btn");
+					if(!btn.classList.contains("active"))
+					{
+						btn.classList.add("active");
+					}
+					dlg.close();
+                }}) 
+                
+                dlg.adjustSize();
+            }
+			create_path_dialog.on_close = function(){
+					scene_mode = NAV_MODE;
+					document.getElementById("main_canvas").style.cursor = "default";
+					if(current_path.guide_line)
+						current_path.guide_line.destroy(true);
+
+					CORE.Player.disableModeButtons(this.id);
+					var btn = document.getElementById("navigate-mode-btn");
+					if(!btn.classList.contains("active"))
+					{
+						btn.classList.add("active");
+					}
+//					dlg.close();
+			}
+            this.create_path_dialog.add(create_path_inspector);
+            create_path_inspector.refresh();
+        }
+
+        this.create_path_dialog.show('fade');
+        this.create_path_dialog.setPosition(5,260);
+		console.log("ToDo");
+    }
+    /* DIALOG FOR THE AREAS */
+    showCreateAreaDialog()
+    {
+        if(!this.create_agent_dialog){
+            var create_agent_dialog = this.create_agent_dialog = new LiteGUI.Dialog( { id:"populate_scenario", title:'Create Area', close: true, minimize: false, width: 150, height: 100, scroll: false, resizable: false, draggable: true, parent:"body"});
+            this.create_agent_dialog.setPosition(5,260);
+
+        }
+        var dlg = this.create_agent_dialog;
+
+        if(!this.create_area_inspector){
+            var create_area_inspector = this.create_area_inspector = new LiteGUI.Inspector(),
+                create_agent_dialog = this.create_agent_dialog;
+
+            create_area_inspector.on_refresh = function()
+            {
+                create_area_inspector.clear();
+                create_area_inspector.addInfo("Property", "Value");
+                create_area_inspector.addButton(null, "Create smart area", {callback:function(){
+					
+					scene_mode = NAV_MODE;
+					document.getElementById("main_canvas").style.cursor = "default";
+                    if(current_area)
+                    {
+                        current_area.fromvertices();
+                        current_area.node.color = current_area.color;
+                        current_area.node.flags.two_sided = true;
+                        GFX.scene.root.addChild(current_area.node);	
+                        current_area = null;
+                    }
+                        
+					CORE.Player.disableModeButtons(this.id);
+					var btn = document.getElementById("navigate-mode-btn");
+					if(!btn.classList.contains("active"))
+					{
+						btn.classList.add("active");
+					}
+					dlg.close();
+                }}) 
+                
+                dlg.adjustSize();
+            }
+			create_agent_dialog.on_close = function(){
+					scene_mode = NAV_MODE;
+					document.getElementById("main_canvas").style.cursor = "default";
+                    // if(current_area)
+                    // {
+                    //     //first delete nodes
+                    //     current_area = null;
+                    // }
+                        
+
+					CORE.Player.disableModeButtons(this.id);
+					var btn = document.getElementById("navigate-mode-btn");
+					if(!btn.classList.contains("active"))
+					{
+						btn.classList.add("active");
+					}
+//					dlg.close();
+			}
+            this.create_agent_dialog.add(create_area_inspector);
+            create_area_inspector.refresh();
+        }
+
+        this.create_agent_dialog.show('fade');
+        this.create_agent_dialog.setPosition(5,270);
+    }
+	showPopulateRespawnDialog()
+	{
+		 if(!this.populate_respawn_dialog){
+            var populate_respawn_dialog = this.populate_respawn_dialog = new LiteGUI.Dialog( { id:"populate_scenario", title:'Populate Scenario', close: true, minimize: false, width: 300, height: 300, scroll: false, resizable: false, draggable: true, parent:"body"});
+            this.populate_respawn_dialog.setPosition(document.body.clientWidth/4 - 150,200);
+
+        }
+        var dlg = this.populate_respawn_dialog;
+
+        if(!this.populate_respawn_inspector){
+            var populate_respawn_inspector = this.populate_respawn_inspector = new LiteGUI.Inspector(),
+                populate_respawn_dialog = this.populate_respawn_dialog;
+
+            populate_respawn_inspector.on_refresh = function()
+            {
+                populate_respawn_inspector.clear();
                 var num_agents = 10;
                 var min_age = 5;
                 var max_age = 90;
-                populate_inspector.addNumber("Number of agents",10, {name_width:"40%", step:1, min:1, max:70, precision:0, callback:function(v)
+                populate_respawn_inspector.addNumber("Density",10, {name_width:"40%", step:1, min:1, max:70, precision:0, callback:function(v)
                 {
-                    num_agents = v;
+                    current_respawn_path.density = v;
                 }}); 
-                populate_inspector.addSlider("Minimum age",5, {name_width:"40%", step:1 ,min:5, max:90, precision:0, callback:function(v)
-                {
-                    min_age = v;
-                }}); 
-                populate_inspector.addSlider("Maximum age",5, {name_width:"40%", step:1, min:5, max:90, precision:0, callback:function(v)
-                {
-                    max_age = v;
-                }}); 
-                populate_inspector.addButton(null, "Populate", {callback:function(){
-                    console.log(num_agents);
-                    console.log(min_age);
-                    console.log(max_age);
-                    CORE.Scene.populateScenario(num_agents, min_age, max_age); //dentro de la función rellenar los parametros de las propiedades, elegir paths, etc
-                    dlg.close();
+//                populate_respawn_inspector.addSlider("Minimum age",5, {name_width:"40%", step:1 ,min:5, max:90, precision:0, callback:function(v)
+//                {
+//                    min_age = v;
+//                }}); 
+//                populate_respawn_inspector.addSlider("Maximum age",5, {name_width:"40%", step:1, min:5, max:90, precision:0, callback:function(v)
+//                {
+//                    max_age = v;
+//                }}); 
+                populate_respawn_inspector.addButton(null, "End path creation", {callback:function(){
+//                    console.log(num_agents);
+//                    console.log(min_age);
+//                    console.log(max_age);
+//                    CORE.Scene.populateScenario(num_agents, min_age, max_age); //dentro de la función rellenar los parametros de las propiedades, elegir paths, etc
+					scene_mode = NAV_MODE;
+					document.getElementById("main_canvas").style.cursor = "default";
+
+					dlg.close();
                 }}) 
                 
                 dlg.adjustSize();
             }
 
-            this.populate_dialog.add(populate_inspector);
-            populate_inspector.refresh();
+            this.populate_respawn_dialog.add(populate_respawn_inspector);
+            populate_respawn_inspector.refresh();
         }
 
-        this.populate_dialog.show('fade');
-        this.populate_dialog.setPosition(document.body.clientWidth/2 - 150,200);
+        this.populate_respawn_dialog.show('fade');
+        this.populate_respawn_dialog.setPosition(document.body.clientWidth/4 - 150,200);
+		console.log("ToDo");
+	}
 
-    }
+	showPopulateDialog( position )
+	{
+		if(!this.populate_static_dialog){
+            var populate_static_dialog = this.populate_static_dialog = new LiteGUI.Dialog( { id:"populate_scenario", title:'Add Static Group', close: true, minimize: false, width: 300, height: 300, scroll: false, resizable: false, draggable: true, parent:"body"});
+            this.populate_static_dialog.setPosition(document.body.clientWidth/2 - 150,200);
+
+        }
+        var dlg = this.populate_static_dialog;
+		var shapes = ["Circle", "Scattered"];
+		var orientations = ["Random", "Center"];
+		window.g_pos = position;
+
+        if(!this.populate_static_inspector){
+            var populate_static_inspector = this.populate_static_inspector = new LiteGUI.Inspector(),
+                populate_static_dialog = this.populate_static_dialog;
+
+            populate_static_inspector.on_refresh = function(g_position)
+            {
+                populate_static_inspector.clear();
+                var num_agents = 10;
+                var shape = shapes[0];
+				var orientation = orientations[0];
+                var size = 400;
+				var min_age = 5;
+                var max_age = 90;
+
+                populate_static_inspector.addSlider("Number of agents",10, {name_width:"40%", step:1, min:1, max:70, precision:0, callback:function(v)
+                {
+                    num_agents = v;
+                }});
+                populate_static_inspector.addSlider("Size",1500, {name_width:"40%", width:"100%", step:10 ,min:500, max:3000, precision:0, callback:function(v)
+                {
+                    size = v;
+                }}); 
+				populate_static_inspector.addCombo("Looking at",orientations[0], {values: orientations, name_width:"40%", callback:function(v)
+                {
+                    orientation = v;
+                }}); 
+
+
+				populate_static_inspector.addSlider("Min age",5, {name_width:"40%", step:1 ,min:5, max:99, precision:0, callback:function(v)
+                {
+                    min_age = v;
+                }}); 
+                populate_static_inspector.addSlider("Max age",5, {name_width:"40%", step:1, min:5, max:100, precision:0, callback:function(v)
+                {
+                    max_age = v;
+                }}); 
+
+
+                populate_static_inspector.addButton(null, "Add static group", {callback:function()
+				{
+                    console.log(shape);
+                    console.log(size);
+                    console.log(orientation);
+			
+                    CORE.Scene.populateStaticGroup(window.g_pos, num_agents, shape, orientation, size, max_age, min_age); //dentro de la función rellenar los parametros de las propiedades, elegir paths, etc
+                    dlg.close();
+                }}) 
+								
+                
+                dlg.adjustSize();
+            }
+
+            this.populate_static_dialog.add(populate_static_inspector);
+            
+        }
+		this.populate_static_inspector.refresh();
+        this.populate_static_dialog.show('fade');
+        this.populate_static_dialog.setPosition(document.body.clientWidth/4 - 150,200);
+		console.log("ToDo");
+	}
 
     showLoadBehaviorsDialog()
     {
+        debugger;
         var scene = null;
         var dialog = new LiteGUI.Dialog( { id: "dialog_load_scene", title:"Load Scene", close: true, minimize: true, width: 520, height: 350, scroll: false, draggable: true});
 		dialog.show();
@@ -214,25 +405,20 @@ class GUI{
         var searchbox = widgets.addString( null, "", { placeHolder: "search...", immediate: true, callback: function(v){
             list.filter(v);
         }});
-        var list = widgets.addList(null,CORE.Scene.behaviors, { height: 270, callback: inner_selected});//, callback_dblclick: inner_dblclick});
+        var list = widgets.addList(null,CORE.Scene.ip_setups, { height: 270, callback: inner_selected});//, callback_dblclick: inner_dblclick});
         widgets.addButton(null,"Load", { width: "100%",  callback: function(){
             console.log(scene);
-            for(var i in scene.agents)
-            {
-                var agent = scene.agents[i];
-                CORE.Scene.loadAgent(agent);
-            }
+
             CORE.Scene.loadScene(scene.scene);
-            node_editor.graph.configure(scene.behavior);
-            animation_manager.loadAnimations(scene.animations);
+
             dialog.close();
         } });
-        split.getSection(0).add( widgets );
+        dialog.add( widgets );
 
-        split.getSection(1).style.height = "100%";
-        split.getSection(1).style.backgroundColor = "#333";
-        split.getSection(1).style.paddingRight = "1px"; 
-        split.getSection(1).style.paddingLeft = "1px"; 
+        // split.getSection(1).style.height = "100%";
+        // split.getSection(1).style.backgroundColor = "#333";
+        // split.getSection(1).style.paddingRight = "1px"; 
+        // split.getSection(1).style.paddingLeft = "1px"; 
 
         function inner_selected( item )
 		{
@@ -245,15 +431,56 @@ class GUI{
     }
 	openImportDialog(data, file)
 	{
+		var title = "";
+		if(data.scene) title = "Import Interest Points";
+		else if(data.behaviour) title = "Import Behaviour";
 		var choice = LiteGUI.choice("", ["Import", "Cancel"], function(v){
 			if(v == "Import")
 			{
-				CORE.Scene.loadScene(data.scene);
-				node_editor.graph.configure(data.behavior);
-				animation_manager.loadAnimations(data.animations);
+				if(file.name.split(".")[1] == "json")
+				{
+					if(data.behaviour)
+                        hbt_context.current_graph.graph.configure(data.behaviour);
+                        
+					if(data.scene)
+						CORE.Scene.loadScene(data.scene);
+				}
 			}
 			
-		}, { title: "Importing behaviour" });
+		}, { title: title});
+
+		var import_inspector = new LiteGUI.Inspector();
+		import_inspector.clear();
+		import_inspector.addInfo("Filename  ", file.name || file.filename, {name_width:"40%"});
+        import_inspector.addInfo("Size", file.size/1000 + " KB", {name_width:"40%"});
+        
+		choice.content.prepend(import_inspector.root);
+	
+    }
+    
+    openImportAnimationDialog(data, file)
+	{
+		var title = "Import Skanim animation";
+		var choice = LiteGUI.choice("", ["Import", "Cancel"], function(v){
+			if(v == "Import")
+			{
+				if(file.name.split(".")[1] == "skanim")
+				{
+					var anim = new SkeletalAnimation();
+                    anim.fromData(data);
+                    var filename = file.name.split(".")[0]; 
+                    anim.name = filename;
+	                animation_manager.animations[filename] = anim;
+                    console.log(anim);
+                    CORE.Scene.locomotions[filename.capitalize()] = {name:filename.capitalize(), anims:[{anim:filename,weight: 1}], motion:1, speed:1};
+                    CORE.Scene.anim_inspector.refresh();
+                    //upload to animations
+				}
+
+//				animation_manager.loadAnimations(data.animations);
+			}
+			
+		}, { title: title});
 
 
 		var import_inspector = new LiteGUI.Inspector();
@@ -267,16 +494,97 @@ class GUI{
 	
 	}
 
-    showLoadAnimationsDialog()
+    showOpenStreamDialog( status )
     {
- 
+		if(!this.stream_dialog){
+            var stream_dialog = this.stream_dialog = new LiteGUI.Dialog( { id:"populate_scenario", title:'Stream Characters', close: true, minimize: false, width: 300, height: 30, scroll: false, resizable: false, draggable: true, parent:"body"});
+            this.stream_dialog.setPosition(document.body.clientWidth/2 - 150,200);
+
+        }
+        var dlg = this.stream_dialog;
+		this.stream_status = status;
+		var s_status = this.stream_status
+
+        if(!this.stream_inspector){
+            var stream_inspector = this.stream_inspector = new LiteGUI.Inspector(),
+                stream_dialog = this.stream_dialog;
+		}	
+
+		var that = this;
+		this.stream_inspector.on_refresh = function()
+		{
+			var IP = "localhost:5557";
+			var scale = 10;
+			var frame_rate = 30;
+			that.stream_inspector.clear();
+		
+			if(s_status && s_status.connected == true)
+			{
+				console.log(s_status);
+				var text = "Connected to: " + s_status.ip +""
+				that.stream_inspector.addInfo(text, null, {name_width:"100%"});
+				that.stream_inspector.addButton(null, "Stop", {callback:function(){
+
+					streamer.close();
+					
+					dlg.close();
+				}});
+			}
+
+			else
+			{
+				that.stream_inspector.addString("IP adress",IP, {name_width:"40%", step:1, min:1, max:70, precision:0, callback:function(v)
+				{
+					IP = v;
+				}});
+				
+				that.stream_inspector.addNumber("Scale 1/ ",scale, {name_width:"40%", step:100, min:1, max:1000, precision:0, callback:function(v)
+				{
+					scale = v;
+				}});
+
+				that.stream_inspector.addNumber("Frame rate",frame_rate, {name_width:"40%", step:5, min:30, max:30, precision:0, callback:function(v)
+				{
+					streaming_fps = v;
+				}});
+
+
+				that.stream_inspector.addButton(null, "Connect", {callback:function(){
+					
+					var callback = function( url )
+					{
+						CORE.Player.showPopUpMessage("Websocket opened");
+//						CORE.GUI.showOpenStreamDialog({ip:url, connected:true});
+					}
+					console.log(IP);  
+					streamer = new CharacterStreamer();
+					streamer.onClose = function()
+					{
+						CORE.Player.showPopUpMessage("Websocket closed");
+						CORE.GUI.stream_dialog.close();
+					}
+					streamer.connect( IP, callback );
+					$("#streaming-logo").fadeIn();
+					dlg.close();
+				}});
+			}
+			
+			dlg.adjustSize();
+		}
+
+		this.stream_dialog.add(this.stream_inspector);
+		this.stream_inspector.refresh();
+
+        this.stream_dialog.show('fade');
+        this.stream_dialog.setPosition(document.body.clientWidth/4 - 50,10);
 
     }
 
-    showSaveDialog()
+
+    showSaveSceneDialog()
     {
         if(!this.save_dialog){
-            var save_dialog = this.save_dialog = new LiteGUI.Dialog( { id:"save_dialog", title:'Save Behavior', close: true, minimize: false, width: 300, height: 300, scroll: false, resizable: false, draggable: true, parent:"body"});
+            var save_dialog = this.save_dialog = new LiteGUI.Dialog( { id:"save_dialog", title:'Save Scene', close: true, minimize: false, width: 300, height: 300, scroll: false, resizable: false, draggable: true, parent:"body"});
             this.save_dialog.setPosition(document.body.clientWidth/2 - 150,200);
 
         }
@@ -290,7 +598,7 @@ class GUI{
             {
                 save_inspector.clear();
                 var name = "";
-                save_inspector.addTitle("Add a name to the Graph");
+                save_inspector.addTitle("Add a name to the Scene");
                 save_inspector.addString("Name", null, {callback:function(v)
                 {
                     name = v;
@@ -299,33 +607,9 @@ class GUI{
                 {
                     if(name)
                     {
-                        var scene_obj = {};
-                        console.log("Name", name);
-                        var graph = node_editor.graph.serialize();
-                        var nodes = graph.nodes;
-                        for(var i in nodes)
-                        {   
-                            if(nodes[i].data)
-                                delete nodes[i].data["g_node"];
-                        }
-                        scene_obj.behavior = graph;
-                        // var agents = CORE.AgentManager.save_agents();
-                        // scene_obj.agents = agents;
-                        scene_obj.scene = CORE.Scene.properties;
-                        scene_obj.animations = animation_manager.animations_names;
-                        console.log(scene_obj);
-                        console.log(JSON.stringify(scene_obj));
-                        var saveScene = function (scene, exportName){
-                            var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(scene));
-                            var downloadAnchorNode = document.createElement('a');
-                            downloadAnchorNode.setAttribute("href",     dataStr);
-                            downloadAnchorNode.setAttribute("download", exportName + ".json");
-                            document.body.appendChild(downloadAnchorNode); // required for firefox
-                            downloadAnchorNode.click();
-                            downloadAnchorNode.remove();
-                        }
-                        saveScene(scene_obj, name);
-                        dlg.close();
+						var data = CORE.Scene.exportScenario(name);
+						CORE.Scene.downloadJSON(data, name);
+                        dlg.close();	
                     }
                 }})
                 dlg.adjustSize();
@@ -339,6 +623,140 @@ class GUI{
         this.save_dialog.setPosition(document.body.clientWidth/2 - 150,200);
     }
 
+    showDownloadBehaviourDialog()
+    {
+        if(!this.download_b_dialog){
+            var download_b_dialog = this.download_b_dialog = new LiteGUI.Dialog( { id:"download_b_dialog", title:'Download Behaviour', close: true, minimize: false, width: 300, height: 300, scroll: false, resizable: false, draggable: true, parent:"body"});
+            this.download_b_dialog.setPosition(document.body.clientWidth/2 - 150,200);
+
+        }
+        var dlg = this.download_b_dialog;
+
+        if(!this.download_b_inpsector){
+            var download_b_inpsector = this.download_b_inpsector = new LiteGUI.Inspector(),
+                download_b_dialog = this.download_b_dialog;
+
+            download_b_inpsector.on_refresh = function()
+            {
+                download_b_inpsector.clear();
+                var name = "";
+                download_b_inpsector.addTitle("Add a name to the Scene");
+                download_b_inpsector.addString("Name", null, {callback:function(v)
+                {
+                    name = v;
+                }}); 
+                download_b_inpsector.addButton(null, "Save", {callback:function()
+                {
+                    if(name)
+                    {
+                        console.log("Name", name);
+						var data = CORE.GraphManager.exportBehaviour(hbt_context.current_graph.graph);
+						CORE.Scene.downloadJSON(data, name);
+                        dlg.close();
+                    }
+                }})
+                dlg.adjustSize();
+            }
+
+            this.download_b_dialog.add(download_b_inpsector);
+            download_b_inpsector.refresh();
+        }
+
+        this.download_b_dialog.show('fade');
+        this.download_b_dialog.setPosition(document.body.clientWidth/2 - 150,200);
+    }
+
+    showSaveBehaviourDialog()
+    {
+        ;
+        var delete_html = '<img src="https://webglstudio.org/latest/imgs/mini-icon-trash.png" alt="W3Schools.com">'
+        if(!this.save_b_dialog){
+            var save_b_dialog = this.save_b_dialog = new LiteGUI.Dialog( { id:"save_b_dialog", title:'Upload Behaviour to repository', close: true, minimize: false, width: 300, height: 300, scroll: false, resizable: false, draggable: true, parent:"body"});
+            this.save_b_dialog.setPosition(document.body.clientWidth/2 - 150,200);
+
+        }
+        var dlg = this.save_b_dialog;
+        var tags = [];
+        var description = "";
+        var name = "";
+
+        if(!this.save_b_inspector){
+            var save_b_inspector = this.save_b_inspector = new LiteGUI.Inspector(),
+                save_b_dialog = this.save_b_dialog;
+
+            save_b_inspector.on_refresh = function()
+            {
+                save_b_inspector.clear();
+                
+                // save_b_inspector.addTitle("Add a name to the Behaviour");
+                save_b_inspector.widgets_per_row = 1;
+                save_b_inspector.addString("Name", name, {callback:function(v)
+                {
+                    name = v;
+                }}); 
+                save_b_inspector.addTextarea("Description", description, {width:"100%", callback:function(v)
+                {
+                    description = v;
+                }}); 
+                save_b_inspector.widgets_per_row = 2;
+
+                for(var i in tags)
+                {
+                    save_b_inspector.addInfo("Tag", tags[i], {width:"85%"});
+                    save_b_inspector.addButton(null, delete_html, {width:40,callback:function(){
+                        var index = tags.indexOf(tags[i]);
+                        if (index > -1) {
+                            tags.splice(index, 1);
+                        }
+                        save_b_inspector.refresh();
+                    }});
+
+                }
+
+                save_b_inspector.widgets_per_row = 2;
+
+				var _k,_v,_z;
+				// _z = JSON.parse(JSON.stringify(z));
+				save_b_inspector.addString(null, "",  { width:"85%", placeHolder:"tag",  callback: v => _k = v });
+				save_b_inspector.addButton(null, "+", {  width:40, callback: function(e)
+				{
+                    console.log(tags);
+                    tags.push(_k.toLowerCase()); 
+                    console.log(tags);
+                    save_b_inspector.refresh(); 
+                    // if(!_k || !_v)return;
+                    //     try{  _v = JSON.parse('{ "v":'+_v+'}').v; }catch(e){ }
+                    //     tags.push(_k.toLowerCase()); 
+                    //     console.log(tags);
+                    //     save_b_inspector.refresh(); 
+				}});
+                save_b_inspector.addButton(null, "Save", {width:"100%", callback:function()
+                {
+                    
+                    if(name)
+                    {
+                        // console.log("Name", name);
+                        var metadata = {};
+                        metadata["tags"] = tags;
+                        metadata["description"] = description;
+
+                        var data = CORE.GraphManager.exportBehaviour(hbt_context.current_graph.graph);
+                        var blob = new Blob([JSON.stringify(data)],{type:'application/json'} );
+                        CORE.FS.uploadFile( "behaviors", new File([blob], name), metadata );
+                        dlg.close();
+                    }
+                }})
+                dlg.adjustSize();
+            }
+            var that = this;
+            this.save_b_dialog.add(save_b_inspector);
+            save_b_inspector.refresh();
+        }
+        this.save_b_dialog.show('fade');
+
+        this.save_b_dialog.setPosition(document.body.clientWidth/2 - 150,200);
+    }
+
 	showSettingsDialog()
     {
         if(!this.settings_dialog){
@@ -348,15 +766,15 @@ class GUI{
         }
         var dlg = this.settings_dialog;
 
-        if(!this.save_inspector){
-            var save_inspector = this.save_inspector = new LiteGUI.Inspector(),
+        if(!this.settings_inspector){
+            var settings_inspector = this.settings_inspector = new LiteGUI.Inspector(),
                 settings_dialog = this.settings_dialog;
 
-            save_inspector.on_refresh = function()
+            settings_inspector.on_refresh = function()
             {
-                save_inspector.clear();
+                settings_inspector.clear();
                 var name = "";
-                save_inspector.addCheckbox("Render_performance", RENDER_FPS, {name_width:"77%",callback:function(v)
+                settings_inspector.addCheckbox("Render_performance", RENDER_FPS, {name_width:"77%",callback:function(v)
                 {
                     RENDER_FPS = v;
 					if(v)
@@ -365,7 +783,7 @@ class GUI{
 						$(stats.dom).hide();
                 }}); 
 
-                save_inspector.addCheckbox("Render_paths", RENDER_PATHS, {name_width:"77%", callback:function(v)
+                settings_inspector.addCheckbox("Render_paths", RENDER_PATHS, {name_width:"77%", callback:function(v)
                 {
                     RENDER_PATHS = v;
 					if(v){
@@ -381,7 +799,7 @@ class GUI{
 					}
                 }}); 
 
-				save_inspector.addCheckbox("Render_scenario", RENDER_PATHS, {name_width:"77%", callback:function(v)
+				settings_inspector.addCheckbox("Render_scenario", RENDER_SCENARIO, {name_width:"77%", callback:function(v)
                 {
                     RENDER_PATHS = v;
 					if(v)
@@ -393,8 +811,8 @@ class GUI{
                 dlg.adjustSize();
             }
 
-            this.settings_dialog.add(save_inspector);
-            save_inspector.refresh();
+            this.settings_dialog.add(settings_inspector);
+            settings_inspector.refresh();
         }
 
         this.settings_dialog.show('fade');
@@ -443,5 +861,180 @@ class GUI{
         // this.node_info_dlg.setPosition(100,270);
     }
 }
+
+// overwrite method
+Inspector.prototype.addSlider = function(name, value, options)
+{
+ options = this.processOptions(options);
+
+ if(options.min === undefined)
+  options.min = 0;
+
+ if(options.max === undefined)
+  options.max = 1;
+
+ if(options.step === undefined)
+  options.step = 0.01;
+
+ //if(options.precision === undefined)
+  options.precision = 3;
+
+ var that = this;
+ if(value === undefined || value === null)
+  value = 0;
+ this.values[name] = value;
+
+ var element = this.createWidget(name,"<span class='inputfield full'>\
+    <input tabIndex='"+this.tab_index+"' type='text' class='slider-text fixed nano' value='"+value+"' /><span class='slider-container'></span></span>", options);
+
+ var slider_container = element.querySelector(".slider-container");
+
+ var slider = new LiteGUI.Slider(value,options);
+ slider_container.appendChild(slider.root);
+
+ slider_container.addEventListener('dblclick', function(e) {
+  
+ });
+
+ //Text change -> update slider
+ var skip_change = false; //used to avoid recursive loops
+ var text_input = element.querySelector(".slider-text");
+ text_input.addEventListener('change', function(e) {
+  if(skip_change)
+   return;
+  var v = parseFloat( this.value ).toFixed(options.precision);
+  value = v;
+  slider.setValue( v );
+  Inspector.onWidgetChange.call( that,element,name,v, options );
+ });
+
+ //Slider change -> update Text
+ slider.onChange = function(value) {
+  text_input.value = value;
+  Inspector.onWidgetChange.call( that, element, name, value, options);
+ };
+
+ this.append(element,options);
+
+ element.setValue = function(v,skip_event) { 
+  if(v === undefined)
+   return;
+
+  value = v;
+  slider.setValue(v,skip_event);
+ };
+ element.getValue = function() { 
+  return value;
+ };
+
+ this.processElement(element, options);
+ return element;
+}
+
+function Slider(value, options)
+{
+ options = options || {};
+ var canvas = document.createElement("canvas");
+ canvas.className = "slider " + (options.extraclass ? options.extraclass : "");
+
+ canvas.width = CORE.GraphManager.inspector_area.root.offsetWidth/2;
+ canvas.height =  25; 
+ canvas.style.position = "relative";
+ canvas.style.width = "100%";
+ canvas.style.height = "1.5em";
+ // canvas.height = (canvas.offsetWidth / canvas.offsetHeight) / 300;
+ this.root = canvas;
+ var that = this;
+ this.value = value;
+
+ this.setValue = function(value, skip_event)
+ {
+  /*if(canvas.parentNode)
+   canvas.width = canvas.parentNode.offsetWidth - 15;*/
+
+  if(options.integer)
+   value = parseInt(value);
+
+  //var width = canvas.getClientRects()[0].width;
+  var ctx = canvas.getContext("2d");
+  var min = options.min || 0.0;
+  var max = options.max || 1.0;
+  if(value < min) value = min;
+  else if(value > max) value = max;
+  var range = max - min;
+  var norm = (value - min) / range;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = "#579191";
+  ctx.fillRect(0,0, canvas.width * norm, canvas.height);
+  /*ctx.fillStyle = "#DA2";
+  ctx.fillRect(canvas.width * norm - 1,0,2, canvas.height);*/
+
+  ctx.fillStyle = "#EEE";
+  ctx.font = "16px Arial";
+//  ctx.fillText(value.toFixed(options.precision), 12, 18);
+
+  if(value != this.value)
+  {
+   this.value = value;
+   if(!skip_event)
+   {
+    LiteGUI.trigger(this.root, "change", value );
+    if(this.onChange)
+     this.onChange( value );
+   }
+  }
+ }
+
+ function setFromX(x)
+ {
+  var width = canvas.getClientRects()[0].width;
+  var norm = x / width;
+  var min = options.min || 0.0;
+  var max = options.max || 1.0;
+  var range = max - min;
+  that.setValue( range * norm + min );
+ }
+
+ var doc_binded = null;
+
+ canvas.addEventListener("mousedown", function(e) {
+  var mouseX, mouseY;
+  if(e.offsetX) { mouseX = e.offsetX; mouseY = e.offsetY; }
+  else if(e.layerX) { mouseX = e.layerX; mouseY = e.layerY; } 
+  setFromX(mouseX);
+  doc_binded = canvas.ownerDocument;
+  doc_binded.addEventListener("mousemove", onMouseMove );
+  doc_binded.addEventListener("mouseup", onMouseUp );
+
+  doc_binded.body.style.cursor = "none !important";
+ });
+
+ function onMouseMove(e)
+ {
+  var rect = canvas.getClientRects()[0];
+  var x = e.x === undefined ? e.pageX : e.x;
+  var mouseX = x - rect.left;
+  setFromX(mouseX);
+  e.preventDefault();
+  return false;
+ }
+
+ function onMouseUp(e)
+ {
+  var doc = doc_binded || document;
+  doc_binded = null;
+  doc.removeEventListener("mousemove", onMouseMove );
+  doc.removeEventListener("mouseup", onMouseUp );
+  e.preventDefault();
+  
+  doc.body.style.cursor = "default";
+
+  return false;
+ }
+
+ this.setValue(value);
+}
+
+LiteGUI.Slider = Slider;
 
 CORE.registerModule( GUI );

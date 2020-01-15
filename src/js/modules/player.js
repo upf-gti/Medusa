@@ -30,7 +30,7 @@ class Player{
         nav_mode_btn.className = "tool-btn";
         nav_mode_btn.classList.add("active");
         nav_mode_btn.id = "navigate-mode-btn";
-        nav_mode_btn.innerHTML = '<i class="material-icons">control_camera</i>';
+        nav_mode_btn.innerHTML = '<img src="https://webglstudio.org/latest/imgs/mini-icon-camera.png" alt="W3Schools.com">';
         nav_mode_btn.title = "Navigation mode";
         nav_mode_btn.addEventListener("click", function(){
             if(!this.classList.contains("active"))
@@ -45,7 +45,6 @@ class Player{
         });
         this.mode_buttons.push(nav_mode_btn);
         micro_tools.appendChild(nav_mode_btn);
-
 
 		var agent_mode_btn = this.agent_mode_btn = document.createElement("div");
         agent_mode_btn.className = "tool-btn";
@@ -67,7 +66,52 @@ class Player{
         this.mode_buttons.push(agent_mode_btn);
         micro_tools.appendChild(agent_mode_btn);
 
+/*******************************************************/
+		var path_mode_btn = this.path_mode_btn = document.createElement("div");
+        path_mode_btn.className = "tool-btn";
+        path_mode_btn.id = "agent-mode-btn";
+        path_mode_btn.innerHTML = '<i class="material-icons">timeline</i>';
+        path_mode_btn.title = "Create path";
+        path_mode_btn.addEventListener("click", function()
+        {
+            if(!this.classList.contains("active"))
+                this.classList.add("active");
 
+            CORE.Player.showPopUpMessage("Click the floor to add control points");
+			scene_mode = PATH_CREATION_MODE;
+			var new_path = new Path();
+			path_manager.addPath(new_path);
+			current_path = new_path;
+			CORE.GUI.showCreatePathDialog();        
+			CORE.Player.disableModeButtons(this.id);
+			document.getElementById("main_canvas").style.cursor = "cell";
+
+        });
+
+        this.mode_buttons.push(path_mode_btn);
+        micro_tools.appendChild(path_mode_btn);
+
+        // var area_mode_btn = this.area_mode_btn = document.createElement("div");
+        // area_mode_btn.className = "tool-btn";
+        // area_mode_btn.id = "ip-mode-btn";
+        // area_mode_btn.innerHTML = '<i class="material-icons">layers</i>';
+        // area_mode_btn.title = "Create Smart Area";
+        // area_mode_btn.addEventListener("click", function()
+        // {
+        //     if(!this.classList.contains("active"))
+        //         this.classList.add("active");
+            
+        //     CORE.Player.showPopUpMessage("Click the floor to add vertex of the area");
+        //     CORE.GUI.showCreateAreaDialog();
+        //     scene_mode = AREA_CREATION_MODE;
+        //     CORE.Player.disableModeButtons(this.id);
+		// 	document.getElementById("main_canvas").style.cursor = "cell";
+
+        // });
+        // this.mode_buttons.push(area_mode_btn);
+        // micro_tools.appendChild(area_mode_btn);
+
+/********************************************************/
         var ip_mode_btn = this.ip_mode_btn = document.createElement("div");
         ip_mode_btn.className = "tool-btn";
         ip_mode_btn.id = "ip-mode-btn";
@@ -117,7 +161,6 @@ class Player{
             if(!this.classList.contains("active"))
             {
                 this.classList.add("active");
-
             }
             else{
                 this.classList.remove("active");
@@ -128,29 +171,56 @@ class Player{
         this.mode_buttons.push(ip_label_btn);
         micro_tools.appendChild(ip_label_btn);
 
-        
-        
-        this.addButton( "<div id='play-btn' class='' >&#x25b6</div>", (e)=>{
+        this.popup_message = document.createElement("div");
+		this.popup_message.id = "snackbar";
+		this.popup_message.innerHTML = "Click on the floor to select the center of the group";
+		var popup_container = document.getElementById("player-area");
+		popup_container.appendChild(this.popup_message);
+
+
+        var inner = '<i id="play-btn" class="material-icons">play_arrow</i>';
+
+        this.addButton( "<div id='play-btn' class='' >&#x25b6</div>","upper", inner, (e)=>{
             switch(window.state){
                 case PLAYING: 
                     window.state = STOP;
-				
                     e.currentTarget.innerHTML = '<i id="play-btn" class="material-icons">play_arrow</i>';
                     e.currentTarget.children[0].classList.remove("play");
-					node_editor.graph.status = 1;
+					hbt_editor.graph.status = 1;
                     break;
                 case STOP: 
                     window.state = PLAYING;
                     e.currentTarget.innerHTML = '<i id="play-btn" class="material-icons">stop</i>';
                     e.currentTarget.children[0].classList.add("play");
-					node_editor.graph.start();
+					hbt_editor.graph.start();
                     break;
             }
         });
+		//STREAMING BUTTON
+		var url = '<i id="streaming-logo" class="material-icons">settings_input_antenna</i>';
+		this.addButton( "<div id='streaming-img' class='' ></div>", "stream", url,  (e)=>{
+            if(streamer)
+			{
+				streamer.close();
+				$("#streaming-logo").fadeOut();
+			}
+        });
+
+		$("#streaming-logo").fadeOut();
+
+
+		var agent_info_panel = this.agent_info_panel = document.createElement("div");
+		agent_info_panel.id = "agent_info_panel";
 
 //		var canvas = document.getElementById("main_canvas");
     }
-
+	
+	showPopUpMessage( message ){
+		var x = document.getElementById("snackbar");
+		x.className = "show";
+		x.innerHTML = message || "Click the floor";
+		setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+	}
     init(){
 
         CORE.GUI.root.addEventListener("split_moved", this.resize.bind(this));
@@ -177,10 +247,10 @@ class Player{
         // this.player.play();
     }
 
-    addButton( html, callback){
+    addButton( html, id, inner, callback){
         var button = document.createElement("li");
-		button.id = "lidemierda"
-        button.innerHTML = '<i id="play-btn" class="material-icons">play_arrow</i>';
+		button.id = id;
+        button.innerHTML = inner;
         button.addEventListener("click", callback);
 		CORE.Player.panel.content.appendChild(button);
 //        this.buttons.appendChild(button);
@@ -201,7 +271,7 @@ class Player{
     }
 
     resize() {
-        console.log("player resize");
+//        console.log("player resize");
         if(!this.player || !this.player.canvas) return;
 
         // Lookup the size the browser is displaying the canvas.
@@ -224,6 +294,7 @@ class Player{
 
         var text = "";
         text += "Agents in the scene: " + Object.keys(CORE.AgentManager.agents).length;
+		text += "   |    Interest Points: "
 
         this.stats.innerText = text;
     }

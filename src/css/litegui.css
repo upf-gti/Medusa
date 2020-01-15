@@ -292,15 +292,14 @@
 }
 
 .inspector .wcontent {
-	display: inline-block;
-	-moz-box-sizing: border-box;	
-	-webkit-box-sizing: border-box;	
-	box-sizing: border-box;
-	padding: 2px;
-
-	width: -webkit-calc( 100% - 80px );
-	width: -moz-calc( 100% - 80px );
-	width: calc( 100% - 80px );
+    display: inline-block;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    padding: 0px !important;
+    width: -webkit-calc( 100% - 100px);
+    width: -moz-calc( 100% - 100px);
+    width: calc( 100% - 100px );
 }
 
 .inspector.proportionalnamesize .wname {
@@ -423,6 +422,7 @@
 	/*width: 22px;*/
 	width: 1.5em;
 	/* margin-left: 3px; */
+/*	display: none;*/
 }
 
 .inspector .wcontent input.mini {
@@ -432,6 +432,7 @@
 
 .inspector .wcontent .disabled input.mini {
 	width: 34px;
+
 }
 
 .inspector .wcontent input.medium {

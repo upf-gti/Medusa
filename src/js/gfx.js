@@ -1,14 +1,15 @@
 var start_time = Date.now();
-
 var time = (Date.now() - start_time) * 0.001;
 
 var GFX = {
+	dt:null,
     scene: null,
     context: null,
     camera: null,
     renderer: null,
     lines_mesh: null,
     cube: null,
+	grab_point: vec3.create(),
 
     init_time_clicked: 0,
 
@@ -16,27 +17,35 @@ var GFX = {
 
         this.scene = new RD.Scene();
         this.context = GL.create({
-            width: window.innerWidth*0.6,
+            width: window.innerWidth*0.4,
             height: window.innerHeight,
             alpha: true,
             premultipliedAlpha: false
         });
         this.context.onmouse = this.onmouse.bind(this);
 		this.context.canvas.id = "main_canvas";
-        this.camera = new RD.Camera();
-
-        //pos, target, ?
-        this.camera.lookAt([0, 1000, 2500], [0, 70, 0], [0, 1, 0]);
-        this.camera.perspective(45, this.context.canvas.width / this.context.canvas.height, 100, 2000000);
-
 		
+        this.camera = new RD.Camera();
+        //pos, target, ?
+        this.camera.lookAt([-1500, 250, 3000], [0, 7, 0], [0, 1, 0]);
+        this.camera.perspective(45, this.context.canvas.width / this.context.canvas.height, 50, 200000);
+		
+		var on_complete = function(mesh, url)
+		{
+			gl.meshes["Jim.mesh"] = mesh;
+			$("#loading").fadeOut()
+		}
 
-		scenario = new RD.SceneNode();
+		GL.Mesh.fromURL("assets/Jim.wbin", on_complete, gl);
+
+        scenario = new RD.SceneNode();
 		scenario.mesh = "square.WBIN";
 		scenario.name = "scenario";
 		scenario.shader = "phong_shadow";
+		scenario.flags.ignore_collisions = true;
 		scenario.color = [1.0,1.0,1.0,1.0];
 		scenario.position = [0,0,0];
+		scenario.visible = false;
 		this.scene.root.addChild(scenario);
 
         floor = new RD.SceneNode();
@@ -44,10 +53,57 @@ var GFX = {
         floor.mesh = "planeXZ"
         floor.texture = "floor6.jpg";
         floor.shader = "phong_texture_shadow";
-        floor.position = [0, -5, 0];
+        floor.position = [0, -1, 0];
         floor.scaling = 100000;
         floor.uniforms.u_tiling = vec2.fromValues(600, 600);
         this.scene.root.addChild(floor);
+
+		var tex = Texture.cubemapFromURL("assets/cubemap3.png", {is_cross: true});
+		gl.textures["skyboxTex"] = tex;
+
+		skybox = new RD.SceneNode();
+		skybox.mesh = "cube";
+		skybox.name = "skybox";
+		skybox.scaling = 100000;
+		skybox.flags.ignore_collisions = true;
+		skybox.texture = "skyboxTex";
+		skybox.position = [0, 100, 0];
+		skybox.shader = "skybox";
+		skybox.flags.depth_test = false;
+		skybox.flags.flip_normals = true;
+		skybox.render_priority = RD.PRIORITY_BACKGROUND;
+		this.scene.root.addChild(skybox);
+
+		gl.canvas.ondragover = () => {return false};
+		gl.canvas.ondragend = () => {return false};
+		gl.canvas.ondrop = function(e)
+		{
+			e.preventDefault();
+			e.stopPropagation();
+			var file = e.dataTransfer.files[0];
+			var reader = new FileReader();
+
+			// Closure to capture the file information.
+			reader.onload = function(e) 
+			{
+//				debugger; 
+				if(file.name.split(".")[1] == "json")
+				{
+					var data = JSON.parse(e.target.result);
+					CORE.GUI.openImportDialog(data, file);
+				}
+				else if(file.name.split(".")[1] == "skanim")
+				{
+					// console.log(e.target.result);
+					debugger;
+					CORE.GUI.openImportAnimationDialog(e.target.result, file);
+					
+				}
+//				var data = JSON.parse(e.target.result);
+//				CORE.GUI.openImportDialog(data, file);				
+			}
+			reader.readAsText(file);
+		}
 
         this.renderer = new RD.Renderer(this.context, {
             assets_folder: "assets/",
@@ -56,50 +112,9 @@ var GFX = {
 
         });
 
-		var tex = Texture.cubemapFromURL("assets/cubemap3.png", {is_cross: true});
-		gl.textures["skyboxTex"] = tex;
-
-		
-		skybox = new RD.SceneNode();
-
-		skybox.mesh = "cube";
-		skybox.name = "skybox";
-		skybox.scaling = 100000;
-		skybox.texture = "skyboxTex";
-		skybox.position = [0, 100, 0];
-		skybox.shader = "skybox";
-		skybox.flags.depth_test = false;
-		skybox.flags.flip_normals = true;
-		skybox.render_priority = RD.PRIORITY_BACKGROUND;
-		this.scene.root.addChild(skybox);
-		
-
-		gl.canvas.ondragover = () => {return false};
-		gl.canvas.ondragend = () => {return false};
-		gl.canvas.ondrop = function(e){
-			
-			e.preventDefault();
-			e.stopPropagation();
-			var file = e.dataTransfer.files[0];
-			var reader = new FileReader();
-
-			// Closure to capture the file information.
-			reader.onload = function(e) {
-//				debugger;
-				var data = JSON.parse(e.target.result);
-				CORE.GUI.openImportDialog(data, file);
-//			    CORE.Scene.loadScene(data.scene);
-//				node_editor.graph.configure(data.behavior);
-//				animation_manager.loadAnimations(data.animations);
-				
-			}
-
-			reader.readAsText(file);
-		  // 
-		}
-
         // declare uniforms
-		this.background_color = vec3.fromValues(0.7, 0.7, 0.7);
+
+        this.background_color = vec3.fromValues(0.7, 0.7, 0.7);
         this.renderer._uniforms['u_ambient_light'] = vec3.fromValues(0.5, 0.5, 0.5),
         this.renderer._uniforms['u_light_position'] = vec3.fromValues(10, 3000, 100);
         this.renderer._uniforms['u_light_color'] = vec3.fromValues(0.9, 0.9, 0.9);
@@ -107,25 +122,22 @@ var GFX = {
         this.renderer._uniforms['u_glossiness'] = 20;
         this.renderer._uniforms['u_fresnel'] = 0.1;
 		this.renderer._uniforms['u_background_color'] = this.background_color;
+		this.renderer._uniforms['u_ambient'] = vec3.create();
+		this.renderer._uniforms['u_light_color'] = RD.WHITE;
+		this.renderer._uniforms['u_light_vector'] = vec3.fromValues(0.577, 0.577, 0.577);
 
-        // gl.lineWidth(5);
+		this.circle_vertices = this.generateCircleVertices(64, 60);
+		this.createSelectionCircles(this.circle_vertices);
+		this.helper_circle_vertices = this.generateCircleVertices(64, 60);
+		this.createAddHelperCircles(this.helper_circle_vertices);
 
-        //
 
-        
+
 
         this.renderer.context.captureMouse(true);
         this.renderer.context.captureKeys(true);
 
         CORE.Player.panel.content.appendChild(this.renderer.canvas);
-
-        // grid = new RD.SceneNode();
-        // grid.mesh = "grid";
-        // grid.scaling = 300;
-        // grid.color = [0.2,0.2,0.2,0.7];
-        // grid.primitive = gl.LINES;   
-        // this.scene.root.addChild(grid);
-        // GFX.createEnviroment();
 
         var bg_color = vec4.fromValues(54 / 255, 75 / 255, 78 / 255, 0);
         var last = now = getTime();
@@ -137,26 +149,51 @@ var GFX = {
 
             last = now;
             now = getTime();
-            var dt = (now - last) * 0.001;
-            global_dt = dt;
+			var time2 = getTime()*0.001;
+            GFX.dt = (now - last) * 0.001;
+            global_dt = GFX.dt;
             time = (Date.now() - start_time) * 0.001;
+//			debugger;
+//			console.log(Math.sin(getTime()*0.005));
+			GFX.animateSelectionCircles( now );
+			
+			stats.begin();
 
-            // if(GFX.context2.start2D)
-            //   GFX.context2.start2D();
-			if(RENDER_FPS)
-				stats.begin();
-		
-			// skybox.position = GFX.camera.position;
+			if(GFX.camera.position[1] < 50)
+				GFX.camera.position[1] = 50;
 
             GFX.renderer.clear([0, 0, 0, 0.1]);
             GFX.renderer.render(GFX.scene, GFX.camera);
             CORE.Labels.update();
             
-            GFX.scene.update(dt);
-            update(dt);
-			
-			if(RENDER_FPS)
-				stats.end();
+
+
+
+
+            GFX.scene.update(GFX.dt);
+            update(GFX.dt);
+//			for(var i in people)
+//			for(var i in AgentManager.agents)
+//			{
+////				var person = people[i];
+//				var person = AgentManager.agents[i].man;
+////				if(!gl.meshes[ person.mesh ].bones) continue;
+////				if(!person.flags.was_rendered)
+////					continue;
+//				if(anim.duration)
+//					anim.assignTime( time2);
+//				if(anim2.duration)
+//					anim2.assignTime( time2);
+//				if(anim.duration && anim2.duration )
+////					Skeleton.blend( anim.skeleton, anim2.skeleton, Math.sin(time2 + person.phase*2*Math.PI)*0.5+0.5, anim.skeleton );
+//				person.bones = anim2.skeleton.computeFinalBoneMatrices( person.bones, gl.meshes[ person.mesh ] );
+//				if(person.bones && person.bones.length)
+//					person.uniforms.u_bones = person.bones;
+//			}
+
+			GFX.scene.update(GFX.dt);
+
+			stats.end();
 	
             //GFX.draw_analysis(GFX.canvas2D, GFX.context2, dt);
 
@@ -168,7 +205,12 @@ var GFX = {
             GFX.onmouse(e);
         }
         this.renderer.context.onmousedown = function(e) {
-            
+            if(e.which == 3) //right mouse
+			{
+				var coll = GFX.testRayWithFloor(e);
+				if(coll)
+					GFX.grab_point.set( coll );
+			}
         }
         this.renderer.context.onkeydown = function(e) {
         
@@ -181,7 +223,7 @@ var GFX = {
 
                     window.tmp_graph_container = CORE.GraphManager.graphcanvas.canvas.parentNode;
                     $("#full").append( CORE.GraphManager.graphcanvas.canvas).show();
-                    node_editor.graph_canvas.resize();
+                    hbt_editor.graph_canvas.resize();
                 }
 
                 if(e.keyCode == 39) {
@@ -192,44 +234,128 @@ var GFX = {
                     $(window.tmp_graph_container).append( CORE.GraphManager.graphcanvas.canvas);
                     $("#full").hide();
                     window.tmp_graph_container = null;
-                    node_editor.graph_canvas.resize();
-                }
+                    hbt_editor.graph_canvas.resize();
+				}
+				if(e.keyCode == 67)
+				{
+					if(agent_selected)
+					{
+						agent_selected.scene_node.position = [0,0,0];
+					}
+				}
+
                
             }
+			if(e.keyCode === 116) // F5
+			{
+				e.preventDefault();
+				e.stopPropagation();
+				
+				window.localStorage.removeItem("medusa_recovery");
+
+				// refresh page
+				window.location = window.location;
+			}
+
+			else if(e.keyCode === 117) // F6
+			{
+				e.preventDefault();
+				e.stopPropagation();
+				debugger;
+				var data = getProjectData();
+				window.localStorage.setItem("medusa_recovery", data);
+
+				// refresh page
+				window.location = window.location;
+			}
         }
 
         this.renderer.context.onkeyup = function(e) {
 
             if(e.keyCode == 46){
-                for(var i in node_editor.graph_canvas.selected_nodes)
+                for(var i in hbt_editor.graph_canvas.selected_nodes)
                 {
-                    var node = node_editor.graph_canvas.selected_nodes[i];
-                    node_editor.graph.remove(node);
+                    var node = hbt_editor.graph_canvas.selected_nodes[i];
+                    hbt_editor.graph.remove(node);
                 }
             }
-            if(e.keyCode == 46){
+            if(e.keyCode == 8){
 				if(agent_selected)
-	               AgentManager.deleteAgent(agent_selected.uid);
+					AgentManager.deleteAgent(agent_selected.uid);
             }
+			if( e.keyCode == 27 ) 
+			{
+				disselectCharacter();
+				if(agent_selected)
+				{
+					agent_selected.scene_node.removeChild(GFX.circle_node);
+					GFX.scene.root.addChild(GFX.circle_node, true);
+					GFX.circle_node.visible = false;
+				}
+				
+				agent_selected = null;
+				agent_selected_name = null;
+//                        CORE.GraphManager.renderStats();
+				CORE.GraphManager.top_inspector.refresh();
+				CORE.Scene.agent_inspector.refresh();
 
-           
+				var btn = document.getElementById("navigate-mode-btn");
+				if(!btn.classList.contains("active"))
+				{
+					btn.classList.add("active");
+				}
+				document.getElementById("main_canvas").style.cursor = "default";
+				scene_mode = NAV_MODE;
+				CORE.Player.disableModeButtons(btn.id);
+			}
+
         }
             
     },
 
-    onmouse: function(e) {
+    onmouse: function(e) 
+	{
         if (e.type == "mousemove" && e.dragging) {
             if (e.leftButton) {
-                GFX.camera.orbit(e.deltax * -0.005, [0, 1, 0]);
-                GFX.camera.orbit(e.deltay * -0.005, [1, 0, 0], null, true);
+
+//				GFX.orbitCamera(e.deltax  * 0.005, -e.deltay * 0.005 );
+                GFX.camera.orbit(e.deltax * GFX.dt *-0.15, [0, 1, 0]);
+                GFX.camera.orbit(e.deltay * GFX.dt * -0.15, [1, 0, 0], null, true);
             }
             if (e.rightButton) {
-                var vect = vec3.fromValues(e.deltax * -0.5, e.deltay * 0.5, 0);
-                GFX.camera.moveLocal(vect)
+//                var vect = vec3.fromValues(e.deltax * -1, e.deltay * 1, 0);
+//                GFX.camera.moveLocal(vect)
+
+				var coll = GFX.testRayWithFloor(e);
+				if(coll)
+				{
+					//debug_points.push( coll );
+					var delta = vec3.sub( vec3.create(), GFX.grab_point, coll );
+					GFX.camera.move( delta );
+				}
             }
         } 
+		if(e.type == "mousemove")
+		{
+			if(scene_mode == PATH_CREATION_MODE && current_path && current_path.control_points.length)
+			{
+				var length = current_path.control_points.length;
+				var mouse = GFX.testCollision(e.canvasx, e.canvasy);
+
+				if(mouse === undefined)
+					return;
+
+				var points = [
+					current_path.control_points[length-1].position,
+					mouse
+				];
+
+				GFX.setGuidePath(points);
+
+			}
+		}
         else if (e.type == "wheel") 
-            GFX.camera.orbitDistanceFactor(1.0 - (e.wheel / 2000));
+            GFX.camera.orbitDistanceFactor(1.0 + (e.wheel *-0.001));
         
         else if (e.type == "mousedown") 
         {
@@ -239,34 +365,6 @@ var GFX = {
             else
             {
                 GFX.init_time_clicked = null;
-                // var actions = [
-                // {
-                //     title: "Create ", //text to show
-                //     has_submenu: true,
-                //     submenu: {
-                //         options: 
-                //         [{
-                //             title: "Interest Point",
-                //             callback: function() 
-                //             { 
-                //                 var x = e.canvasx;
-                //                 var y = e.canvasy;
-                //                 var position = GFX.testCollision(x, y);
-                //                 CORE.Scene.addInterestPoint(position[0], position[2]); 
-                //             }
-                //         }, 
-                //         {
-                //             title: "Agent",
-                //             callback: function() 
-                //             { 
-                //                alert("Functionality on developement. Sorry!");
-                //             }
-                //         }
-                //         ]
-                //     }
-                // }
-                // ];
-                // var contextmenu = new LiteGUI.ContextMenu( actions, { event: e });
             }    
 
         }
@@ -279,7 +377,8 @@ var GFX = {
     
                 var dif = Date.now() - GFX.init_time_clicked;
                 //check if the action is drag or a fast click
-                if(dif < 200)
+								// console.log(dif);
+                if(dif < 100)
                 {
                     var x = e.canvasx;
                     var y = e.canvasy;
@@ -288,9 +387,19 @@ var GFX = {
                     if (!agent) 
                     {
                         disselectCharacter();
+						if(agent_selected)
+						{
+							agent_selected.scene_node.removeChild(GFX.circle_node);
+							GFX.scene.root.addChild(GFX.circle_node, true);
+							GFX.circle_node.visible = false;
+						}
+						
                         agent_selected = null;
                         agent_selected_name = null;
-                        CORE.GraphManager.renderStats();
+//                        CORE.GraphManager.renderStats();
+						CORE.GraphManager.top_inspector.refresh();
+						CORE.Scene.agent_inspector.refresh();
+
                         //try with interest points
                         var ip_info = GFX.getElementFromTestCollision(x, y, 2);
                         if(ip_info)
@@ -299,25 +408,34 @@ var GFX = {
                         return;
                     }
     
-                    disselectCharacter();
-                    for (var i in AgentManager.agents) 
-                        AgentManager.agents[i].changeColor();
-                    
-                    agent.is_selected = true;
+
+					if(agent_selected)
+					{
+						agent_selected.scene_node.removeChild(GFX.circle_node);
+						agent.scene_node.addChild(GFX.circle_node);
+						GFX.circle_node.position = [0,0,0];
+						CORE.GraphManager.putGraphOnEditor(agent.hbtgraph);
+					}
+
+					else
+					{
+						GFX.scene.root.removeChild(GFX.circle_node);
+						agent.scene_node.addChild(GFX.circle_node);
+						GFX.circle_node.position = [0,0,0];
+//						console.log(agent.hbtgraph);
+						CORE.GraphManager.putGraphOnEditor(agent.hbtgraph);
+					}
+
+					disselectCharacter();
+					agent.is_selected = true;
                     agent_selected_name = agent.properties.name;
                     agent_selected = agent;
-                    
-                    agent.changeColor();
-    
-                    var agents = CORE.AgentManager.agents;
-                    for (var i in agents) 
-                    {
-                        var ag = agents[i];
-                        ag.dialog.close();
-                    }
-                    agent.dialog.show();
-                    agent.dialog.setPosition(10,125);
-                    CORE.GraphManager.renderStats();
+					agent.scene_node.uniforms["u_selected"] = true;
+					GFX.circle_node.visible = true;    
+
+//                    CORE.GraphManager.renderStats();
+					CORE.GraphManager.top_inspector.refresh();
+					CORE.Scene.agent_inspector.refresh();
                 }
             }
             else if(scene_mode == IP_CREATION_MODE)
@@ -327,7 +445,7 @@ var GFX = {
                 
                 var dif = Date.now() - GFX.init_time_clicked;
                 //check if the action is drag or a fast click    
-                if(dif < 200)
+                if(dif < 100)
                 {
                     var x = e.canvasx;
                     var y = e.canvasy;
@@ -342,57 +460,189 @@ var GFX = {
                 return;
                 
                 var dif = Date.now() - GFX.init_time_clicked;
+				console.log(dif);
                 //check if the action is drag or a fast click    
-                if(dif < 200)
+                if(dif < 100)
                 {
                     var x = e.canvasx;
                     var y = e.canvasy;
                     var position = GFX.testCollision(x, y);
-					if(!position)
-						return;
 					position[1] = 0;
                     var agent = new Agent(null, position);
+					if(Object.keys(path_manager._paths).length > 0)
+					{
+						agent.path = path_manager.getNearestPath(position);
+						agent.properties.target = agent.path.control_points[0]; 
+						agent.last_controlpoint_index = 0;
+					}
+                }
+			}
+
+			else if(scene_mode == POPULATE_CREATION_MODE)
+			{
+				if(!GFX.init_time_clicked) 
+                return;
+//				debugger;
+				var dif = Date.now() - GFX.init_time_clicked;
+                //check if the action is drag or a fast click    
+                if(dif < 100)
+                {
+					var x = e.canvasx;
+					var y = e.canvasy;
+					var position = GFX.testCollision(x, y);
+					if(position){
+						position[1] = 0;
+						CORE.GUI.showPopulateDialog( position );
+					}
+					document.getElementById("main_canvas").style.cursor = "default";
+					scene_mode = NAV_MODE;
+                }
+			}
+
+			else if(scene_mode == RESPAWN_PATH_CREATION_MODE)
+			{
+				if(!GFX.init_time_clicked) 
+					return;
+                
+                var dif = Date.now() - GFX.init_time_clicked;
+                //check if the action is drag or a fast click    
+                if(dif < 100)
+                {
+                    var x = e.canvasx;
+                    var y = e.canvasy;
+                    var position = GFX.testCollision(x, y);
+					if(position)
+					{
+						if(current_respawn_path.control_points.length > 0)
+						{
+							current_respawn_path.connectControlPoints(current_respawn_path.control_points[current_respawn_path.control_points.length-1].position, position);
+						}
+						current_respawn_path.addControlPoint(position);
+					}
+                    
+                }
+			}
+
+			else if(scene_mode == PATH_CREATION_MODE)
+			{
+				if(!GFX.init_time_clicked) 
+					return;
+                
+                var dif = Date.now() - GFX.init_time_clicked;
+                //check if the action is drag or a fast click    
+                if(dif < 100)
+                {
+                    var x = e.canvasx;
+                    var y = e.canvasy;
+                    var position = GFX.testCollision(x, y);
+					if(position)
+					{
+//						debugger;
+						if(current_path.control_points.length > 0)
+						{
+							current_path.connectControlPoints(current_path.control_points[current_path.control_points.length-1].position, position);
+						}
+						current_path.addControlPoint(position);
+					}
+                }
+			}
+
+			else if(scene_mode == AREA_CREATION_MODE)
+			{
+				if(!GFX.init_time_clicked) 
+					return;
+                
+                var dif = Date.now() - GFX.init_time_clicked;
+                //check if the action is drag or a fast click    
+                if(dif < 100)
+                {
+                    var x = e.canvasx;
+                    var y = e.canvasy;
+                    var position = GFX.testCollision(x, y);
+					if(position)
+					{
+//						debugger;
+						if(current_area)
+							current_area.addVertex(position);
+						else
+						{
+							current_area = new PoligonalArea("P_area");
+							current_area.addVertex(position);
+						}
+					}
                 }
 			}
         }
     },
 
+	testRayWithFloor(e)
+	{
+		var ray = GFX.camera.getRay( e.canvasx, e.canvasy );
+		if( ray.testPlane(RD.ZERO,RD.UP) )
+			return ray.collision_point;
+		return null;
+	},
+	
+	setGuidePath( points ) {
+		var vertices_ = [];
+		for(var i = 0; i < points.length; ++i)
+			vertices_.push(points[i][0], points[i][1], points[i][2]);
+
+		if(!current_path.guide_line){
+			
+			current_path.guide_line_mesh = GL.Mesh.load({ vertices: vertices_ });
+			this.renderer.meshes["guide_line_path"] = current_path.guide_line_mesh;
+
+			current_path.guide_line = new RD.SceneNode();
+			current_path.guide_line.flags.ignore_collisions = true;
+			current_path.guide_line.primitive = gl.LINES;
+			current_path.guide_line.mesh = "guide_line_path";
+			current_path.guide_line.color = [255/255, 190/255, 60/255, 0.75];
+			this.scene.root.addChild(current_path.guide_line);
+		}
+		else{
+			current_path.guide_line_mesh.getBuffer("vertices").data.set( vertices_ );
+			current_path.guide_line_mesh.getBuffer("vertices").upload( GL.STREAM_DRAW );
+		}
+	},
+
+
     updateCamera: function(skeleton) {
-        var pos = skeleton.getGlobalPosition();
+
+		var pos = skeleton.getGlobalPosition();
 		pos[1] += 50;
 		
 		var last = GFX.camera.target;  
-
 		vec3.lerp(pos, pos, last, 0.9);
 		GFX.camera.target = pos;
-
-//        var direction = GFX.rotateVector(skeleton.getGlobalMatrix(), [0, 0, 1]);
-//        direction = vec3.multiply(direction, direction, [300, 200, -300]);
-//
-//        var eye = vec3.create();
-//        vec3.add(eye, pos, direction);
-//        vec3.add(eye, eye, [0, 100, 0]);
-//
-//        var final_cam_pos = vec3.fromValues(pos[0] - 300, 200, pos[2] + 300);
-//        var final_cam_target = vec3.fromValues(pos[0], 120, pos[2]);
-//
-//        vec3.lerp(final_cam_pos, GFX.camera.position, final_cam_pos, 0.2);
-//        vec3.lerp(final_cam_target, GFX.camera.target, final_cam_target, 0.2);
-//
-//
-//        GFX.camera.lookAt(
-//            final_cam_pos, final_cam_target, [0, 1, 0]);
     },
 
-    createEnviroment: function() {
-        var cube = new RD.SceneNode();
-        cube.mesh = "cube";
-        cube.shader = "phong";
-        cube.color = [1, 1, 1, 1];
-        cube.scale([50, 500, 50]);
-        cube.position = [700, 500 / 2, -500];
-        GFX.scene.root.addChild(cube);
-    },
+	orbitCamera: function(yaw, pitch)
+	{
+		var camera = GFX.camera;
+		var problem_angle = vec3.dot( camera.getFront(), camera.up );
+		
+		var center = camera._target;
+		var right = camera.getLocalVector(LS.RIGHT);
+		var up = camera.up;
+		//var eye = window.destination_eye;
+
+		if(window.destination_eye === undefined)
+			window.destination_eye = vec3.fromValues(camera.position[0], camera.position[1], camera.position[2]);
+		
+		var dist = vec3.sub( vec3.create(), window.destination_eye, center );
+		//yaw
+		var R = quat.fromAxisAngle( up, -yaw );
+		vec3.transformQuat( dist, dist, R );
+
+		if( !(problem_angle > 0.99 && pitch > 0 || problem_angle < -0.99 && pitch < 0)) 
+				quat.setAxisAngle( R, right, pitch );
+		vec3.transformQuat(dist, dist, R );
+
+		vec3.add(window.destination_eye, dist, center);
+		//window.destination_eye = eye;
+		camera._must_update_matrix = true;
+	},
 
     rotateVector: function(matrix, v) {
         var mat = mat4.clone(matrix);
@@ -406,30 +656,6 @@ var GFX = {
         return result;
     },
 
-    orientCharacter: function(sk_container) {
-        console.log(head);
-        var vect = vec3.create();
-        vect = vec3.subtract(vect, head.getGlobalPosition(), target);
-        vect = vec3.normalize(vect, vect);
-
-        var front = GFX.rotateVector(head._global_matrix, RD.BACK)
-
-        var dot = vec3.dot(front, vect)
-        var degree = 1 - dot;
-
-        var axis = vec3.create();
-        axis = vec3.cross(axis, vect, front);
-        var inverse_mat = mat4.create();
-        inverse_mat = mat4.invert(inverse_mat, head._global_matrix);
-        axis = GFX.rotateVector(inverse_mat, axis);
-
-        //rotate de gl-matrix es el rotateLocal
-        var result_mat = mat4.create();
-        result_mat = mat4.rotate(result_mat, head._global_matrix, degree, axis)
-
-        head.fromMatrix(result_mat);
-    },
-
     testCollision: function(x, y) {
         var result = vec3.create();
         var ray = GFX.camera.getRay(x, y);
@@ -441,7 +667,7 @@ var GFX = {
     getElementFromTestCollision: function(x, y, type) {
         var result = vec3.create();
         var ray = GFX.camera.getRay(x, y);
-        return GFX.testRayWithSpheres(ray, 70, type);
+        return GFX.testRayWithSpheres(ray, 60, type);
     },
 
     testRayWithSpheres: function(ray, radius, type) {
@@ -452,8 +678,8 @@ var GFX = {
             // console.log(agents);
             for (var i in agents) {
                 var agent = agents[i];
-                var center = agent.skeleton.skeleton_container.getGlobalPosition();
-                center[1] = 100;
+                var center = agent.scene_node.getGlobalPosition();
+                center[1] = 112;
                 var collision = ray.testSphere(center, radius, 10000);
                 // console.log(collision);
     
@@ -471,10 +697,10 @@ var GFX = {
             {   
                 var type_ = i;
                 var type_list = interest_points[i];
-                for(var j in type_list)
+                for(var j in type_list) 
                 {
                     var ip = type_list[j];
-                    var position = ip.pos;
+                    var position = ip.position;
                     var collision = ray.testSphere(position, 40, 10000);
                     if(collision)
                         return {ip:ip,ip_type:type_};
@@ -482,5 +708,105 @@ var GFX = {
                 }
             }
         }
-    }
+    },
+
+	generateCircleVertices : function(num_vertices, radius)
+	{
+		var vertices = [];
+		var points = [];
+		var segmentWidth = Math.PI * 2 / num_vertices;
+		var angle = 0;
+		var x = 0;
+		var y = 1;
+		var z = 0;
+		var init_pos = vec3.create();
+		var end_pos = vec3.create();
+
+		for(var i = 0; i < num_vertices; ++i)
+		{
+//			init_pos = vec3.fromValues(x, y, z);
+
+//			if(i == 0)
+//			{
+//				init_pos = vec3.fromValues(x, y, z);
+//				points.push(init_pos);
+//			}
+//			points.push(init_pos);
+
+			x = Math.cos(angle)*radius;
+			z = Math.sin(angle)*radius;
+
+			end_pos  = vec3.fromValues(x, y, z);
+			angle -= segmentWidth;
+			
+			points.push(end_pos);
+
+			if(i == num_vertices-1)
+			{
+				var initpos = points[0];
+				points.push(initpos);
+			}
+		}
+
+		for(var j = 0; j < (points.length); ++j){
+
+			vertices.push(points[j][0], points[j][1], points[j][2]);
+//			vertices.push(points[j+1][0], points[j+1][1], points[j+1][2]);
+		}
+			
+		
+		return vertices;
+
+	}, 
+
+	createSelectionCircles:function(vertices_)
+	{
+		this.helper_mesh = GL.Mesh.load({ vertices: vertices_ });
+		GFX.renderer.meshes["circle"] = this.helper_mesh;
+
+		this.circle_node = new RD.SceneNode();
+		this.circle_node.mesh = "circle";
+		this.circle_node.name = "circle";
+		this.circle_node.color = [255/255, 255/255, 255/255,0.9];
+		this.circle_node.primitive = GL.LINE_STRIP;
+		this.circle_node.visible = false;
+		this.scene.root.addChild(this.circle_node);
+
+		this.circle_node2 = new RD.SceneNode();
+		this.circle_node2.mesh = "circle";
+		this.circle_node2.name = "circle2";
+		this.circle_node2.color = [255/255, 255/255, 255/255,0.9];
+		this.circle_node2.primitive = GL.LINE_STRIP;
+//		this.circle_node2.position = [10,10,10];
+		this.circle_node.addChild(this.circle_node2);
+	}, 
+
+	createAddHelperCircles:function(vertices_)
+	{
+		this.helper_mesh = GL.Mesh.load({ vertices: vertices_ });
+		GFX.renderer.meshes["circle"] = this.helper_mesh;
+
+		this.pointer_helper = new RD.SceneNode();
+		this.pointer_helper.mesh = "circle";
+		this.pointer_helper.name = "helper_pointer";
+		this.pointer_helper.color = [255/255, 255/255, 255/255,0.9];
+		this.pointer_helper.primitive = GL.LINE_STRIP;
+		this.pointer_helper.visible = false;
+		this.pointer_helper.position = [0,0,0];
+		this.scene.root.addChild(this.pointer_helper);
+
+//		this.circle_node2 = new RD.SceneNode();
+//		this.circle_node2.mesh = "circle";
+//		this.circle_node2.name = "circle2";
+//		this.circle_node2.color = [255/255, 255/255, 255/255,0.9];
+//		this.circle_node2.primitive = GL.LINE_STRIP;
+////		this.circle_node2.position = [10,10,10];
+//		this.circle_node.addChild(this.circle_node2);
+	}, 
+	
+	animateSelectionCircles : function( now )
+	{
+		GFX.circle_node.scaling = 0.9 + Math.sin(now*0.003)*0.1;
+		GFX.circle_node2.scaling = 1.11 + Math.sin(now*0.003)*0.08;
+	}
 }

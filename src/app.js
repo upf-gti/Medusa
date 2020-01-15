@@ -75,7 +75,7 @@ async function load(url) {
 }
 
 
-request("src/config.json")
+/*request("src/config.json")
     .then(response => window.config = Object.assign({}, response.data))
     .then(config => {
         CORE.config = config;
@@ -84,7 +84,7 @@ request("src/config.json")
                 console.log("resources loaded:", f);
                 CORE.init();
             });
-    });
+    });*/
 
 let count = 0;
 var CORE = {

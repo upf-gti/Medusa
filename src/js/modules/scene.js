@@ -6,29 +6,370 @@ class Scene{
 
     preInit(){
         
-        CORE.GUI.menu.add("Scene/· Scene Properties",{ 
-            callback:( ()=>{ 
-                this.toggleSceneProperties()
-            }).bind(this) 
-        });       
+//        CORE.GUI.menu.add("Scene/· Scene Properties",{ 
+//            callback:( ()=>{ 
+////				console.log("GV");
+//                this.toggleSceneProperties()
+//            }).bind(this) 
+//        });       
     }
 
     init(){
         this.zones = {};
         window.blackboard = this.addZone("zone1" ,new Blackboard());
         this.properties.interest_points = {}; 
-        this.behaviors = gen_behaviors;
+        this.behaviors = {};
+
+		for(var k in gen_behaviors)
+			this.behaviors[k] = JSON.parse(gen_behaviors[k]);
+
+//        this.behaviors = gen_behaviors;
+
+		this.ip_setups = ip_setups;
 		this.initial_behaviour = init_behaviour;
 		this.bprops = this.zones["zone1"].bbvariables;
-        CORE.GUI.menu.add("Tools/· Create/· New Interest Point", function(){ CORE.Scene.addInterestPoint();} );
+        CORE.GUI.menu.add("Tools/· Create/· Interest Point", function(){ CORE.Scene.addInterestPoint();} );
+
+		this.createAnimationsInspector();
+		this.createActionsInspector();
+		this.createSceneInspector();
+		this.createAgentInspector();
+		
     }
-    
+    createSceneInspector()
+	{
+		var inspector = this.inspector = new LiteGUI.Inspector();
+		var zones = this.zones;
+
+		/**
+		 * SUPER TODO
+		 */
+		inspector.widgets_per_row = 2;
+		inspector.on_refresh = function()
+		{
+			var delete_html = '<img src="https://webglstudio.org/latest/imgs/mini-icon-trash.png" alt="W3Schools.com">'
+
+			inspector.clear();
+			inspector.addSection("Scene properties");
+			for(let z in zones)
+			{
+				// inspector.addTitle(z);
+//				inspector.addSeparator();
+				inspector.widgets_per_row = 2;
+				for(let p in zones[z].bbvariables)
+				{
+					var key = zones[z].bbvariables[p];
+					var widget = null;
+					var pretitle = "<span title='Drag " + key + "' class='keyframe_icon'></span>";
+					switch(zones[z][key].constructor.name)
+					{
+						case "Number": {
+							widget = inspector.addSlider(key, zones[z][key], { pretitle:pretitle, min:0, max:100, width:"calc(100% - 45px)", key: key, callback: function(v){ zones[z][this.options.key] = v } });
+							inspector.addButton(null, delete_html, { width:40, callback: e => {
+								console.log(p);
+								CORE.Scene.deletePropertyFromBlackboard(key, z );
+							}});
+						} break;
+						case "String": {
+							widget = inspector.addString(key, zones[z][key], { pretitle:pretitle, width:"calc(100% - 45px)",key: key, callback: function(v){ zones[z][this.options.key] = v } }); 
+							inspector.addButton(null, delete_html, { width:40, callback: e => {
+								console.log(p);
+								CORE.Scene.deletePropertyFromBlackboard(key, z );
+							}});
+						} break;
+					}
+
+					if(!widget) continue;
+//					widget.classList.add("draggable-item");
+					var icon = widget.querySelector(".keyframe_icon");
+					if(icon){
+						icon.addEventListener("dragstart", function(a)
+						{  
+							a.dataTransfer.setData("type", "HBTProperty" );
+							a.dataTransfer.setData("name", a.srcElement.parentElement.title );
+						});
+						icon.setAttribute("draggable", true);
+					}
+				}
+				inspector.addSeparator();
+				inspector.widgets_per_row = 3;
+
+				var _k,_v,_z;
+				_z = JSON.parse(JSON.stringify(z));
+				inspector.addString(null, "",  { width:"50%", placeHolder:"param name",  callback: v => _k = v });
+				inspector.addString(null, "",  { width:"calc(50% - 45px)", placeHolder:"value",       callback: v => _v = v });
+				inspector.addButton(null, "+", { zone: z, width:40, callback: function(e)
+				{
+				if(!_k || !_v)return;
+					try{  _v = JSON.parse('{ "v":'+_v+'}').v; }catch(e){ }
+					zones[this.options.zone].bbvariables.push(_k.toLowerCase()); 
+					zones[this.options.zone][_k.toLowerCase()] = _v;
+					inspector.refresh(); 
+				}});
+
+				inspector.widgets_per_row = 1;
+				
+			}
+			inspector.endCurrentSection();
+		}
+
+		GraphManager.inspector_area.add(inspector);
+		inspector.refresh();
+	
+	}
+
+	createAnimationsInspector()
+	{
+
+		this.locomotions = this.locomotions || {
+			"Idle" : {name:"Idle", anims:[{anim:"idle",weight: 1}], motion:0, speed:0.5},
+			"Walking" : {name:"Walking",  anims:[{anim:"walking",weight: 1}], motion:2.6, speed:1},
+			"Walking Texting" : {name:"Walking_Texting",  anims:[{anim:"walking_texting",weight: 1}], motion:2.6, speed:1},
+			"Running" : {name:"Running", anims:[{anim:"running",weight: 1}] , motion:6.2, speed:1},
+			"Running Slow" : {name:"RunningSlow", anims:[{anim:"runningslow",weight: 1}], motion:0, speed:1},
+			"Running Fast" : {name:"RunningMax", anims:[{anim:"runningmax",weight: 1}], motion:7.0, speed:1},
+		};
+	
+		var inspector = this.anim_inspector = new LiteGUI.Inspector({className:"animator", height:"auto"}),
+			properties = this.locomotions,
+			uid = this.uid;
+
+		inspector.on_refresh = function(){
+			inspector.clear();
+			inspector.addSection("HBT Cycles");
+			for( let p in properties )
+			{
+				let widget = null;
+				var pretitle = "<span title='Drag " + p + "' class='keyframe_icon'></span>";
+				switch(properties[p].name.constructor.name)
+				{
+					case "String" : widget = inspector.addInfo( p, null, { pretitle: pretitle, name_width:"100%", key: p, callback: function(v){ properties[ this.options.key ] = v;  } });    break;
+				}
+				if(!widget) continue;
+				
+				var icon = widget.querySelector(".keyframe_icon");
+				if(icon)
+				{
+					icon.addEventListener("dragstart", function(a)
+					{  
+						// console.log(a);
+						var obj = properties[p];
+						obj.filename = properties[p].name;
+						obj = JSON.stringify(obj);
+						a.dataTransfer.setData("obj", obj);
+						a.dataTransfer.setData("type", "cycle"); 
+					});
+					icon.setAttribute("draggable", true);
+				}
+			}
+			inspector.endCurrentSection();
+		};
+		GraphManager.inspector_area.add(inspector);
+		inspector.refresh();
+	}
+
+	createActionsInspector()
+	{
+
+		this.actions = this.actions || {
+			"Gesture" : {name:"Gesture", anims:[{anim:"gesture",weight: 1}], speed:0.5},
+//			"Jump" : {name:"Jump",  anims:[{anim:"jump",weight: 1}], speed:1},
+//			"Pick" : {name:"Pick",  anims:[{anim:"pick",weight: 1}], speed:1},	
+		};
+	
+		var inspector = this.actions_inspector = new LiteGUI.Inspector({className:"animator", height:"auto"}),
+			properties = this.actions,
+			uid = this.uid;
+
+		inspector.on_refresh = function(){
+			inspector.clear();
+			inspector.addSection("HBT Actions");
+			for( let p in properties )
+			{
+				let widget = null;
+				var pretitle = "<span title='Drag " + p + "' class='keyframe_icon'></span>";
+				switch(properties[p].name.constructor.name)
+				{
+					case "String" : widget = inspector.addInfo( p, null, { pretitle: pretitle, name_width:"100%", key: p, callback: function(v){ properties[ this.options.key ] = v;  } });    break;
+				}
+				if(!widget) continue;
+				
+				var icon = widget.querySelector(".keyframe_icon");
+				if(icon){
+					icon.addEventListener("dragstart", function(a)
+					{  
+						// console.log(a);
+						var obj = properties[p];
+						obj.filename = properties[p].name;
+						obj = JSON.stringify(obj);
+						a.dataTransfer.setData("obj", obj);
+						a.dataTransfer.setData("type", "action"); 
+					});
+					icon.setAttribute("draggable", true);
+				}
+			}
+			inspector.endCurrentSection();
+		};
+		GraphManager.inspector_area.add(inspector);
+		inspector.refresh();
+	}
+
+	createAgentInspector()
+	{
+		var inspector = this.agent_inspector = new LiteGUI.Inspector();
+                
+		inspector.on_refresh = function()
+		{
+			var delete_html = '<img src="https://webglstudio.org/latest/imgs/mini-icon-trash.png" alt="W3Schools.com">'
+			inspector.clear();
+			inspector.addSection("Agent properties");
+			if(!agent_selected)
+			{
+				inspector.addInfo("No agent selected", null, {name_width:"80%"});
+			}
+			else
+			{
+				var properties = agent_selected.properties;
+				var uid = agent_selected.uid;
+				inspector.widgets_per_row = 2;
+				for(let p in properties)
+				{
+					let widget = null;
+					if(properties[p] == null) continue;
+					var pretitle = "<span title='Drag " + p + "' class='keyframe_icon'></span>";
+					switch(properties[p].constructor.name)
+					{
+						case "Number" : {
+							widget = inspector.addNumber( p, properties[p], { pretitle: pretitle, key: p, step:1, width:"calc(100% - 45px)", callback: function(v){ properties[this.options.key] = v } } ); 
+							inspector.addButton(null, delete_html, { width:40, name_width:"0%",callback: e => {
+								console.log(p);
+								AgentManager.deleteProperty(p, properties[p].constructor.name );
+
+							}});
+							} break;
+						case "String" : 
+						{ 
+							if(properties[p] == "true" || properties[p] == "false" )
+							{
+								var value = true;
+								if(properties[p] == "false")
+									value = false;
+								widget = inspector.addCheckbox( p, value, { pretitle: pretitle, key: p, width:"calc(100% - 45px)",callback: function(v){ properties[this.options.key] = v } } );    
+								inspector.addButton(null, delete_html, {  width:40, name_width:"0%",callback: e => {
+									console.log(p);
+									AgentManager.deleteProperty(p, properties[p].constructor.name );
+								}});
+							}
+							else{
+								widget = inspector.addString( p, properties[p], { pretitle: pretitle, key: p, width:"calc(100% - 45px)",callback: function(v){ 
+
+									//Updates name reference in menu
+									if(this.options.key == "name"){
+										dialog.root.querySelector(".panel-header").innerText = "Agent: "+v;
+										CORE.GUI.menu.findMenu( "Agent/"+properties[this.options.key]).name = v;
+									}
+									properties[this.options.key] = v;
+	
+								}});   
+								inspector.addButton(null, delete_html, {  width:40, name_width:"0%",callback: e => {
+									if(p == "name")
+										return;
+									console.log(p);
+									AgentManager.deleteProperty(p, properties[p].constructor.name );
+								}});
+							}
+
+							
+						}break;
+						case "Boolean": 
+						{	
+							widget = inspector.addCheckbox( p, properties[p], { pretitle: pretitle, key: p, width:"calc(100% - 45px)",callback: function(v){ properties[this.options.key] = v } } );    
+							inspector.addButton(null, delete_html, {  width:40, name_width:"0%",callback: e => {
+								console.log(p);
+								AgentManager.deleteProperty(p, properties[p].constructor.name );
+							}});
+						} break;
+						
+						case "Array":
+						case "Float32Array": 
+							if(p == "position")
+								widget = inspector.addVector3(p, properties[p], { pretitle: pretitle, key: p, width:"100%", callback: function(v){ 
+									properties[this.options.key] = v;
+									agent_selected.scene_node.position = v;
+								} }); 
+							break;
+						default:    
+						// debugger;   
+							// console.warn( "parameter type from parameter "+p+" in agent "+ uid + " was not recognised");
+					}
+
+
+					if(!widget) continue;
+//					widget.classList.add("draggable-item");
+
+					var icon = widget.querySelector(".keyframe_icon");
+					if(icon){
+						icon.addEventListener("dragstart", function(a)
+						{  
+							a.dataTransfer.setData("type", "HBTProperty" );
+							a.dataTransfer.setData("name", a.srcElement.parentElement.title );
+						});
+						icon.setAttribute("draggable", true);
+					}
+
+				}
+
+				inspector.addSeparator();
+				inspector.widgets_per_row = 3;
+
+				var _k,_v;
+				inspector.addString(null, "",  { width:"50%", placeHolder:"param name",  callback: v => _k = v });
+				inspector.addString(null, "",  { width:"calc(50% - 45px)", placeHolder:"value",       callback: v => _v = v });
+				inspector.addButton(null, "+", { width:40, callback: e => {
+					if(!_k || !_v) 
+						return;
+					try{ 
+						_v = JSON.parse('{ "v":'+_v+'}').v;
+					}catch(e){
+						//if fails it was a string, so leave it as the string it was.
+					}
+					properties[_k] = _v; 
+
+					inspector.refresh(); 
+				}});
+
+				inspector.widgets_per_row = 1;
+				inspector.addSeparator();
+				var graphs = hbt_context.getGraphNames();
+				inspector.addSection("Agent settings");
+				inspector.addCombo("Graph", graphs[0], {values:graphs, callback:function(v){
+					agent_selected.hbtgraph = v;
+					CORE.GraphManager.putGraphOnEditor(v);
+					CORE.GraphManager.top_inspector.refresh();
+				}});
+				inspector.addColor("Agent color", agent_selected.scene_node.color, { callback:function(v){
+					agent_selected.scene_node.color = v;
+				}});
+			}
+			
+		}
+
+		GraphManager.inspector_area.add(inspector);
+		inspector.refresh();
+	}
+	
+	sceneFromJSON(data)
+	{
+		if(data && data.scene)
+			CORE.Scene.loadScene(data.scene);
+	}
+
     loadScene( o )
     {   
         this.properties = o; 
         this.visualizeInterestPoints();
     }
-
+	
     loadAgent( o )
     {
         new Agent(o);
@@ -99,7 +440,7 @@ class Scene{
                         zones[this.options.zone][_k.toLowerCase()] = _v;
                         inspector.refresh(); 
                     }});
-    
+   
                     inspector.widgets_per_row = 1;
                     
                 }
@@ -149,7 +490,6 @@ class Scene{
             }});
 
 
-            // ip_inspector.addSeparator();
 			if(Object.keys(AgentManager.agents).length > 0)
 			{
 				ip_inspector.addTitle("Agent Properties");
@@ -223,7 +563,7 @@ class Scene{
                 console.log(bb_properties);
                 console.log(a_properties);
                 var interest_point = {};
-                interest_point.pos = node.position;
+                interest_point.position = node.position;
                 interest_point.name = node.name;
                 interest_point.id = node.id;
                 interest_point.a_properties = a_properties;
@@ -344,8 +684,14 @@ class Scene{
                 {
                     for (var key in ip_a_props) 
                         if (ip_a_props.hasOwnProperty(key)) 
-                            agent.properties[key] = ip_a_props[key]; 
-                        
+						{	
+							if(ip_a_props[key] != agent.properties[key])
+							{						
+	                            agent.properties[key] = ip_a_props[key]; 
+								CORE.Scene.agent_inspector.refresh();
+							}
+
+                        }
                     
                     for (var key in ip_bb_props) 
                         if (ip_bb_props.hasOwnProperty(key)) 
@@ -354,7 +700,6 @@ class Scene{
                 }
             }
         }
-        agent.inspector.refresh();
     }
 
     visualizeInterestPoints()
@@ -371,8 +716,8 @@ class Scene{
                 node.shader = "phong";
                 node.mesh = "sphere";
                 node.name = ip.name;
-                node.position = ip.pos;
-                node.scale(40,40,40);
+                node.position = ip.position;
+                node.scale(20,20,20);
                 node.render_priority = 1;
                 GFX.scene.root.addChild(node);
             }
@@ -411,15 +756,19 @@ class Scene{
             data.path = [{id:1,pos:[1300,0,0],visited:false},{id:2,pos: [0,0,1000],visited:false} ,{id:3,pos: [-1300,0,0],visited:false}];
             data.position = [500 + Math.floor(Math.random()*7000), 0, -7000 + Math.floor(Math.random()*5000)];
 
-            properties.name=  "Billy-" + guidGenerator();
+            properties.name=  "Jim-" + guidGenerator();
 			properties.happiness = Math.random() * 200 - 100;
 			properties.energy = 0;
 			properties.relax = 0;
+            properties.happiness = Math.random() * (max_age - min_age) + min_age;
+            properties.energy = Math.random() * (max_age - min_age) + min_age;
+            properties.relax = Math.random() * (max_age - min_age) + min_age;
             properties.age = Math.random() * (max_age - min_age) + min_age;
             properties.hurry = Math.random() * (max_age - min_age) + min_age;
             properties.money = Math.random() * (max_age - min_age) + min_age;
-            properties.hungry = Boolean(Math.round(Math.random()));
+            properties.hungry = Math.random() * 100;
             properties.umbrella = Boolean(Math.round(Math.random()));
+            properties.gun = Boolean(Math.round(Math.random()));
             properties.look_at_pos = [0,0,10000];
 
             data.properties = properties;
@@ -427,7 +776,49 @@ class Scene{
             var agent = new Agent(data);
         }
     }
+	
+	populateStaticGroup( position, num_agents, shape, orientation, size, max_age, min_age )
+	{
+		console.log(position);
+		for(var i = 0; i < num_agents; i++)
+        {
+            var data = {};
+            var properties = {};
+            data.uid = LS.generateUId('agent');  
 
+            data.btree = null;
+            data.blackboard = blackboard;
+            data.path = [{id:1,pos:[1300,0,0],visited:false},{id:2,pos: [0,0,1000],visited:false} ,{id:3,pos: [-1300,0,0],visited:false}];
+            data.position = [ position[0] -size/2 + Math.floor(Math.random()*size), 0, position[2] -size/2 + Math.floor(Math.random()*size)];
+
+            properties.name=  "Jim-" + guidGenerator();
+
+            properties.happiness = Math.random() * 100;
+            properties.energy = Math.random() * 100;
+            properties.relax = Math.random() * 100;
+            properties.age = Math.random() * (max_age - min_age) + min_age;
+            properties.strength = Math.random() * 100;
+            properties.hurry = Math.random() * 100;
+            properties.money = Math.random() * 100;
+            properties.hungry = Math.random() * 100;
+            properties.health = Math.random() * 100;
+            properties.umbrella = Boolean(Math.round(Math.random()));
+            properties.gun = Boolean(Math.round(Math.random()));
+            properties.look_at_pos = [0,0,10000];
+            data.properties = properties;
+
+            var agent = new Agent(data);
+			console.log(agent);
+			if(orientation == "Center")
+			{
+				var tmpMat4 = mat4.create(), tmpQuat = quat.create();
+				mat4.lookAt(tmpMat4, position, agent.scene_node.getGlobalPosition(), [0,1,0]);
+				quat.fromMat4(tmpQuat, tmpMat4);
+				agent.scene_node._rotation = tmpQuat;
+				agent.scene_node.updateMatrices();
+			}
+        }
+	}
     restartScenario()
     {
         for(var c in AgentManager.agents)
@@ -438,11 +829,53 @@ class Scene{
             agent.skeleton.skeleton_container.updateMatrices();
             agent.bt_info.running_node_index = null;
         }
-    }
+    } 
+
+	deletePropertyFromBlackboard(property_name, zone)
+	{
+		delete CORE.Scene.zones[zone][property_name];
+		for (var i in CORE.Scene.bprops)
+		{
+			var prop = CORE.Scene.bprops[i]; 
+			if( prop == property_name)
+			{
+				var index = CORE.Scene.bprops.indexOf(prop);
+				if (index > -1) 
+					CORE.Scene.bprops.splice(index, 1);
+								
+			}
+		}
+		CORE.Scene.inspector.refresh();
+	}
+
+	exportScenario( filename )
+	{
+		var scene_obj = {};
+		scene_obj.scene = CORE.Scene.properties;
+		console.log(scene_obj);
+		return scene_obj;
+	}
+
+	downloadJSON(data, name)
+	{
+		var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+		var downloadAnchorNode = document.createElement('a');
+		var filename = name || "data";
+		downloadAnchorNode.setAttribute("href",     dataStr);
+		downloadAnchorNode.setAttribute("download", filename + ".json");
+		document.body.appendChild(downloadAnchorNode); // required for firefox
+		downloadAnchorNode.click();
+		downloadAnchorNode.remove();	
+	}
+
+	importProjectFromLocalStorage()
+	{
+		
+	}
 
     // getCanvasImage()
     // {
-    //     var canvas = node_editor.graph_canvas.canvas;
+    //     var canvas = hbt_editor.graph_canvas.canvas;
     //     var image = canvas.toDataURL("image/png");
 
     //     var aLink = document.createElement('a');

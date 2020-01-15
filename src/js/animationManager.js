@@ -20,15 +20,17 @@ AnimationManager.prototype._ctor = function()
 
 AnimationManager.prototype.loadAnimation = function(path)
 {
-    if(path)
-    {
-        var that = this;
-        Collada.load( path, function(file){
-            var file = file
-            var anim_name = path;
-            that.onParsed(path, file, anim_name);
-        } );
-    }
+	if(!path) return;
+
+	var anim = new SkeletalAnimation();
+	HttpRequest(path, null, function(data) {
+		anim.fromData(data);
+	});
+	var filename = path.split("/")[1];
+	filename = filename.split(".")[0];
+	anim.name = filename;
+	this.animations[filename] = anim;
+
 }
 AnimationManager.prototype.loadAnimations = function(animations)
 {
@@ -57,25 +59,25 @@ AnimationManager.prototype.onParsed = function(path, file, anim_name)
   }
 }
 
-function SkeletalAnimation(name, animation)
-{
-  if(this.constructor !== SkeletalAnimation)
-	 throw("You must use new to create an SkeletalAnimation");
-    this._ctor();
-    if(name)
-        this.name = name;
-    if(animation)
-        this.animation = animation;
-}
-SkeletalAnimation.animations = {};
-
-SkeletalAnimation.prototype._ctor = function()
-{
-    this.name = null;
-    this.animation = null;
-    this.current_time = 0;
-    this.weight = 1;
-    this.target_weigth = 1;
-    this.speed = 1;
-    this.target_speed = 1;
-}
+//function SkeletalAnimation(name, animation)
+//{
+//  if(this.constructor !== SkeletalAnimation)
+//	 throw("You must use new to create an SkeletalAnimation");
+//    this._ctor();
+//    if(name)
+//        this.name = name;
+//    if(animation)
+//        this.animation = animation;
+//}
+//SkeletalAnimation.animations = {};
+//
+//SkeletalAnimation.prototype._ctor = function()
+//{
+//    this.name = null;
+//    this.animation = null;
+//    this.current_time = 0;
+//    this.weight = 1;
+//    this.target_weigth = 1;
+//    this.speed = 1;
+//    this.target_speed = 1;
+//}

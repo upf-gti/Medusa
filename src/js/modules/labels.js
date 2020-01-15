@@ -66,9 +66,9 @@ class Labels {
             for(let i in agents_list)
             {
                 let agent = agents_list[i];
-                if(!agent.skeleton.skeleton_container) 
+                if(!agent.scene_node) 
                     continue;
-                var position = agent.skeleton.skeleton_container.getGlobalPosition(false, true);
+                var position = agent.scene_node.getGlobalPosition(false, true);
                 var name = agent.properties.name || agent.id;
                 this.drawLabel(ctx, position, name)
             }
@@ -80,11 +80,11 @@ class Labels {
                 for(let h in interest_p_type)
                 {
                     let interest_p = interest_p_type[h];
-                    if(!interest_p.pos) 
+                    if(!interest_p.position) 
                         continue;
 
                     var name = interest_p.name || interest_p.id;
-                    this.drawLabel(ctx, interest_p.pos, name);
+                    this.drawLabel(ctx, interest_p.position, name);
                 }
             }
     }

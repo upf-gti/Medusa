@@ -210,6 +210,23 @@ PoseStylizer.prototype.applySpineStyle = function(skeleton, base_anim, k)
     node.updateMatrices();
 }
 
+PoseStylizer.prototype.stylizeSpine = function(array_of_bones, bones_by_name)
+{
+    //we get the matrices for the bones we want to modify
+    var index_spine = bones_by_name.get("mixamorig_Spine");
+    var spine = array_of_bones.subarray(index_spine*16, index_spine*16 + 16 );
+
+    var index_spine1 = bones_by_name.get("mixamorig_Spine1");
+    var spine = array_of_bones.subarray(index_spine1*16, index_spine1*16 + 16 );
+    
+    var index_spine2 = bones_by_name.get("mixamorig_Spine2");
+    var spine = array_of_bones.subarray(index_spine2*16, index_spine2*16 + 16 );
+
+    var index_neck = bones_by_name.get("mixamorig_Neck");
+    var spine = array_of_bones.subarray(index_neck*16, index_neck*16 + 16 );
+
+}
+
 PoseStylizer.prototype.applyArmsStyle = function(skeleton, base_anim, k)
 {
     /*Loop on the skeleton and if it is not a arm/forearm joint continue */
