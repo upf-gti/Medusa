@@ -7,3 +7,10 @@ The application can be tested on this [link](https://webglstudio.org/users/dmore
 Also it is not perfectly improved, so the performance can be damaged if the number of agents increases. 
 
 Video tutorial and web site documentation coming... 
+
+# HBTree.js
+Library implemented and used to generate and evaluate the Hybrid Behaviour Trees. This library is absed on LiteGraph.js.
+
+# Tool interface
+
+![Medusa](https://webglstudio.org/users/dmoreno/projects/assets/Interface.PNG)
