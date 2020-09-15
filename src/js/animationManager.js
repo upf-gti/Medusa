@@ -26,7 +26,7 @@ AnimationManager.prototype.loadAnimation = function(path)
 	HttpRequest(path, null, function(data) {
 		anim.fromData(data);
 	});
-	var filename = path.split("/")[1];
+	var filename = path.split("/")[2];
 	filename = filename.split(".")[0];
 	anim.name = filename;
 	this.animations[filename] = anim;
@@ -55,7 +55,6 @@ AnimationManager.prototype.onParsed = function(path, file, anim_name)
     // var skeletal_animation = new SkeletalAnimation(name, animation);
     this.animations[name] = animation;
     this.animations_names.push(name);
-    //animator.animations.push(animation);
   }
 }
 

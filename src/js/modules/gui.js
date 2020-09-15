@@ -3,23 +3,39 @@
 class GUI{
     constructor(){
        
-        LiteGUI.init();
-        var main_area = this.root = new LiteGUI.Area({id:"main-area"});
-        LiteGUI.add(main_area);
-        main_area.split("vertical",["0px", null] );
 
-        var menu = this.menu = new LiteGUI.Menubar("menu");
-        this.menu.panel = main_area.getSection(0);
-        this.menu.panel.content.parentElement.id = "menu-panel";
-        this.node_info_dlg = null;
-        this.node_info_insp= null;
-        main_area.getSection(0).add(menu);
-
-
-        this.root = main_area.getSection(1);
     }
 	preInit()
 	{
+        LiteGUI.init();
+        var main_area = this.root = new LiteGUI.Area({id:"main-area"});
+        LiteGUI.add(main_area);
+        //split into right and left
+        main_area.split("horizontal",[null, "60%"], true );
+        this.left_area = main_area.getSection(0);
+        this.right_area = main_area.getSection(1);
+
+        //menu & 3D scene
+        this.left_area.split("vertical", ["31px", null]);
+        this.menu_area = this.left_area.getSection(0);
+        this.player_area = this.left_area.getSection(1);
+
+        //graph & inspector
+        this.right_area.split("horizontal",["75%", null], true );
+        this.graph_area = this.right_area.getSection(0);
+        this.inspector_area = this.right_area.getSection(1);
+
+        //add menu
+        var menu = this.menu = new LiteGUI.Menubar("menu");
+        this.menu.panel = this.menu_area;
+        this.menu.panel.content.parentElement.id = "menu-panel";
+        this.menu_area.add(menu);
+
+
+        this.node_info_dlg = null;
+        this.node_info_insp= null;
+
+
 		CORE.GUI.menu.add("Scene/· Load Project", { 
             callback:( ()=>{ 
 //                CORE.Scene.loadProject();
@@ -324,9 +340,9 @@ class GUI{
         }
         var dlg = this.populate_static_dialog;
 		var shapes = ["Circle", "Scattered"];
-		var orientations = ["Random", "Center"];
-		window.g_pos = position;
-
+		var orientations = ["Random", "Center", "+Z", "-Z", "+X", "-X"];
+        window.g_pos = position;
+        
         if(!this.populate_static_inspector){
             var populate_static_inspector = this.populate_static_inspector = new LiteGUI.Inspector(),
                 populate_static_dialog = this.populate_static_dialog;
@@ -340,6 +356,11 @@ class GUI{
                 var size = 400;
 				var min_age = 5;
                 var max_age = 90;
+                var valence = 0;
+                var arousal = 0;
+                var behaviour = "by_default";
+                var behaviours = Object.keys(hbt_graphs);
+
 
                 populate_static_inspector.addSlider("Number of agents",10, {name_width:"40%", step:1, min:1, max:70, precision:0, callback:function(v)
                 {
@@ -363,17 +384,28 @@ class GUI{
                 {
                     max_age = v;
                 }}); 
-
-
+                populate_static_inspector.addSlider("Valence",0, {name_width:"40%", step:1, min:-100, max:100, precision:0, callback:function(v)
+                {
+                    valence = v;
+                }}); 
+                populate_static_inspector.addSlider("Arousal",0, {name_width:"40%", step:1, min:-100, max:100, precision:0, callback:function(v)
+                {
+                    arousal = v;
+                }}); 
+				populate_static_inspector.addCombo("Behaviour",behaviours[0], {values: behaviours, name_width:"40%", callback:function(v)
+                {
+                    behaviour = v;
+                }}); 
                 populate_static_inspector.addButton(null, "Add static group", {callback:function()
 				{
                     console.log(shape);
                     console.log(size);
                     console.log(orientation);
-			
-                    CORE.Scene.populateStaticGroup(window.g_pos, num_agents, shape, orientation, size, max_age, min_age); //dentro de la función rellenar los parametros de las propiedades, elegir paths, etc
+                    var data = {min_age_:min_age, max_age_:max_age, valence_:valence, arousal_:arousal, behaviour_:behaviour};
+                    console.log(data);
+                    CORE.Scene.populateStaticGroup(window.g_pos, num_agents, shape, orientation, size, data); //dentro de la función rellenar los parametros de las propiedades, elegir paths, etc
                     dlg.close();
-                }}) 
+                }});
 								
                 
                 dlg.adjustSize();
@@ -434,25 +466,56 @@ class GUI{
 		var title = "";
 		if(data.scene) title = "Import Interest Points";
 		else if(data.behaviour) title = "Import Behaviour";
-		var choice = LiteGUI.choice("", ["Import", "Cancel"], function(v){
-			if(v == "Import")
+		var choice = LiteGUI.choice("", [file ? "Import" : "Import All", "Cancel"], function(v){
+			if(v.includes("Import"))
 			{
-				if(file.name.split(".")[1] == "json")
-				{
-					if(data.behaviour)
-                        hbt_context.current_graph.graph.configure(data.behaviour);
-                        
-					if(data.scene)
-						CORE.Scene.loadScene(data.scene);
-				}
+                var k = file ? 1 : data.length;
+                for(let i = 0; i < k; i++)
+                {
+                    var filename = file ? file.name : data[i].file.name;
+                    var e_data = file ? data : data[i].data;
+                    if(filename.split(".")[1] == "json")
+                    {
+                        if(e_data.behaviour)
+                        {
+                            // current_graph.graph.configure(e_data.behaviour);
+                            debugger;
+                            var file_name = filename.split(".")[0]; 
+                            var new_hbtgraph = new HBTGraph(file_name);
+                            new_hbtgraph.graph.context = hbt_context;
+                            new_hbtgraph.graph.configure(e_data.behaviour);
+                            hbt_graphs[file_name] = new_hbtgraph;
+                        }
+                            
+                        if(e_data.scene)
+                        {
+                            CORE.Scene.loadScene(e_data.scene);
+                            // CORE.Scene.sceneFromJSON(e_data.scene);
+                            CORE.AgentManager.agentsFromJSON(e_data.agents);
+                            path_manager.pathsFromJSON(e_data.paths);
+                        }
+                    }
+                }
+                CORE.GraphManager.top_inspector.refresh();
 			}
 			
 		}, { title: title});
 
 		var import_inspector = new LiteGUI.Inspector();
-		import_inspector.clear();
-		import_inspector.addInfo("Filename  ", file.name || file.filename, {name_width:"40%"});
-        import_inspector.addInfo("Size", file.size/1000 + " KB", {name_width:"40%"});
+        import_inspector.clear();
+        if(!file)
+        {
+            for(var j = 0; j<data.length; j++)
+            {
+                import_inspector.addInfo("Filename  ", data[j].file.name, {name_width:"40%"});
+                import_inspector.addInfo("Size", data[j].file.size/1000 + " KB", {name_width:"40%"});
+            }
+        }
+        else
+        {
+		    import_inspector.addInfo("Filename  ", file.name || file.filename, {name_width:"40%"});
+            import_inspector.addInfo("Size", file.size/1000 + " KB", {name_width:"40%"});
+        }
         
 		choice.content.prepend(import_inspector.root);
 	
@@ -496,9 +559,12 @@ class GUI{
 
     showOpenStreamDialog( status )
     {
+        /*Setup streamer*/
+        
+        
 		if(!this.stream_dialog){
             var stream_dialog = this.stream_dialog = new LiteGUI.Dialog( { id:"populate_scenario", title:'Stream Characters', close: true, minimize: false, width: 300, height: 30, scroll: false, resizable: false, draggable: true, parent:"body"});
-            this.stream_dialog.setPosition(document.body.clientWidth/2 - 150,200);
+            this.stream_dialog.setPosition(document.body.clientWidth/2 - 250,200);
 
         }
         var dlg = this.stream_dialog;
@@ -515,7 +581,15 @@ class GUI{
 		{
 			var IP = "localhost:5557";
 			var scale = 10;
-			var frame_rate = 30;
+            var frame_rate = 30;
+            var scale_in_z = false;
+            var scale_in_x = false;
+            var rotateX180 = false;
+            var rotateY180 = false;
+            var rotateZ180 = false;
+            var invertQuat = false;
+            var invertQuat = false;
+            var apply_character_rot = false;
 			that.stream_inspector.clear();
 		
 			if(s_status && s_status.connected == true)
@@ -525,8 +599,8 @@ class GUI{
 				that.stream_inspector.addInfo(text, null, {name_width:"100%"});
 				that.stream_inspector.addButton(null, "Stop", {callback:function(){
 
-					streamer.close();
-					
+					// streamer.close();
+					scene_transfer.close();
 					dlg.close();
 				}});
 			}
@@ -538,15 +612,51 @@ class GUI{
 					IP = v;
 				}});
 				
-				that.stream_inspector.addNumber("Scale 1/ ",scale, {name_width:"40%", step:100, min:1, max:1000, precision:0, callback:function(v)
+				that.stream_inspector.addCheckbox("Scale -1 in Z",scale_in_z, {name_width:"40%",  callback:function(v)
 				{
-					scale = v;
+                    streamer.configuration.scale_in_z = v;
+                    scale_in_z = v;
 				}});
-
-				that.stream_inspector.addNumber("Frame rate",frame_rate, {name_width:"40%", step:5, min:30, max:30, precision:0, callback:function(v)
+				that.stream_inspector.addCheckbox("Scale -1 in X",scale_in_x, {name_width:"40%",  callback:function(v)
 				{
-					streaming_fps = v;
+                    streamer.configuration.scale_in_x = v;
+                    scale_in_x = v;
 				}});
+				that.stream_inspector.addCheckbox("Rotate 180 in X",rotateX180, {name_width:"40%",  callback:function(v)
+				{
+                    streamer.configuration.rotateX180 = v;
+                    rotateX180 = v;
+				}});
+				that.stream_inspector.addCheckbox("Rotate 180 in Y",rotateY180, {name_width:"40%",  callback:function(v)
+				{
+                    streamer.configuration.rotateY180 = v;
+                    rotateY180 = v;
+				}});
+				that.stream_inspector.addCheckbox("Rotate 180 in Z",rotateZ180, {name_width:"40%",  callback:function(v)
+				{
+                    streamer.configuration.rotateZ180 = v;
+                    rotateZ180 = v;
+				}});
+				that.stream_inspector.addCheckbox("Invert quaternions",invertQuat, {name_width:"40%", callback:function(v)
+				{
+                    streamer.configuration.invertQuat = v;
+                    invertQuat = v;
+                }});
+				that.stream_inspector.addCheckbox("Apply character rot",invertQuat, {name_width:"40%", callback:function(v)
+				{
+                    streamer.configuration.apply_character_rot = v;
+                    apply_character_rot = v;
+                }});
+                
+                // that.stream_inspector.addNumber("Scale 1/ ",scale, {name_width:"40%", step:100, min:1, max:1000, precision:0, callback:function(v)
+                // {
+                // 	scale = v;
+                // }});
+                
+				// that.stream_inspector.addNumber("Frame rate",frame_rate, {name_width:"40%", step:5, min:30, max:30, precision:0, callback:function(v)
+				// {
+				// 	streaming_fps = v;
+				// }});
 
 
 				that.stream_inspector.addButton(null, "Connect", {callback:function(){
@@ -555,17 +665,21 @@ class GUI{
 					{
 						CORE.Player.showPopUpMessage("Websocket opened");
 //						CORE.GUI.showOpenStreamDialog({ip:url, connected:true});
-					}
+                    }
+                    scene_transfer = new SceneTransfer();
+                    scene_transfer.connect( IP, callback );
+                    streamer = scene_transfer.character_streamer;
 					console.log(IP);  
-					streamer = new CharacterStreamer();
-					streamer.onClose = function()
-					{
-						CORE.Player.showPopUpMessage("Websocket closed");
-						CORE.GUI.stream_dialog.close();
-					}
-					streamer.connect( IP, callback );
+                    //streamer = new CharacterStreamer();
+                    scene_transfer.onClose = function()
+                    {
+                        CORE.Player.showPopUpMessage("Websocket closed");
+                        CORE.GUI.stream_dialog.close();
+                    }
+                    streamer.configuration = {};
+					//streamer.connect( IP, callback );
 					$("#streaming-logo").fadeIn();
-					dlg.close();
+					//dlg.close();
 				}});
 			}
 			
@@ -576,7 +690,7 @@ class GUI{
 		this.stream_inspector.refresh();
 
         this.stream_dialog.show('fade');
-        this.stream_dialog.setPosition(document.body.clientWidth/4 - 50,10);
+        this.stream_dialog.setPosition(document.body.clientWidth/4 - 80,10);
 
     }
 
@@ -607,8 +721,11 @@ class GUI{
                 {
                     if(name)
                     {
-						var data = CORE.Scene.exportScenario(name);
-						CORE.Scene.downloadJSON(data, name);
+                        scenario = {};
+                        scenario["scene"] = CORE.Scene.exportScenario(name);
+                        scenario["agents"] = CORE.AgentManager.exportAgents();
+                        scenario["paths"] = path_manager.exportPaths();
+						CORE.Scene.downloadJSON(scenario, name);
                         dlg.close();	
                     }
                 }})
@@ -650,7 +767,7 @@ class GUI{
                     if(name)
                     {
                         console.log("Name", name);
-						var data = CORE.GraphManager.exportBehaviour(hbt_context.current_graph.graph);
+						var data = CORE.GraphManager.exportBehaviour(current_graph.graph);
 						CORE.Scene.downloadJSON(data, name);
                         dlg.close();
                     }

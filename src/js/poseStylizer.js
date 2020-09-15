@@ -60,7 +60,9 @@ PoseStylizer.prototype._ctor = function()
 	this.emotions_effectors = [];
 	this.happiness_effectors = null;
 	this.energy_effectors = null;
-	this.relax_effectors = null;
+    this.relax_effectors = null;
+    
+    this.tmp_mat = mat4.create();
 }
 /*
 * Interpret what an emotion represent to specific parts of the body
@@ -210,21 +212,80 @@ PoseStylizer.prototype.applySpineStyle = function(skeleton, base_anim, k)
     node.updateMatrices();
 }
 
-PoseStylizer.prototype.stylizeSpine = function(array_of_bones, bones_by_name)
+PoseStylizer.prototype.rotateBoneByAngle = function (array_of_bones,bones_by_name, name, f )
 {
-    //we get the matrices for the bones we want to modify
-    var index_spine = bones_by_name.get("mixamorig_Spine");
-    var spine = array_of_bones.subarray(index_spine*16, index_spine*16 + 16 );
+    var index_spine = bones_by_name.get(name);
+    var spine = array_of_bones[index_spine];
+    this.tmp_mat = mat4.create();
+    mat4.rotate(this.tmp_mat, spine.model, DEG2RAD*5* (-f), [1,0,0]);
+    mat4.copy(spine.model, this.tmp_mat);
+    mat4.identity(this.tmp_mat);
+}
 
-    var index_spine1 = bones_by_name.get("mixamorig_Spine1");
-    var spine = array_of_bones.subarray(index_spine1*16, index_spine1*16 + 16 );
-    
-    var index_spine2 = bones_by_name.get("mixamorig_Spine2");
-    var spine = array_of_bones.subarray(index_spine2*16, index_spine2*16 + 16 );
+PoseStylizer.prototype.stylizeSpine = function(array_of_bones, bones_by_name, f)
+{
+    this.rotateBoneByAngle(array_of_bones, bones_by_name, "mixamorig_Spine", f/50);
+    this.rotateBoneByAngle(array_of_bones, bones_by_name, "mixamorig_Spine1", f/100);
+    this.rotateBoneByAngle(array_of_bones, bones_by_name, "mixamorig_Spine2", f/100);
+    this.rotateBoneByAngle(array_of_bones, bones_by_name, "mixamorig_Neck", f/100);
+    this.rotateBoneByAngle(array_of_bones, bones_by_name, "mixamorig_Head", f/75);
+}
 
-    var index_neck = bones_by_name.get("mixamorig_Neck");
-    var spine = array_of_bones.subarray(index_neck*16, index_neck*16 + 16 );
+PoseStylizer.prototype.slerpBone = function(array_of_bones, bones_by_name, name, f, bool)
+{
+    var index_rshoulder = bones_by_name.get(name);
+    var r_shoulder = array_of_bones[index_rshoulder];
+    //console.log(r_shoulder.model);
 
+    var trans = vec3.create();
+    var scale = vec3.create();
+    var r_shoulder_quat = quat.create();
+    var aux_q1 = quat.create();
+    var aux_q2 = quat.create();
+    var temp_mat3 = mat3.create();
+    var M = mat4.clone(r_shoulder.model);
+
+    mat4.getScaling(scale, r_shoulder.model);
+    mat4.getTranslation(trans, r_shoulder.model);
+    var M3 = mat3.fromMat4( temp_mat3, M );
+    quat.fromMat3AndQuat( r_shoulder_quat, M3, 2 );
+    // quat.fromMat4(r_shoulder_quat, r_shoulder.model);
+    // quat.conjugate(r_shoulder_quat,r_shoulder_quat );
+    quat.slerp(aux_q1, quat.create(), r_shoulder_quat, f/100);
+    // quat.slerp(aux_q1, quat.create(), quat.create(), f/100);
+    quat.multiply(aux_q2, r_shoulder_quat, aux_q1);
+    //reconstruct the matrix
+    mat4.fromRotationTranslationScale(this.tmp_mat, aux_q2, trans, scale);
+    mat4.copy(r_shoulder.model, this.tmp_mat);
+    mat4.identity(this.tmp_mat);
+}
+
+function fromRotationTranslationScale(out, q, vec, scale) 
+{
+    mat4.identity(out);
+    mat4.translate(out, out, vec);
+    let quatMat = mat4.create();
+    mat4.fromQuat(quatMat, q);
+    mat4.multiply(out, out, quatMat);
+    mat4.scale(out, out, scale)
+}
+
+mat4.fromRotationTranslationScale = fromRotationTranslationScale;
+
+PoseStylizer.prototype.stylizeShoulders = function (array_of_bones, bones_by_name, f) 
+{
+    this.slerpBone(array_of_bones, bones_by_name, "mixamorig_RightShoulder", -f*0.65);
+    this.slerpBone(array_of_bones, bones_by_name, "mixamorig_LeftShoulder", -f*0.65);
+    this.slerpBone(array_of_bones, bones_by_name, "mixamorig_LeftArm", f*0.15);
+    this.slerpBone(array_of_bones, bones_by_name, "mixamorig_RightArm", f*0.15);
+}
+
+PoseStylizer.prototype.stylizeLegs = function(array_of_bones, bones_by_name, f) 
+{
+    this.slerpBone(array_of_bones, bones_by_name, "mixamorig_RightUpLeg", -f);
+    this.slerpBone(array_of_bones, bones_by_name, "mixamorig_LeftUpLeg", -f);
+    // this.slerpBone(array_of_bones, bones_by_name, "mixamorig_LeftArm", f*0.25);
+    // this.slerpBone(array_of_bones, bones_by_name, "mixamorig_RightArm", f*0.25);
 }
 
 PoseStylizer.prototype.applyArmsStyle = function(skeleton, base_anim, k)

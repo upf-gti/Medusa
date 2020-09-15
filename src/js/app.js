@@ -5,15 +5,15 @@ var state   = STOP;
 var start_time  = 0;
 var time        = 0;
 var timer       = null;
-var streaming_time = 0;
-var streaming_fps = 1/30;
+var streaming_time 	= 0;
+var streaming_fps 	= 1/30;
 
 var updateTime = true;
 
-var agent_selected = null;
+var agent_selected 		= null;
 var agent_selected_name = null;
-var current_graph_node = null;
-var agent_evaluated = null;
+var current_graph_node 	= null;
+var agent_evaluated 	= null;
 
 //stats
 var stats = null;
@@ -21,13 +21,13 @@ var num_agents = 0;
 var global_dt;
 
 /*TOOL MODES */
-var NAV_MODE = 0;
-var IP_CREATION_MODE = 1;
-var AGENT_CREATION_MODE = 2;
-var POPULATE_CREATION_MODE = 3;
-var PATH_CREATION_MODE = 4;
+var NAV_MODE 				= 0;
+var IP_CREATION_MODE 		= 1;
+var AGENT_CREATION_MODE 	= 2;
+var POPULATE_CREATION_MODE 	= 3;
+var PATH_CREATION_MODE 		= 4;
 var RESPAWN_PATH_CREATION_MODE = 5;
-var AREA_CREATION_MODE = 6;
+var AREA_CREATION_MODE 		= 6;
 
 var current_respawn_path = null;
 var current_path = null;
@@ -36,30 +36,34 @@ var current_area = null;
 var scene_mode = NAV_MODE;
 
 var tmp = {
-	vec : vec3.create(),
-	axis : vec3.create(),
+	vec : 	vec3.create(),
+	axis : 	vec3.create(),
 	axis2 : vec3.create(),
 	inv_mat : mat4.create(), 
 	agent_anim : null, 
 	behaviour : null
 }
 
-
 /*SETTINGS*/
-var RENDER_PATHS = true;
+var RENDER_PATHS 	= true;
 var RENDER_SCENARIO = false;
-var RENDER_FPS = true;
+var RENDER_FPS 		= true;
 
-var streamer = null;
-var aux_bones = [];
-var aux_bones_quat = [];
-var aux_bones_models = [];
-var bones_quaternions = [];
-var bones_models = [];
+var streamer 		= null;
+var scene_transfer 	= null;
+var aux_bones 		= [];
+var aux_bones_quat 	= [];
+var bones_models 	= [];
+var aux_bones_models 	= [];
+var bones_quaternions 	= [];
 
 //inside project, put agents, paths, scene properties, interest points, graph
-var project = {};
-var contexts= {};
+var project 	= {};
+var contexts	= {};
+var hbt_graphs 	= {};
+var current_graph;
+
+var stylize = true;
 
 function appinit()
 {
@@ -72,37 +76,26 @@ function appinit()
 		"left": LiteGUI.sizeToCSS(0),
 	})
 
+	
 	GFX.initCanvas();
 	window.onresize = resize;
 
 	//This animation manager will manage the gets and new Animations, not Skeletal Animations
 	animation_manager = new AnimationManager(); 
-	animation_manager.loadAnimation("assets/idle.skanim");
-	animation_manager.loadAnimation("assets/walking.skanim");
-	animation_manager.loadAnimation("assets/walking_texting.skanim");
-	animation_manager.loadAnimation("assets/running.skanim");
-	animation_manager.loadAnimation("assets/runningmax.skanim");
-	animation_manager.loadAnimation("assets/runningslow.skanim");
-	animation_manager.loadAnimation("assets/gesture.skanim");
-	// animation_manager.loadAnimation("assets/umbrella.skanim");
-
-	//Load Jim.mesh
-
+	loadInitialAnims(animation_manager);
 	
-	hbt_context = new HBTContext();
+	hbt_context 	= new HBTContext();
+	current_graph 	= new HBTGraph("by_default");
+	current_graph.graph.context = hbt_context; //current_graph.graph -> LGraph
+	hbt_graphs[current_graph.name] = current_graph;
 	overrideFacade(hbt_context.facade);
 	hbt_editor = new HBTEditor();
 	CORE.GraphManager.top_inspector.refresh();
 	path_manager = new PathManager();
+	hbt_editor.init(current_graph);
 
 
 
-	hbt_editor.init(hbt_context.getGraphByName("By_Default"));
-
-	if(window.localStorage.getItem("medusa_recovery"))
-	{
-		setProjectData();
-	}
 	CORE.Player.renderStats();
 	CORE.Scene.visualizeInterestPoints();
 
@@ -167,6 +160,7 @@ function update(dt)
 				var path = path_manager.getNearestPath(character_.scene_node.position);
 				if(!path) 
 					return;
+					
 				character_.path = path;
 				character_.properties.target = character_.path.control_points[0];
 				character_.last_controlpoint_index = 0;
@@ -174,13 +168,18 @@ function update(dt)
 		}
 
 		if(state == STOP)
-		return;
+			return;
 
-		tmp.behaviour = hbt_context.evaluate(character_, dt);
-		if(tmp.behaviour.type == 6)
+		var agent_graph = hbt_graphs[character_.hbtgraph];
+		tmp.behaviour = agent_graph.runBehaviour(character_, hbt_context, dt); //agent_graph -> HBTGraph, character puede ser var a = {prop1:2, prop2:43...}
+		
+		for(var b in tmp.behaviour)
 		{
-			character_.properties[tmp.behaviour.data.name] = tmp.behaviour.data.value; 
+			character_.applyBehaviour( tmp.behaviour[b]);
+			if(tmp.behaviour[b].type == 6)
+				character_.properties[tmp.behaviour[b].data.name] = tmp.behaviour[b].data.value; 	
 		}
+		
 		character_.animationBlender.animateMerging(character_, dt);	
 		agent_evaluated = character_;
 
@@ -204,13 +203,14 @@ var temp_vars = {
 
 function streamCharacter(character_)
 {
-	character_.num_id = 6;
+	character_.num_id = 5;
 	if(streamer && streamer.websocket.readyState == WebSocket.OPEN)
 	{
 		debugger;
 		aux_bones = character_.animationBlender.main_skeletal_animation.skeleton.bones;
+		//scale -1 in z
 		//remap
-		aux_bones = remapBones(aux_bones);
+		// aux_bones = remapBones(aux_bones);
 		bones_quaternions = getQuatFromBoneArray(aux_bones, character_.scene_node.rotation);
 		var leg_quat = bones_quaternions[1];
 		
@@ -219,10 +219,12 @@ function streamCharacter(character_)
 		// 	bones_quaternions[i] = quat.fromValues(0,0,0,1);
 		// }
 
-		bones_quaternions[1] = leg_quat;
-		bones_quaternions[1][1] = 1 - bones_quaternions[1][1];
+		// bones_quaternions[1] = leg_quat;
+		// bones_quaternions[1][0] = 0;
+		// bones_quaternions[1][1] = 0.1;
+		// bones_quaternions[1][2] = 0.2;
+		// bones_quaternions[1][3] = 0.3;
 
-		console.log(bones_quaternions[1]);
 		debugger;
 		// bones_models = getModelsFromBoneArray(aux_bones, character_.scene_node.rotation)
 //		streamer.sendCharacterData(character_.num_id, character_.scene_node.position, bones_quaternions);
@@ -236,10 +238,60 @@ function getQuatFromBoneArray ( array_of_bones, ch_rotation )
 	for (var i in array_of_bones)
 	{	
 		var quater = quat.create();
-		quat.fromMat4(quater, array_of_bones[i].model);
-		//NOPE quat.invert(quater, quater);
-//		if(i == 0)
-//			quat.multiply(quater, quater, ch_rotation);
+		var matrix = array_of_bones[i].model;
+		var aux_mat = mat4.create();
+		mat4.copy(aux_mat, matrix);
+
+        if(streamer.configuration.rotateX180)
+        {
+        	mat4.rotate(aux_mat, aux_mat, 180*DEG2RAD, [1,0,0]);
+        }
+ 
+        if(streamer.configuration.rotateY180)
+        {
+        	mat4.rotate(aux_mat, aux_mat, 180*DEG2RAD, [0,1,0]);
+        }
+ 
+        if(streamer.configuration.rotateZ180)
+        {
+        	mat4.rotate(aux_mat, aux_mat, 180*DEG2RAD, [0,0,1]);
+        }
+
+		if(streamer.configuration.scale_in_z)
+		{
+			//FA
+			var scaled_mat = mat4.create();
+			mat4.scale(scaled_mat, aux_mat, vec3.fromValues(1,1,-1));
+			quat.fromMat4(quater, scaled_mat);
+		}
+		if(streamer.configuration.scale_in_x)
+		{
+			//FA
+			var scaled_mat = mat4.create();
+			mat4.scale(scaled_mat, aux_mat, vec3.fromValues(-1,1,1));
+			quat.fromMat4(quater, scaled_mat);
+		}
+		else if(!streamer.configuration.scale)
+		{
+			quat.fromMat4(quater, aux_mat);
+		}
+
+		if(streamer.configuration.invertQuat)
+		{
+			//FOR JAVI STREAMING METHOD
+			quat.invert(quater, quater);
+		}
+		if(streamer.configuration.conjQuat)
+		{
+			//FOR JAVI STREAMING METHOD
+			quat.conjugate(quater, quater);
+		}
+		if(streamer.configuration.apply_character_rot)
+		{
+			if(i == 0)
+				quat.multiply(quater, quater, ch_rotation);
+		}
+
 		aux_bones_quat.push(quater);
 	}
 
@@ -287,231 +339,22 @@ if(!String.prototype.hasOwnProperty("replaceAll"))
   enumerable: false
  });
 
- function remapBones( original_bones )
+ function loadInitialAnims (animation_manager)
  {
-	 var remapped_bones = [];
-    //     This is the Hips bone.
-	//Hips = 0,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the Left Upper Leg bone.
-	//LeftUpperLeg = 1,
-	remapped_bones.push(original_bones[62]);
-	//
-	//     This is the Right Upper Leg bone.
-	//RightUpperLeg = 2,
-	remapped_bones.push(original_bones[57]);
-	//
-	//     This is the Left Knee bone.
-	//LeftLowerLeg = 3,
-	remapped_bones.push(original_bones[63]);
-	//
-	//     This is the Right Knee bone.
-	//RightLowerLeg = 4,
-	remapped_bones.push(original_bones[58]);
-	//
-	//     This is the Left Ankle bone.
-	// /LeftFoot = 5,
-	remapped_bones.push(original_bones[64]);
-	//
-	///     This is the Right Ankle bone.
-	//RightFoot = 6,
-	remapped_bones.push(original_bones[59]);
-	//
-	//     This is the first Spine bone.
-	//Spine = 7,
-	remapped_bones.push(original_bones[1]);
-	//
-	//     This is the Chest bone.
-	//Chest = 8,
-	remapped_bones.push(original_bones[2]);
-	//
-	//     This is the Neck bone.
-	//Neck = 9,
-	remapped_bones.push(original_bones[4]);
-	//
-	//     This is the Head bone.
-	//Head = 10,
-	remapped_bones.push(original_bones[5]);
-	//
-	//     This is the Left Shoulder bone.
-	//LeftShoulder = 11,
-	remapped_bones.push(original_bones[9]);
-	//
-	//     This is the Right Shoulder bone.
-	//RightShoulder = 12,
-	remapped_bones.push(original_bones[33]);
-	//
-	//     This is the Left Upper Arm bone.
-	//LeftUpperArm = 13,
-	remapped_bones.push(original_bones[10]);
-	//
-	//     This is the Right Upper Arm bone.
-	//RightUpperArm = 14,
-	remapped_bones.push(original_bones[34]);
-	//
-	//     This is the Left Elbow bone.
-	//LeftLowerArm = 15,
-	remapped_bones.push(original_bones[11]);
-	//
-	//     This is the Right Elbow bone.
-	//RightLowerArm = 16,
-	remapped_bones.push(original_bones[35]);
-	//
-	//     This is the Left Wrist bone.
-	//LeftHand = 17,
-	remapped_bones.push(original_bones[12]);
-	//
-	//     This is the Right Wrist bone.
-	//RightHand = 18,
-	remapped_bones.push(original_bones[36]);
-	//
-	//     This is the Left Toes bone.
-	//LeftToes = 19,
-	remapped_bones.push(original_bones[65]);
-	//
-	//     This is the Right Toes bone.
-	//RightToes = 20,
-	remapped_bones.push(original_bones[60]);
-	//
-	//     This is the Left Eye bone.
-	//LeftEye = 21,
-	remapped_bones.push(original_bones[7]);
-	//
-	//     This is the Right Eye bone.
-	//RightEye = 22,
-	remapped_bones.push(original_bones[8]);
-	//
-	//     This is the Jaw bone.
-	//Jaw = 23,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the left thumb 1st phalange.
-	//LeftThumbProximal = 24,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the left thumb 2nd phalange.
-	//LeftThumbIntermediate = 25,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the left thumb 3rd phalange.
-	//LeftThumbDistal = 26,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the left index 1st phalange.
-	//LeftIndexProximal = 27,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the left index 2nd phalange.
-	//LeftIndexIntermediate = 28,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the left index 3rd phalange.
-	//LeftIndexDistal = 29,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the left middle 1st phalange.
-	//LeftMiddleProximal = 30,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the left middle 2nd phalange.
-	//LeftMiddleIntermediate = 31,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the left middle 3rd phalange.
-	//LeftMiddleDistal = 32,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the left ring 1st phalange.
-	//LeftRingProximal = 33,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the left ring 2nd phalange.
-	//LeftRingIntermediate = 34,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the left ring 3rd phalange.
-	//LeftRingDistal = 35,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the left little 1st phalange.
-	//LeftLittleProximal = 36,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the left little 2nd phalange.
-	//LeftLittleIntermediate = 37,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the left little 3rd phalange.
-	//LeftLittleDistal = 38,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the right thumb 1st phalange.
-	//RightThumbProximal = 39,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the right thumb 2nd phalange.
-	//RightThumbIntermediate = 40,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the right thumb 3rd phalange.
-	//RightThumbDistal = 41,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the right index 1st phalange.
-	//RightIndexProximal = 42,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the right index 2nd phalange.
-	//RightIndexIntermediate = 43,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the right index 3rd phalange.
-	//RightIndexDistal = 44,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the right middle 1st phalange.
-	//RightMiddleProximal = 45,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the right middle 2nd phalange.
-	//RightMiddleIntermediate = 46,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the right middle 3rd phalange.
-	//RightMiddleDistal = 47,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the right ring 1st phalange.
-	//RightRingProximal = 48,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the right ring 2nd phalange.
-	//RightRingIntermediate = 49,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the right ring 3rd phalange.
-	//RightRingDistal = 50,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the right little 1st phalange.
-	//RightLittleProximal = 51,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the right little 2nd phalange.
-	//RightLittleIntermediate = 52,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the right little 3rd phalange.
-	// RightLittleDistal = 53,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the Upper Chest bone.
-	// UpperChest = 54,
-	remapped_bones.push(original_bones[0]);
-	//
-	//     This is the Last bone index delimiter.
-	// LastBone = 55
-
-	return remapped_bones;
+	animation_manager.loadAnimation("assets/skanims/animations_ybot.skanim");
+	animation_manager.loadAnimation("assets/skanims/idle.skanim");
+	animation_manager.loadAnimation("assets/skanims/walking.skanim");
+	animation_manager.loadAnimation("assets/skanims/walking_texting.skanim");
+	animation_manager.loadAnimation("assets/skanims/running.skanim");
+	animation_manager.loadAnimation("assets/skanims/runningmax.skanim");
+	animation_manager.loadAnimation("assets/skanims/runningslow.skanim");
+	animation_manager.loadAnimation("assets/skanims/gesture.skanim");
+	animation_manager.loadAnimation("assets/skanims/walk_with_bag.skanim");
+	animation_manager.loadAnimation("assets/skanims/look_around.skanim");
+	animation_manager.loadAnimation("assets/skanims/idle_around.skanim");
+	animation_manager.loadAnimation("assets/skanims/guitar_playing.skanim");
+	animation_manager.loadAnimation("assets/skanims/clapping.skanim");
  }
+
+
+

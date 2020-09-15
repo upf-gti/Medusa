@@ -4,9 +4,9 @@
     "resources": [     
         "src/js/libs/gl-matrix-min.js",
 	"src/js/libs/litegl.js",
+	"src/js/libs/rendeer.js",
 
         "https://cdn.jsdelivr.net/gh/jagenjo/collada.js@efa050d42ad5d2dd3623f4f8ccaff7d0fd1878f8/src/collada.js",
-        "https://cdn.jsdelivr.net/gh/jagenjo/rendeer.js@f30925c840c25ef8e7b7c56f6c967081c71ebcce/build/rendeer.js",
         "https://cdn.jsdelivr.net/gh/jagenjo/litescene.js@97f22f5f3b292bfe66545f135c97a1236aabd4a8/build/litescene.js",
 
 	"src/js/libs/jszip.min.js",
@@ -19,16 +19,20 @@
         "src/js/libs/jquery.js",
 	"src/js/libs/stats.min.js",
         "src/js/libs/Canvas2DtoWebGL.js",
+        "src/js/libs/hdre.js",
+        "src/js/pbr.js",
 	"src/js/libs/skeletalAnimation.js",
-
-        "src/js/animator.js",
+        
+        
 	"src/js/animationBlender.js",
 	"src/js/poseStylizer.js",
         "src/js/animationManager.js",
         "src/js/characterStreamer.js",
+        "src/js/sceneTransfer.js",
         "src/js/behaviors.js",
 	"src/js/facade.js",
 	"src/js/HBTree.js",
+	"src/js/subgraph.js",
         "src/js/hbtEditor.js",	
 	"src/js/paths.js",
 	"src/js/area.js",
@@ -40,10 +44,11 @@
         "src/js/modules/agent.js",
         "src/js/modules/appinit.js",
         "src/js/modules/filesystem.js",
+        "src/js/modules/gui.js",
         "src/js/modules/graph.js",
         "src/js/modules/labels.js",
-        "src/js/modules/gui.js",
         "src/js/modules/player.js",
-        "src/js/modules/scene.js"
+        "src/js/modules/scene.js",
+        "src/js/libs/gizmo.js"
     ]
 }

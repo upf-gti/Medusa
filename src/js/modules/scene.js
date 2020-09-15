@@ -123,11 +123,16 @@ class Scene{
 
 		this.locomotions = this.locomotions || {
 			"Idle" : {name:"Idle", anims:[{anim:"idle",weight: 1}], motion:0, speed:0.5},
+			"Idle Around" : {name:"Idle_Around", anims:[{anim:"idle_around",weight: 1}], motion:0.0, speed:1},
 			"Walking" : {name:"Walking",  anims:[{anim:"walking",weight: 1}], motion:2.6, speed:1},
 			"Walking Texting" : {name:"Walking_Texting",  anims:[{anim:"walking_texting",weight: 1}], motion:2.6, speed:1},
+			"Walking Holding" : {name:"Walk_With_Bag", anims:[{anim:"walk_with_bag",weight: 1}], motion:2.0, speed:1},
+			"Walking Umbrella" : {name:"Umbrella", anims:[{anim:"umbrella",weight: 1}], motion:7.0, speed:1},
 			"Running" : {name:"Running", anims:[{anim:"running",weight: 1}] , motion:6.2, speed:1},
 			"Running Slow" : {name:"RunningSlow", anims:[{anim:"runningslow",weight: 1}], motion:0, speed:1},
-			"Running Fast" : {name:"RunningMax", anims:[{anim:"runningmax",weight: 1}], motion:7.0, speed:1},
+			"Guitar Playing" : {name:"Guitar_Playing", anims:[{anim:"guitar_playing",weight: 1}], motion:0.0, speed:1},
+			"Clapping" : {name:"Clapping", anims:[{anim:"clapping",weight: 1}], motion:0.0, speed:1},
+			// "Gesture" : {name:"Gesture", anims:[{anim:"gesture",weight: 1}], motion:0, speed:0.5},
 		};
 	
 		var inspector = this.anim_inspector = new LiteGUI.Inspector({className:"animator", height:"auto"}),
@@ -173,6 +178,7 @@ class Scene{
 
 		this.actions = this.actions || {
 			"Gesture" : {name:"Gesture", anims:[{anim:"gesture",weight: 1}], speed:0.5},
+			"Look Around" : {name:"Look_Around", anims:[{anim:"look_around",weight: 1}], speed:0.5},
 //			"Jump" : {name:"Jump",  anims:[{anim:"jump",weight: 1}], speed:1},
 //			"Pick" : {name:"Pick",  anims:[{anim:"pick",weight: 1}], speed:1},	
 		};
@@ -181,7 +187,8 @@ class Scene{
 			properties = this.actions,
 			uid = this.uid;
 
-		inspector.on_refresh = function(){
+		inspector.on_refresh = function()
+		{
 			inspector.clear();
 			inspector.addSection("HBT Actions");
 			for( let p in properties )
@@ -230,6 +237,7 @@ class Scene{
 			else
 			{
 				var properties = agent_selected.properties;
+				properties.position = agent_selected.scene_node.position;
 				var uid = agent_selected.uid;
 				inspector.widgets_per_row = 2;
 				for(let p in properties)
@@ -293,7 +301,7 @@ class Scene{
 						case "Array":
 						case "Float32Array": 
 							if(p == "position")
-								widget = inspector.addVector3(p, properties[p], { pretitle: pretitle, key: p, width:"100%", callback: function(v){ 
+								widget = inspector.addVector3(p, properties[p], { disabled:true, pretitle: pretitle, key: p, width:"100%", callback: function(v){ 
 									properties[this.options.key] = v;
 									agent_selected.scene_node.position = v;
 								} }); 
@@ -341,15 +349,22 @@ class Scene{
 				inspector.widgets_per_row = 1;
 				inspector.addSeparator();
 				var graphs = hbt_context.getGraphNames();
+				var graphs = Object.keys(hbt_graphs);
 				inspector.addSection("Agent settings");
 				inspector.addCombo("Graph", graphs[0], {values:graphs, callback:function(v){
 					agent_selected.hbtgraph = v;
 					CORE.GraphManager.putGraphOnEditor(v);
 					CORE.GraphManager.top_inspector.refresh();
 				}});
-				inspector.addColor("Agent color", agent_selected.scene_node.color, { callback:function(v){
-					agent_selected.scene_node.color = v;
-				}});
+				inspector.addSeparator();
+				inspector.addButton(null, "Edit material", {callback:function()
+				{
+					agent_selected.openEditMaterialDialog();
+				}})
+				inspector.addCheckbox("Stylize", stylize, {callback:function(v)
+				{
+					stylize = v;
+				}})
 			}
 			
 		}
@@ -777,7 +792,7 @@ class Scene{
         }
     }
 	
-	populateStaticGroup( position, num_agents, shape, orientation, size, max_age, min_age )
+	populateStaticGroup( position, num_agents, shape, orientation, size, options )
 	{
 		console.log(position);
 		for(var i = 0; i < num_agents; i++)
@@ -788,27 +803,30 @@ class Scene{
 
             data.btree = null;
             data.blackboard = blackboard;
-            data.path = [{id:1,pos:[1300,0,0],visited:false},{id:2,pos: [0,0,1000],visited:false} ,{id:3,pos: [-1300,0,0],visited:false}];
+            // data.path = [{id:1,pos:[1300,0,0],visited:false},{id:2,pos: [0,0,1000],visited:false} ,{id:3,pos: [-1300,0,0],visited:false}];
             data.position = [ position[0] -size/2 + Math.floor(Math.random()*size), 0, position[2] -size/2 + Math.floor(Math.random()*size)];
 
             properties.name=  "Jim-" + guidGenerator();
 
-            properties.happiness = Math.random() * 100;
-            properties.energy = Math.random() * 100;
-            properties.relax = Math.random() * 100;
-            properties.age = Math.random() * (max_age - min_age) + min_age;
+            // properties.happiness = Math.random() * 100;
+            // properties.energy = Math.random() * 100;
+			// properties.relax = Math.random() * 100;
+			properties.valence = Math.random()*10 + options.valence_;
+			properties.arousal = Math.random()*10 + options.arousal_;
+            properties.age = Math.random() * (options.max_age_ - options.min_age_) + options.min_age_;
             properties.strength = Math.random() * 100;
             properties.hurry = Math.random() * 100;
             properties.money = Math.random() * 100;
             properties.hungry = Math.random() * 100;
-            properties.health = Math.random() * 100;
+            // properties.health = Math.random() * 100;
             properties.umbrella = Boolean(Math.round(Math.random()));
             properties.gun = Boolean(Math.round(Math.random()));
             properties.look_at_pos = [0,0,10000];
             data.properties = properties;
 
-            var agent = new Agent(data);
-			console.log(agent);
+			var agent = new Agent(data);
+			agent.hbtgraph = options.behaviour_;
+			// console.log(agent);
 			if(orientation == "Center")
 			{
 				var tmpMat4 = mat4.create(), tmpQuat = quat.create();
@@ -819,17 +837,6 @@ class Scene{
 			}
         }
 	}
-    restartScenario()
-    {
-        for(var c in AgentManager.agents)
-        {
-            var agent = AgentManager.agents[c];
-            agent.restorePath();
-            agent.skeleton.skeleton_container.position = [-200 + Math.floor(Math.random()*400),0,-200 + Math.floor(Math.random()*400)];
-            agent.skeleton.skeleton_container.updateMatrices();
-            agent.bt_info.running_node_index = null;
-        }
-    } 
 
 	deletePropertyFromBlackboard(property_name, zone)
 	{
@@ -851,7 +858,7 @@ class Scene{
 	exportScenario( filename )
 	{
 		var scene_obj = {};
-		scene_obj.scene = CORE.Scene.properties;
+		scene_obj = CORE.Scene.properties;
 		console.log(scene_obj);
 		return scene_obj;
 	}

@@ -11,7 +11,7 @@
 
 :root{
     --background-color: #404B4E;
-    --button-primary-color: #30383A;
+    --button-primary-color: #282828;
     overflow: hidden;
 }
 body {
@@ -31,7 +31,7 @@ body {
     
 }
 .litegui-wrap {
-    background: transparent !important;
+    /* background: transparent !important; */
 }
 
 /* custom Litegraph stylesheet -------------------------------------------------------------------------------*/
@@ -49,20 +49,23 @@ body {
     position: absolute;
     pointer-events: none;
 }
+div#menu-panel {
+    background-color:var(--button-primary-color);
+}
+
 .litemenubar{
 	z-index:1;
 }
 /* MENU style modification */
 .litemenubar ul{
     margin: 15px 0 15px 10px;
-		color: red !important;
-
+    color: red !important;
 }
 .litemenubar li{
     background-color: var(--button-primary-color);
 	color: rgb(200,200,200) !important;
-    line-height: 30px;
-    margin: 3px 2px;
+    /* line-height: 30px; */
+    /* margin: 3px 2px; */
     border-radius: 3px;
 }
 
@@ -118,61 +121,76 @@ body {
 }
 /* Play Button */
 #play-btn{
-    background: rgb(40, 40, 40);
     color: rgb(23, 145, 82);;
     width: 30px;
 	height:30px;
-	top:3px;
+	top:1px;
 	right:10px;
     text-align: center;
-    font-size: 2.5em;
-    border-radius: 4px;
-/*    padding-top: 1px;*/
+    font-size: 2em;
+    padding-left: 7px;
+
+    border-left: 1px solid #505050;
 	position: absolute;
     transition: all 0.3s ease;
 	z-index:1000;
-	cursor:pointer;
+    cursor:pointer;
+    user-select: none;
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -o-user-select: none;
 }
 
 #play-btn:hover{
     width: 30px;
 	height:30px;
-	top:3px;
+	top:1px;
 	right:10px;
     text-align: center;
-    border-radius: 4px;
-/*    padding-top: 1px;*/
+    padding-left: 7px;
+    border-left: 1px solid #505050;
 	position: absolute;
     transition: all 0.3s ease;
 	z-index:1000;
 	cursor:pointer;
-    background: rgb(60, 60, 60);
+    /* background: rgb(60, 60, 60); */
     color: rgb(50, 200, 125);
-    box-shadow: 0 0 10px rgba(255,255,255,0.25);
+    /* box-shadow: 0 0 10px rgba(255,255,255,0.25); */
+    user-select: none;
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -o-user-select: none;
 }
 
 #play-btn.play{
     width: 30px;
 	height:30px;
-	top:3px;
+	top:1px;
 	right:10px;
     text-align: center;
-    border-radius: 4px;
-	position: absolute;
+    position: absolute;
+    border-left: 1px solid #505050;
+
     transition: all 0.3s ease;
 	z-index:1000;
 	cursor:pointer;
-    background: rgb(40, 40, 40);
-	color: rgb(164, 56, 56);
+    color: rgb(164, 56, 56);
+    user-select: none;
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -o-user-select: none;
 }
 
 #play-btn.play:hover{
-    background: rgb(72, 121, 82);
     width: 30px;
 	height:30px;
-	top:3px;
+	top:1px;
 	right:10px;
     text-align: center;
+    padding-left: 7px;
     border-radius: 4px;
 /*    padding-top: 1px;*/
 	position: absolute;
@@ -180,7 +198,6 @@ body {
 	z-index:1000;
 	cursor:pointer;
 	color:rgb(200, 75, 75);
-    background: rgb(60, 60, 60);
 }
 @keyframes anim{
     0% {color: #f00;} /*Amarillo*/
@@ -195,26 +212,27 @@ body {
 /*  animation-iteration-count: infinite;*/
 /*}*/
 #streaming-logo{
-	background: rgb(40, 40, 40);	
+	/* background: rgb(40, 40, 40);	 */
 	z-index:1000;
 	width: 30px;
 	height:30px;
 	position:absolute;
-	top:3px;
+	top:1px;
 	right:50px;
-	font-size: 2em;
-	padding-top:3px;
-	border-radius: 4px;
+	font-size: 1.5em;
+	padding-top:4px;
+	padding-left:7px;
+    border-left: 1px solid grey;
 	text-align: center;
 	cursor:pointer;
 	animation-name: anim;
 	animation-duration: 2s;
-	animation-iteration-count: infinite;
-}
-
-#streaming-logo:hover{
-	background: rgb(90, 90, 90);	
-
+    animation-iteration-count: infinite;
+    user-select: none;
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -o-user-select: none;
 }
 
 .stats{
@@ -283,7 +301,6 @@ body {
 }
 
 #menu-panel{
-    position: absolute;
     z-index: 1;
 }
 
@@ -397,7 +414,7 @@ body {
     position:absolute;
     left: 0px;
     margin-right: 10px;
-    top:45px;
+    top:5px;
     user-select: none;
 }
 

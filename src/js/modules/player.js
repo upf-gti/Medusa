@@ -8,7 +8,8 @@ class Player{
 
     preInit(){
         this.panel = new LiteGUI.Area({id:"player-area"});
-        CORE.GUI.root.add( this.panel );
+        
+        CORE.GUI.player_area.add( this.panel );
 
         var buttons = this.buttons = document.createElement("ul");
         buttons.id = "player-buttons";
@@ -196,12 +197,13 @@ class Player{
                     break;
             }
         });
+
 		//STREAMING BUTTON
 		var url = '<i id="streaming-logo" class="material-icons">settings_input_antenna</i>';
 		this.addButton( "<div id='streaming-img' class='' ></div>", "stream", url,  (e)=>{
             if(streamer)
 			{
-				streamer.close();
+				scene_transfer.close();
 				$("#streaming-logo").fadeOut();
 			}
         });
@@ -252,7 +254,7 @@ class Player{
 		button.id = id;
         button.innerHTML = inner;
         button.addEventListener("click", callback);
-		CORE.Player.panel.content.appendChild(button);
+		CORE.GUI.menu_area.content.appendChild(button);
 //        this.buttons.appendChild(button);
     }
 

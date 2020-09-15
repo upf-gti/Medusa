@@ -8,11 +8,11 @@ function AnimationBlender()
 AnimationBlender.prototype._ctor = function()
 {
 	this.main_skeletal_animation = null;
-	this.layers = []; //array of skeletal animations and weights
-	this.current_time = 0;
-	this.motion_speed = 2.7;
-	this.playback_speed = 1.0;
-	this.target_motion_speed = 2.7;
+	this.layers                  = [];                       //array of skeletal animations and weights
+	this.current_time            = 0;
+	this.playback_speed          = 2.0;
+	this.motion_speed            = 2.7*this.playback_speed;
+	this.target_motion_speed     = 2.7;
 }
 
 AnimationBlender.prototype.animateSimple = function( agent, dt)
@@ -24,13 +24,19 @@ AnimationBlender.prototype.animateSimple = function( agent, dt)
 	if(agent.scene_node.bones && agent.scene_node.bones.length)
 		agent.scene_node.uniforms.u_bones = agent.scene_node.bones;
 
-	this.current_time += dt;
+	this.current_time += dt*this.playback_speed;
 }
 
-AnimationBlender.prototype.animateMerging = function( agent, dt)
+AnimationBlender.prototype.animateMerging = function( agent, dt, options )
 {
+	options = options || {};
+
+	var node = agent.scene_node || options.node;
+
+	if(!node) throw("No animation node");
+
 	if(this.main_skeletal_animation.duration)
-		this.main_skeletal_animation.assignTime( this.current_time);
+		this.main_skeletal_animation.assignTime( this.current_time );
 
 	if(this.layers.length > 0)
 	{
@@ -43,13 +49,6 @@ AnimationBlender.prototype.animateMerging = function( agent, dt)
 				this.deleteLayer(layer_1.id);
 				return;
 			}
-			if(layer_1.target_weight == 1 &&  layer_1.weight == 1 )
-			{
-				//debugger;
-				this.setMainAnimation(layer_1.sk_animation);
-				this.current_time = layer_1.current_time;
-				this.deleteLayer(layer_1.id);
-			}
 
 			layer_1.sk_animation.assignTime(layer_1.current_time);
 
@@ -58,10 +57,10 @@ AnimationBlender.prototype.animateMerging = function( agent, dt)
 			
 			//apply the changes into the main skeleton
 			Skeleton.blend( this.main_skeletal_animation.skeleton, layer_1.sk_animation.skeleton, layer_1.weight, this.main_skeletal_animation.skeleton );  
-			layer_1.current_time += dt;
+			layer_1.current_time += dt*this.playback_speed;
 		}
 		else if(this.layers.length > 1)
-			console.log("more than 2 animations being blended");
+			console.log("TODO: more than 2 animations being blended");
 		
 	}
 
@@ -72,29 +71,35 @@ AnimationBlender.prototype.animateMerging = function( agent, dt)
 	}
 	//console.log(this.main_skeletal_animation.skeleton);
 	this.smoothMotion( this.target_motion_speed );
+	// this.smoothPlaybackSpeed( this.target_playback_speed );
 
 	//stylization layer modifying the agent.scene_node.bones, to be passed later to the shader
 	//here we have the bones models local (as we want in the stylizer)
 	//we modify the agent.scene_node.bones by getting the index (inside the functions of stylize) 
 	/******* Stylization here  */
 	//debugger;
-	//agent.stylizer.stylizeSpine(agent.scene_node.bones, this.main_skeletal_animation.skeleton.bones_by_name);
-	agent.scene_node.bones = this.main_skeletal_animation.skeleton.computeFinalBoneMatrices( agent.scene_node.bones, gl.meshes[ agent.scene_node.mesh ] );
+	if(stylize)
+	{
+		agent.stylizer.stylizeSpine(this.main_skeletal_animation.skeleton.bones, this.main_skeletal_animation.skeleton.bones_by_name, agent.properties.valence);
+		agent.stylizer.stylizeShoulders(this.main_skeletal_animation.skeleton.bones, this.main_skeletal_animation.skeleton.bones_by_name, agent.properties.arousal);
+	}
+	this.playback_speed = 1 + (agent.properties.valence/100)*0.2
+	node.bones = this.main_skeletal_animation.skeleton.computeFinalBoneMatrices( node.bones, gl.meshes[ node.mesh ] );
 
-	//aqui agent.animationBlender.main_skeletal_animation.skeleton.bones == agent.scene_node.bones
+	//aqui agent.animationBlender.main_skeletal_animation.skeleton.bones == node.bones
 	//Por tanto, podemos estilizar con el primero?? 
-	if(agent.scene_node.bones && agent.scene_node.bones.length)
-		agent.scene_node.uniforms.u_bones = agent.scene_node.bones;
+	if(node.bones && node.bones.length)
+		node.uniforms.u_bones = node.bones;
 
-	this.current_time += dt;
+	this.current_time += dt*this.playback_speed;
 }
 
 AnimationBlender.prototype.applyBehaviour = function( behaviour )
 {
-//	this.motion_speed = behaviour.motion;
-	//smooth motion
-//	this.smoothMotion(behaviour.motion);
-	this.target_motion_speed = behaviour.motion;
+	// if(behaviour.motion == null || behaviour.motion == undefined || !behaviour.animation_to_merge) return;
+
+	if(behaviour.motion != null || behaviour.motion != undefined)
+		this.target_motion_speed = behaviour.motion*this.playback_speed;
 
 	if(this.isAnimInLayers(behaviour.animation_to_merge) || behaviour.animation_to_merge.name == this.main_skeletal_animation.name)
 		return;
@@ -118,14 +123,19 @@ AnimationBlender.prototype.smoothWeight = function(layer, weight, target )
 	if(Math.abs(dif) < 0.1)
 	{
 		layer.weight = target;
+		if(target == 1.0 )
+		{
+			//debugger;
+			this.setMainAnimation(layer.sk_animation);
+			this.current_time = layer.current_time;
+			this.deleteLayer(layer.id);
+		}
 		return;
 	}
-
 	if(weight < target)
 		layer.weight += 0.02;
 	else
 		layer.weight -= 0.02;
-
 }
 AnimationBlender.prototype.smoothMotion = function(new_motion)
 {
@@ -156,13 +166,31 @@ AnimationBlender.prototype.setMainAnimation = function( sk_anim )
 
 AnimationBlender.prototype.addLayer = function( anim, weight )
 {
-	// If the new layer exists, do not add a new one, modify just the weight
+	var layer_weight = 0;
+	var layer_current_time = 0;
+	if(this.main_skeletal_animation.duration > 0)
+	{
+		var mod = this.current_time % this.main_skeletal_animation.duration;
+		var layer_current_time = (mod/this.main_skeletal_animation.duration)*anim.duration;
+
+	}
+	else
+		layer_current_time = Math.random()*anim.duration;
+	//if there is already an animation being mixed
+	if(this.layers.length > 0)
+	{
+		//set the time
+		layer_weight = this.layers[0].weight;
+		//delete the layer to put the new one
+		this.deleteLayer(this.layers[0].id);
+	}
+
 	var layer = {
 		id : this.layers.length,
 		sk_animation:anim, 
-		weight: 0, 
+		weight: layer_weight, 
 		target_weight: weight,
-		current_time : Math.random()*anim.duration
+		current_time : layer_current_time
 	}
 
 	this.layers.push(layer);

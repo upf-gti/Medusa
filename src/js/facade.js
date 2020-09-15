@@ -16,12 +16,23 @@ Facade.prototype.getEntityPosition = function( entity )
 	console.warn("getEntityPosition() Must be implemented to use HBTree system");
 }
 
+Facade.prototype.getEntityOrientation = function( entity )
+{
+	console.warn("getEntityOrientation() Must be implemented to use HBTree system");
+}
+
+Facade.prototype.setEntityProperty = function( entity, name, value )
+{
+	console.warn("setEntityProperty() Must be implemented to use HBTree system");
+}
+
+
 //For the HBTProperty Node
 /*
 * Search in all the properties (scene and entity) one with the name passed as a parameter
 * Returns the value of the property (int, float or vec3) 
 */
-Facade.prototype.getEntityPropertyValue = function( property_name )
+Facade.prototype.getEntityPropertyValue = function( entity, property_name )
 {	
 	console.warn("getEntityPropertyValue() Must be implemented to use HBTree system");
 	//Search for the value of the property "property_name" in the system
@@ -83,8 +94,10 @@ Facade.prototype.canSeeElement = function( entity, look_at_pos, limit_angle)
 	console.warn("entityInTarget() Must be implemented to use HBTree system");
 }
 
-Facade.prototype.setEntityProperty = function( entity, property, value )
+
+Facade.prototype.getAnimation = function( filename)
 {
 	console.warn("entityInTarget() Must be implemented to use HBTree system");
 }
+
 

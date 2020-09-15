@@ -53,6 +53,7 @@ PathManager.prototype.exportPaths = function()
 
 PathManager.prototype.pathsFromJSON = function(data)
 {
+	debugger;
 	for(var i = 0; i < data.length; i++)
 	{
 		var current_path = data[i];

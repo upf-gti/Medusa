@@ -27,7 +27,7 @@ HBTEditor.prototype.init = function( hbt_graph )
     this.canvas2D.id = "HBTEditor"
     HBTEditor_cont.appendChild(this.canvas2D);
     LiteGraph.NODE_TITLE_COLOR = "#DDD";
-    LiteGraph.NODE_TEXT_COLOR = "#DDD"
+    LiteGraph.NODE_TEXT_COLOR = "#DDD";
 
     this.graph = hbt_graph.graph;
 	this.graph.current_behaviour = new Behaviour();
@@ -66,6 +66,7 @@ HBTEditor.prototype.init = function( hbt_graph )
     /*************** Draww summary of what is happening on the tree *****************/
     this.graph_canvas.onDrawOverlay = function( ctx )
     {
+        if(!this.graph || !this.graph.description_stack) return;
         if( this.graph.description_stack.length > 0 )
         {
             var array_of_messages = hbt_editor.graph.description_stack;
@@ -97,14 +98,37 @@ HBTEditor.prototype.addNodeByType = function(type, properties, pos)
 {
     switch(type){
 		case "HBTProperty":{
-			var graphnode = LiteGraph.createNode( "btree/HBTproperty" );
-			var title = properties;
-			graphnode.title = title;
-			graphnode.pos = pos;
-			graphnode.setProperty( "property_name", title );
-			hbt_editor.graph.add(graphnode);
+            var graphnode = LiteGraph.createNode( "btree/HBTproperty" );
+           
+            var title = properties;
+            graphnode.title = title;
+            graphnode.pos = pos;
+            graphnode.setProperty( "property_name", title );
+            var dataType = null;
+            // if(this.graph.context.user && this.graph.context.user.properties.hasOwnProperty(title))
+            // {
+            //     graphnode.property_type ="user";
+            //     dataType =  this.graph.graph.context.user.properties[title];
+            // }else
+            // {
+            //     dataType =  this.graph.graph.context.agent_evaluated.properties[title];
+            // }
+            // graphnode.setProperty("type", dataType.constructor.name.toLocaleLowerCase());
+            // graphnode.setProperty("value", dataType);
+            var graphcanvas = LGraphCanvas.active_canvas;
+            graphcanvas.graph.add(graphnode);
+            
+            if(graphcanvas.graph._is_subgraph)
+            {
+                graphnode.graph.character_evaluated = this.graph.character_evaluated;
+                graphnode.graph.context = this.graph.context;
+                graphnode.graph.current_behaviour = this.graph.current_behaviour;
+                graphnode.graph.character_evaluated = this.graph.character_evaluated;
+                graphnode.graph.root_node = this.graph.root_node;
+                graphnode.graph.evaluation_behaviours = this.graph.evaluation_behaviours;
+            }
 
-		} break;
+        } break; 
         case "cycle":{
 			var props = JSON.parse(properties);
             var node_leaf = LiteGraph.createNode("btree/SimpleAnimate");
@@ -124,7 +148,7 @@ HBTEditor.prototype.addNodeByType = function(type, properties, pos)
 
 		case "action":{
 			var props = JSON.parse(properties);
-            var node_leaf = LiteGraph.createNode("btree/Action");
+            var node_leaf = LiteGraph.createNode("btree/ActionAnimate");
 			node_leaf.setProperty("filename", props.filename);
 			node_leaf.setProperty("speed", props.speed);
 //            node_leaf.properties = props;
@@ -161,67 +185,3 @@ function removeChild(node)
     node.parent = null;
 }
 
-function onConfig(info, graph)
-{
-    if(!info.outputs)
-        return
-
-    for(let i in info.outputs)
-    {
-        var output = info.outputs[i];
-        for(let j in output.links)
-        {   
-            var link_id = output.links[j];
-            var link = getLinkById(link_id, graph);
-
-            var node = graph.getNodeById(link.origin_id);
-            var origin_slot = link.origin_slot;
-            var target_node = graph.getNodeById(link.target_id);
-            var target_slot = link.target_slot;
-            var type = link.type;
-//            graph.onNodeConnectionChange( 1 , target_node, origin_slot, node, target_slot );
-        }
-    }
-}  
-
-function getLinkById(id,graph)
-{
-    for(var i in graph.links)
-    {
-        var link = graph.links[i];
-        if(link.id == id)
-            return link;
-    }
-}
-
-
-//var B_TYPE = {
-//	moveTo:0, 
-//	lookAt:1, 
-//	animateSimple:2, 
-//	wait:3, 
-//	nextTarget:4
-//	
-//}
-//
-///*To encapsulate the result somewhere*/
-//function Behaviour()
-//{
-//	if(this.constructor !== Behaviour)
-//		throw("You must use new to create a Behaviour");
-//	this._ctor(  );
-//}
-//
-//Behaviour.prototype._ctor = function()
-//{
-//	// type can be moveTo, LookAt, setProperty, AnimateSimple...
-//	this.type = null;
-//	this.STATUS = STATUS.success;
-//	this.data = {};
-//	
-//}
-//
-//Behaviour.prototype.setData = function( data )
-//{
-//	this.data = data;
-//}

@@ -109,7 +109,7 @@ Skeleton.prototype.computeFinalBoneMatrices = function( bone_matrices, mesh, sim
 		for (var i = 0; i < mesh.bones.length; ++i)
 		{
 			var bone_info = mesh.bones[i];
-			mat4.multiply( temp_mat4, this.getBoneMatrix( bone_info[0], false ), bone_info[1] ); //use globals
+			mat4.multiply( temp_mat4, this.getBoneMatrix( bone_info[0], true ), bone_info[1] ); //use globals
 			mat4.transpose( temp_mat4, temp_mat4 );
 			bone_matrices.set(m43,i*12);
 		}

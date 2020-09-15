@@ -28,43 +28,43 @@ CharacterStreamer.BONE67_MAT43_ANIMATIONS_ID = 122; //using mat4x3 per bone
 
 CharacterStreamer.prototype.connect = function( url, on_connected, on_error )
 {
-	var that = this;
-	var protocol = "";
-	if(url.indexOf("://") == -1)
-		protocol = location.protocol == "https:" ? "wss://" : "ws://";
+	// var that = this;
+	// var protocol = "";
+	// if(url.indexOf("://") == -1)
+	// 	protocol = location.protocol == "https:" ? "wss://" : "ws://";
 
-	this.websocket = new WebSocket( protocol + url );
-	this.websocket.binaryType = 'arraybuffer';
-	this.websocket.onopen = function(event) {
-		console.log("character streamer connected");
-		that.characters = {}; //clear
-		that.num_characters = 0;
-		that.is_connected = true;
-		if(on_connected)
-			on_connected(url);
-		if(that.onConnect)
-			that.onConnect();
-	};
+	// this.websocket = new WebSocket( protocol + url );
+	// this.websocket.binaryType = 'arraybuffer';
+	// this.websocket.onopen = function(event) {
+	// 	console.log("character streamer connected");
+	// 	that.characters = {}; //clear
+	// 	that.num_characters = 0;
+	// 	that.is_connected = true;
+	// 	if(on_connected)
+	// 		on_connected(url);
+	// 	if(that.onConnect)
+	// 		that.onConnect();
+	// };
 
-	this.websocket.onmessage = function(event)
-	{
-		if( that.onCharacterData && event.data.constructor !== String )
-			that.processMessage(event.data);
-	}
+	// this.websocket.onmessage = function(event)
+	// {
+	// 	if( that.onCharacterData && event.data.constructor !== String )
+	// 		that.processMessage(event.data);
+	// }
 
-	this.websocket.onerror = function(event) {
-		console.log("error connecting with character streamer server");
-		that.is_connected = false;
-		if(on_error)
-			on_error(event);
-	}
+	// this.websocket.onerror = function(event) {
+	// 	console.log("error connecting with character streamer server");
+	// 	that.is_connected = false;
+	// 	if(on_error)
+	// 		on_error(event);
+	// }
 
-	this.websocket.onclose = function(event) {
-		console.log("disconnected", event);
-		that.is_connected = false;
-		if(	that.onClose )
-			that.onClose();
-	}
+	// this.websocket.onclose = function(event) {
+	// 	console.log("disconnected", event);
+	// 	that.is_connected = false;
+	// 	if(	that.onClose )
+	// 		that.onClose();
+	// }
 }
 
 CharacterStreamer.prototype.clear = function()
@@ -75,17 +75,17 @@ CharacterStreamer.prototype.clear = function()
 
 CharacterStreamer.prototype.close = function()
 {
-	if(!this.websocket || this.websocket.readyState != WebSocket.OPEN )
-	{
-		console.error("no connected to server");
-		return;
-	}
-	this.websocket.close();
+	// if(!this.websocket || this.websocket.readyState != WebSocket.OPEN )
+	// {
+	// 	console.error("no connected to server");
+	// 	return;
+	// }
+	// this.websocket.close();
 }
 
 CharacterStreamer.prototype.processMessage = function(data)
 {
-	var info = this.unpack( data );
+	var info = this.unpackCharacter( data );
 	if(info && this.onCharacterData)
 	{
 		if(!this.characters[ info.id ])
@@ -93,6 +93,56 @@ CharacterStreamer.prototype.processMessage = function(data)
 		this.characters[ info.id ] = info;
 		this.onCharacterData(info);
 	}
+}
+CharacterStreamer.prototype.sendCharacterPosition = function (character_id, character_pos) 
+{
+	var data = this.packCharacterPosition(character_id, character_pos);
+	if(data)
+		this.websocket.send( data );
+}
+
+CharacterStreamer.prototype.packCharacterPosition = function (character_id, character_pos) 
+{
+	var offset = 0;		
+	var packet_size = this.headersize; 
+	out = out || new ArrayBuffer( packet_size );
+    var view = new DataView(out);
+
+	// Fill header + character position
+	view.setUint8( offset, this.client_id ); offset += 1; //client ID
+	view.setUint8( offset, 0 ); offset += 1;
+	view.setUint32( offset, character_id, this.LE); offset += 4;
+	view.setFloat32( offset, character_pos[0], this.LE); offset += 4;
+	view.setFloat32( offset, character_pos[1], this.LE); offset += 4;
+	view.setFloat32( offset, character_pos[2], this.LE); offset += 4;
+
+	return out;
+}
+
+CharacterStreamer.prototype.sendCharacterRotation = function (character_id, character_pos) 
+{
+	var data = this.packCharacterRotation(character_id, character_rot);
+	if(data)
+		this.websocket.send( data );
+}
+
+CharacterStreamer.prototype.packCharacterRotation = function (character_id, character_rot) 
+{
+	var offset = 0;		
+	var packet_size = this.headersize + 4; 
+	out = out || new ArrayBuffer( packet_size );
+    var view = new DataView(out);
+
+	// Fill header + character rotation
+	view.setUint8( offset, this.client_id ); offset += 1; //client ID
+	view.setUint8( offset, 0 ); offset += 1;
+	view.setUint32( offset, character_id, this.LE); offset += 4;
+	view.setFloat32( offset, character_rot[0], this.LE); offset += 4;
+	view.setFloat32( offset, character_rot[1], this.LE); offset += 4;
+	view.setFloat32( offset, character_rot[2], this.LE); offset += 4;
+	view.setFloat32( offset, character_rot[3], this.LE); offset += 4;
+
+	return out;
 }
 
 CharacterStreamer.prototype.sendCharacterData = function( character_id, global_model, array_of_bones )
@@ -117,7 +167,7 @@ CharacterStreamer.mat43_indices = [0,1,2,4,5,6,8,9,10,12,13,14];
 CharacterStreamer.prototype.packCharacterData = function( character_id, global_model, array_of_bones, out )
 {
 	var offset = 0;
-
+	debugger;
 	var packed_id = 0;
 	var num_bones = array_of_bones.length;
 	switch( num_bones )
@@ -173,6 +223,10 @@ CharacterStreamer.prototype.packCharacterData = function( character_id, global_m
 			view.setFloat32(offset, rotation[1], this.LE); offset += 4;
 			view.setFloat32(offset, rotation[2], this.LE); offset += 4;
 			view.setFloat32(offset, rotation[3], this.LE); offset += 4;
+			// if(i < array_of_bones.length)	
+			// 	offset += 4;
+			
+			// console.log(rotation);
 		}
 		else if( rotation.length == 16 )
 		{
@@ -201,7 +255,7 @@ CharacterStreamer.prototype.packCharacterData = function( character_id, global_m
 /*
 * @data: packet data
 */
-CharacterStreamer.prototype.unpack = function( data )
+CharacterStreamer.prototype.unpackCharacter = function( data )
 {
     var view = new DataView(data);
 

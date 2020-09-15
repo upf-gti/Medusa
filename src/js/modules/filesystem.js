@@ -1,9 +1,11 @@
 class FileSystem{
     
     constructor(){
+        // this.lfs = LFS.setup("https://webglstudio.upf.edu/users/hermann/files/sauce_dev/src/", this.onReady.bind(this) );
         this.lfs = LFS.setup("https://webglstudio.org/users/hermann/files/sauce_dev/src/", this.onReady.bind(this) );
         this.session = null;
         this.parsers = {};
+		// this.root = "https://webglstudio.upf.edu/users/hermann/files/sauce_dev/files/";
 		this.root = "https://webglstudio.org/users/hermann/files/sauce_dev/files/";
     }
 

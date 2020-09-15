@@ -13,18 +13,16 @@ var GraphManager = {
         }     
     }),
 
-    preInit(){
-        CORE.GUI.root.split("horizontal", [null, "60%"], true);
-        this.panel = CORE.GUI.root.getSection(1);
-		this.panel.id = "graph-area";
+	preInit()
+	{
+        this.panel    = CORE.GUI.graph_area;
+        this.panel.id = "graph-area";
 
-		this.panel.split("horizontal", [null, "20%"], true);
-        this.inspector_area = this.panel.getSection(1);
+        this.inspector_area = CORE.GUI.inspector_area;
 		this.inspector_area.content.id = "inspector-area1";
 		this.inspector_area.content.classList.add("inspector-area");
 
         CORE.GraphManager.panel.content.id = "graph-canvas";
-        CORE.GUI.root = CORE.GUI.root.getSection(0);
 
 		var top_panel = this.top_panel = document.createElement("div");
 		top_panel.id = "graph-top-panel";
@@ -39,31 +37,52 @@ var GraphManager = {
 			top_inspector.widgets_per_row = 5;
 			var test_array = [];
 			if(hbt_context)
-					test_array = hbt_context.getGraphNames();
-
+					test_array = Object.keys(hbt_graphs);
 
 			var current;
 			if(agent_selected)
 				current = agent_selected.hbtgraph;
 			else 
-				current = "By_Default";
+				current = "by_default";
 
-			top_inspector.addCombo("Current Graph", current, {name_width:"25%", width:"35%",values:test_array, callback:function(v){
-				console.log("Graph name: "+v);
-				that.putGraphOnEditor(v);
+			top_inspector.addCombo("Current", current, {name_width:"25%", width:"35%",values:test_array, callback:function(v){
+				console.log("Graph name: " + v);
+				// debugger;
+				that.putGraphOnEditor( v );
 			}});
-			top_inspector.addButton(null, "New Empty", {name_width:"0%", width:"10%", callback:function(v)
+			top_inspector.addButton(null, "New", {name_width:"0%", width:"10%", callback:function(v)
 			{
+				var gcanvas = LGraphCanvas.active_canvas;
+				if(!gcanvas) return;
+				if(gcanvas.graph._is_subgraph)
+				{
+					alert("Subgraph in canvas. Please, close it before you create a new graph" );
+					return;
+				}
 				that.showNewBehaviorsDialog();
 
 			}}); 
 			top_inspector.addButton(null, "Load", {name_width:"0%", width:"11%", callback:function(v)
 			{
+				var gcanvas = LGraphCanvas.active_canvas;
+				if(!gcanvas) return;
+				if(gcanvas.graph._is_subgraph)
+				{
+					alert("Subgraph in canvas. Please, close it before you Load a graph" );
+					return;
+				}
 				that.showLoadBehaviorsDialog();
 
 			}}); 
 			top_inspector.addButton(null, "Upload", {name_width:"0%", width:"11%", callback:function(v)
 			{
+				var gcanvas = LGraphCanvas.active_canvas;
+				if(!gcanvas) return;
+				if(gcanvas.graph._is_subgraph)
+				{
+					alert("Subgraph in canvas. Please, close it before you Upload a graph" );
+					return;
+				}
 				CORE.GUI.showSaveBehaviourDialog();
 			}}); 
 
@@ -82,7 +101,6 @@ var GraphManager = {
 		}
 		
 		this.top_panel.appendChild(this.top_inspector.root);
-
     },
 
     init(){
@@ -101,11 +119,13 @@ var GraphManager = {
 
 	putGraphOnEditor( name )
 	{
+		var new_hbt = hbt_graphs[name];
+		current_graph = new_hbt;
 //		console.log(name);
-		var HBT_graph = hbt_context.getGraphByName(name);
-		hbt_context.current_graph = HBT_graph;
-		hbt_editor.graph_canvas.setGraph(HBT_graph.graph);
-		hbt_editor.graph = HBT_graph.graph;
+		// var HBT_graph = hbt_context.getGraphByName(name);
+		// hbt_context.current_graph = HBT_graph;
+		hbt_editor.graph_canvas.setGraph(current_graph.graph);
+		hbt_editor.graph = current_graph.graph;
 	},
 
     createGUIParams( graph ){
@@ -151,12 +171,21 @@ var GraphManager = {
 
 			widgets.addButton(null, "Create", {callback:function(){
 
-				var HBT_graph = hbt_context.addHBTGraph(name);
-				hbt_context.current_graph = HBT_graph;
-				hbt_editor.graph_canvas.setGraph(HBT_graph.graph);
-				hbt_editor.graph = HBT_graph.graph;
+				var new_hbtgraph = new HBTGraph(name);
+				new_hbtgraph.graph.context = hbt_context;
+				hbt_graphs[name] = new_hbtgraph;
+				current_graph = hbt_graphs[name];
+				hbt_editor.graph_canvas.setGraph(current_graph.graph);
+				hbt_editor.graph = current_graph.graph;
 				CORE.Scene.agent_inspector.refresh();
 				CORE.GraphManager.top_inspector.refresh();
+
+				// var HBT_graph = hbt_context.addHBTGraph(name);
+				// hbt_context.current_graph = HBT_graph;
+				// hbt_editor.graph_canvas.setGraph(HBT_graph.graph);
+				// hbt_editor.graph = HBT_graph.graph;
+				// CORE.Scene.agent_inspector.refresh();
+				// CORE.GraphManager.top_inspector.refresh();
 
 //				CORE.Scene.populateScenario(num_agents, min_age, max_age); //dentro de la funci�n rellenar los parametros de las propiedades, elegir paths, etc
 				dialog.close();
@@ -186,6 +215,7 @@ var GraphManager = {
 		var widgets = new LiteGUI.Inspector();
 		var behaviours = null;
 		var full_path = "";
+		// var base_url = 'https://webglstudio.upf.edu/users/hermann/files/sauce_dev/files/public/behaviors';
 		var base_url = 'https://webglstudio.org/users/hermann/files/sauce_dev/files/public/behaviors';
 
 		CORE.FS.getFiles("behaviors").then(function(e)
@@ -244,7 +274,13 @@ var GraphManager = {
 		function oncomplete(data)
 		{
 			console.log(data);
-			hbt_editor.graph.configure(data.behaviour);
+			var new_hbt = new HBTGraph();
+			new_hbt.graph.configure(data.behaviour);
+			new_hbt.graph.context = hbt_context;
+			hbt_graphs[new_hbt.name] = new_hbt;
+			hbt_editor.graph_canvas.setGraph(new_hbt.graph);
+			current_graph = hbt_graphs[new_hbt.name];
+			hbt_editor.graph = current_graph;
 		}
 		function getBehaviourByFilename(behaviours, filename) {
 			for(var i in behaviours)

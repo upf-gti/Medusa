@@ -200,7 +200,13 @@ var AgentManager = {
 			agent_.num_id = agent.num_id;
 			agent_.hbtgraph = agent.hbtgraph;
 			agent_.properties = agent.properties;
-			agent_.properties.target = null;
+            agent_.properties.target = null;
+            agent_.hbtgraph = agent.hbtgraph;
+            agent_.material_uniforms = {
+                color:agent.scene_node.uniforms["u_color"], 
+                metalness:agent.scene_node.uniforms["u_metalness"], 
+                roughness:agent.scene_node.uniforms["u_roughness"]
+            };
 			agents.push(agent_);
 		}
 
@@ -256,7 +262,7 @@ class Agent{
 
         this.btree = null;
         this.blackboard = blackboard;
-		this.hbtgraph = "By_Default";
+		this.hbtgraph = "by_default";
 
         this.path = null; 
 		this.r_path = null;
@@ -265,9 +271,11 @@ class Agent{
 
         this.properties = {
             name: "Jim-" + guidGenerator(),
-			happiness:0,
-			energy:0,
-			relax:0,
+			// happiness:0,
+			// energy:0,
+            // relax:0,
+            valence:0,
+            arousal:0,
             age: 35,
 			strength:30,
             hurry: 25,
@@ -278,28 +286,33 @@ class Agent{
 			health:100,
             target: null, // this.path[0], 
             look_at_pos: [0,0,10000], 
-			position: pos
+            position: pos, 
+            orientation: [0,0,0,1]
         };
 	
 		var sk_pos = pos || [0,0,-1600];
 		this.initial_pos = pos;
 		this.scene_node = new RD.SceneNode();
-		this.scene_node.uniforms["u_selected"] = false;
-		this.scene_node.color = [1,1,1,1];
-		this.scene_node.mesh = "Jim.wbin";
-		this.scene_node.texture = "white";
-		this.scene_node.shader = "skinning";
+        this.scene_node.uniforms["u_selected"] = false;
+        this.scene_node.uniforms["u_Skinning"] = true;
+        this.scene_node.uniforms["u_metalness"] = 1;
+        this.scene_node.uniforms["u_roughness"] = 1;
+		this.scene_node.mesh = "Jim.mesh";
+		this.scene_node.shader = "pbr";
 		this.scene_node.phase = Math.random();
 		this.scene_node.id = LS.generateUId('scene_node');
 		this.scene_node.phase = Math.random();
 		this.scene_node.scaling = 1 + Math.random()*0.2;
 		this.scene_node.position = sk_pos;
-		this.scene_node.rotate(Math.random() * 360 * DEG2RAD,RD.UP);
+		// this.scene_node.rotate(Math.random() * 360 * DEG2RAD,RD.UP);
 		this.scene_node.color = [0.5 + Math.random()*0.5,0.5 + Math.random()*0.5,0.5 + Math.random()*0.5,1];
-		GFX.scene.root.addChild(this.scene_node);
+        GFX.scene.root.addChild(this.scene_node);
+        
+        PBR.setTextureProperties(this.scene_node);
+        PBR.setTextures(this.scene_node, GFX.environment);
 
 		this.animationBlender = new AnimationBlender();
-		var anim = animation_manager.animations["walking"];
+		var anim = animation_manager.animations["animations_ybot"];
 		this.animationBlender.main_skeletal_animation = anim;
 
 		var duration = this.animationBlender.main_skeletal_animation.duration;
@@ -308,98 +321,71 @@ class Agent{
 		this.scene_node.bones = anim.skeleton.computeFinalBoneMatrices( this.scene_node.bones, gl.meshes[ this.scene_node.mesh ] );
 		if(this.scene_node.bones && this.scene_node.bones.length)
 			this.scene_node.uniforms.u_bones = this.scene_node.bones;
-
-        var animation = animation_manager.animations["Walking"];
-        if(animation)
-        {
-            var skeletal_animation = new SkeletalAnimation("Walking", animation);
-            this.skeletal_animations["Walking"] = skeletal_animation; 
-            this.animator.base_animation = skeletal_animation;
-        }
+       
         this.stylizer = new PoseStylizer();
         //Store agents 
         this.bt_info = {};
+        this.bt_info.running_data = {};
         AgentManager.agents[this.uid] = this;
 		AgentManager.addPropertiesToLog(this.properties);
-
-        LEvent.bind(this, "applyBehaviour", (function(e,p){
-            this.animator.applyBehaviour(p);
-        }).bind(this)); 
-
-        LEvent.bind(this, "moveTo", (function(e,p){
-            this.moveTo(p,global_dt);
-        }).bind(this));
     }
     
     configure( o, agent )
     {
         // console.log(o);
-        agent.uid = o.uid;
-        agent.btree = null;
-        agent.blackboard = blackboard;
-		agent.hbtgraph = o.graph || "By_Default";
+        this.uid = o.uid;
+        this.num_id = o.num_id;
+        this.btree = null;
+        this.blackboard = blackboard;
+		this.hbtgraph = o.hbtgraph || "by_default";
 
-        agent.path = null;//[{id:1,pos:[2800,0,-2500],visited:false},{id:2,pos: [1900,0,1000],visited:false} ,{id:3,pos: [1300,0,1800],visited:false}, {id:4,pos: [-1500,0,1800],visited:false}, {id:5,pos: [-1300,0,0],visited:false}, {id:6,pos: [0,0,-750],visited:false}, {id:7,pos: [1500,0,-1050],visited:false}, {id:8,pos: [2500,0,-2500],visited:false}];
-//        agent.current_waypoint = agent.path[0];
-        agent.properties = o.properties;
-        agent.properties.target = null; //agent.path[0];
+        this.path = null;//[{id:1,pos:[2800,0,-2500],visited:false},{id:2,pos: [1900,0,1000],visited:false} ,{id:3,pos: [1300,0,1800],visited:false}, {id:4,pos: [-1500,0,1800],visited:false}, {id:5,pos: [-1300,0,0],visited:false}, {id:6,pos: [0,0,-750],visited:false}, {id:7,pos: [1500,0,-1050],visited:false}, {id:8,pos: [2500,0,-2500],visited:false}];
+//        this.current_waypoint = this.path[0];
+        this.properties = o.properties;
+        this.properties.target = null; //this.path[0];
         this.skeletal_animations = {};
 
         var sk_pos = o.position || [0,0,-1600];
 		this.initial_pos = sk_pos;
 
-		agent.scene_node = new RD.SceneNode();
-		agent.scene_node.uniforms["u_selected"] = false;
-		agent.scene_node.color = [1,1,1,1];
-		agent.scene_node.mesh = "Jim.wbin";
-		agent.scene_node.texture = "white";
-		agent.scene_node.shader = "skinning";
-		agent.scene_node.id = LS.generateUId('scene_node');
-		agent.scene_node.phase = Math.random();
-		agent.scene_node.scaling = 1 + Math.random()*0.2;
-		agent.scene_node.position = sk_pos;
-		agent.scene_node.rotate(Math.random() * 360 * DEG2RAD,RD.UP);
-		agent.scene_node.color = [0.5 + Math.random()*0.5,0.5 + Math.random()*0.5,0.5 + Math.random()*0.5,1];
-		GFX.scene.root.addChild(agent.scene_node);
+		this.scene_node = new RD.SceneNode();
+        this.scene_node.uniforms["u_selected"] = false;
+        this.scene_node.uniforms["u_Skinning"] = true;
+        this.scene_node.uniforms["u_metalness"] = o.material_uniforms.metalness || 1;
+        this.scene_node.uniforms["u_roughness"] = o.material_uniforms.roughness || 1;
+		this.scene_node.mesh = "Jim.mesh";
+		this.scene_node.shader = "pbr";
+		this.scene_node.id = LS.generateUId('scene_node');
+		this.scene_node.phase = Math.random();
+		this.scene_node.scaling = 1 + Math.random()*0.2;
+		this.scene_node.position = sk_pos;
+		// this.scene_node.rotate(Math.random() * 360 * DEG2RAD,RD.UP);
+		this.scene_node.color = o.material_uniforms.color || [0.5 + Math.random()*0.5,0.5 + Math.random()*0.5,0.5 + Math.random()*0.5,1];
+        GFX.scene.root.addChild(this.scene_node);
+        
+        PBR.setTextureProperties(this.scene_node);
+        PBR.setTextures(this.scene_node, GFX.environment);
 
-        agent.animator = new Animator();
-		agent.animationBlender = new AnimationBlender();
-		var anim = animation_manager.animations["walking"];
-		agent.animationBlender.main_skeletal_animation = anim;
+		this.animationBlender = new AnimationBlender();
+		var anim = animation_manager.animations["animations_ybot"];
+		this.animationBlender.main_skeletal_animation = anim;
 
 		var duration = this.animationBlender.main_skeletal_animation.duration;
 		this.animationBlender.current_time = this.scene_node.phase*duration;
 
-		agent.scene_node.bones = anim.skeleton.computeFinalBoneMatrices( agent.scene_node.bones, gl.meshes[ agent.scene_node.mesh ] );
-		if(agent.scene_node.bones && agent.scene_node.bones.length)
-			agent.scene_node.uniforms.u_bones = agent.scene_node.bones;
+		this.scene_node.bones = anim.skeleton.computeFinalBoneMatrices( this.scene_node.bones, gl.meshes[ this.scene_node.mesh ] );
+		if(this.scene_node.bones && this.scene_node.bones.length)
+            this.scene_node.uniforms.u_bones = this.scene_node.bones;
+            
 //		this.animationBlender.addLayer(anim2, 1.0);
 
-        agent.animator.agent_id = agent.uid;
-		agent.stylizer = new PoseStylizer();
-        var animation = animation_manager.animations["Walking"];
-        if(animation)
-        {
-            var skeletal_animation = new SkeletalAnimation("Walking", animation);
-            agent.skeletal_animations["Walking"] = skeletal_animation; 
-            agent.animator.base_animation = skeletal_animation;
-        }
-        // this.animator.animations = animations; //toremove
-        // this.head_node = this.getHeadNode(this.skeleton.name);
-        // console.log(this.head_node);
+        this.stylizer = new PoseStylizer();
 
-        //Store agents 
-        agent.bt_info = {};
+        //Store thiss 
+        this.bt_info = {};
         AgentManager.agents[agent.uid] = agent;
-		AgentManager.addPropertiesToLog(agent.properties);
+        AgentManager.addPropertiesToLog(agent.properties);
 
-        LEvent.bind(agent, "applyBehaviour", (function(e,p){
-            agent.animator.applyBehaviour(p);
-        }).bind(agent)); 
-
-        LEvent.bind(agent, "moveTo", (function(e,p){
-            agent.moveTo(p,global_dt);
-        }).bind(agent));
         agent.inspector.refresh();
     }
     visualizePath()
@@ -447,23 +433,37 @@ class Agent{
         else if(target.constructor == Float32Array)
             target = target;
         else    
-            target = target.position;
+        {
+            if(target.position) target = target.position;
+            else return;
+        }
 
         var motion_to_apply = this.animationBlender.motion_speed * (dt/0.0169);
-        this.orientCharacter(this.scene_node, target, dt);
+        this.orientCharacter_(this.scene_node, target, dt);
         var direction = GFX.rotateVector(this.scene_node.getGlobalMatrix(), [0,0,1]);
         direction = vec3.multiply(direction, direction, [this.animationBlender.playback_speed*motion_to_apply, this.animationBlender.playback_speed*motion_to_apply, this.animationBlender.playback_speed*motion_to_apply]);
         vec3.add(this.scene_node.position, this.scene_node.position, direction);
         this.scene_node.updateMatrices();
     }
 
-    orientCharacter( skeleton, target )
+    // orientCharacter( skeleton, target )
+    // {         
+    //     var tmpMat4 = mat4.create(), tmpQuat = quat.create();
+    //     mat4.lookAt(tmpMat4, target, skeleton.getGlobalPosition(), [0,1,0]);
+    //     quat.fromMat4(tmpQuat, tmpMat4);
+    //     quat.slerp(tmpQuat, tmpQuat, skeleton.rotation, 0.975);
+    //     skeleton._rotation = tmpQuat;
+    //     this.properties.orientation = skeleton._rotation;
+    //     skeleton.updateMatrices();
+    // }
+
+    orientCharacter_( skeleton, target )
     {         
-        var tmpMat4 = mat4.create(), tmpQuat = quat.create();
-        mat4.lookAt(tmpMat4, target, skeleton.getGlobalPosition(), [0,1,0]);
-        quat.fromMat4(tmpQuat, tmpMat4);
-        quat.slerp(tmpQuat, tmpQuat, skeleton.rotation, 0.975);
-        skeleton._rotation = tmpQuat;
+        var direction = vec3.create();
+        vec3.subtract(direction, target, skeleton.getGlobalPosition());
+        var rotation = quat.create();
+        quat.lookRotation(rotation, direction, vec3.fromValues(0,1,0));
+        skeleton.rotation = quat.slerp(skeleton.rotation, rotation, skeleton._rotation, 0.975 );        
         skeleton.updateMatrices();
     }
 
@@ -632,7 +632,7 @@ class Agent{
 		if(!this.path.control_points[this.last_controlpoint_index]) 
 			this.last_controlpoint_index =0;
 		this.properties.target = this.path.control_points[this.last_controlpoint_index];
-		return true;
+		return this.properties.target;
 
     }
 
@@ -647,18 +647,21 @@ class Agent{
 		switch(behaviour_type)
 		{
 			case B_TYPE.moveTo: 
-				this.properties.target = behaviour.data;
+				// this.properties.target = behaviour.data;
 				break;
 			case B_TYPE.lookAt:
 				this.properties.look_at = behaviour.data;
 				break;
 			case B_TYPE.animateSimple: 
-				this.animator.applyBehaviour(behaviour.data);
+				this.animationBlender.applyBehaviour(behaviour.data);
+                break;
+            case B_TYPE.action: 
+				this.animationBlender.applyBehaviour(behaviour.data);
 				break;
 			case B_TYPE.wait:
 				break;
 			case B_TYPE.nextTarget:
-				this.properties.target = this.checkNextTarget();
+				this.animationBlender.applyBehaviour(behaviour.data);
 				break;
 			case B_TYPE.setMotion:
 				this.animationBlender.motion_speed = behaviour.data;
@@ -678,7 +681,38 @@ class Agent{
 
 	getBonesRotationMatrices()
 	{
-	}
+    }
+    
+    openEditMaterialDialog()
+    {
+        var dialog = new LiteGUI.Dialog( { id:"show-material-info", title:'Edit material', close: true, minimize: false, width: 250, height: 500, scroll: false, resizable: false, draggable: true, parent:"body"});
+        var material_inspector = new LiteGUI.Inspector();
+        var that = this;
+
+        material_inspector.on_refresh = function()
+        {
+            material_inspector.clear();
+            material_inspector.addColor("Color", that.scene_node.color, { callback:function(v){
+                that.scene_node.color = v;
+            }});
+
+            material_inspector.addSlider("Roughness", that.scene_node.uniforms["u_roughness"], {min:0,max:1,callback:function(v)
+            {
+                that.scene_node.uniforms["u_roughness"] = v;
+            }});
+            material_inspector.addSlider("Metalness", that.scene_node.uniforms["u_metalness"], {min:0,max:1,callback:function(v)
+            {
+                that.scene_node.uniforms["u_metalness"] = v;
+            }});
+           
+            dialog.adjustSize();
+        }
+
+        dialog.add(material_inspector);
+        material_inspector.refresh();
+        dialog.show('fade');
+        dialog.setPosition(window.innerWidth/2 - 200,200);
+    }
 
 }
 

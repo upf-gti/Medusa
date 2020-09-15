@@ -10,12 +10,16 @@ var GFX = {
     lines_mesh: null,
     cube: null,
 	grab_point: vec3.create(),
+	gizmo:null,
+	render_gizmo:false, 
 
     init_time_clicked: 0,
 
     initCanvas: function() {
 
-        this.scene = new RD.Scene();
+		this.scene = new RD.Scene();
+		this.gizmo = new RD.Gizmo();
+		this.gizmo.mode = RD.Gizmo.MOVEX | RD.Gizmo.MOVEZ| RD.Gizmo.MOVEXZ| RD.Gizmo.ROTATEY;
         this.context = GL.create({
             width: window.innerWidth*0.4,
             height: window.innerHeight,
@@ -26,17 +30,28 @@ var GFX = {
 		this.context.canvas.id = "main_canvas";
 		
         this.camera = new RD.Camera();
-        //pos, target, ?
-        this.camera.lookAt([-1500, 250, 3000], [0, 7, 0], [0, 1, 0]);
+        //Eye, Center, Up
+		this.camera.lookAt([-1500, 250, 3000], [0, 7, 0], [0, 1, 0]);
+		//Fov, Aspect, Near, Far
         this.camera.perspective(45, this.context.canvas.width / this.context.canvas.height, 50, 200000);
 		
 		var on_complete = function(mesh, url)
 		{
 			gl.meshes["Jim.mesh"] = mesh;
-			$("#loading").fadeOut()
+			$("#loading").fadeOut();
+			PBR.setHDRE("assets/environments/evening_road.hdre", function(filename)
+			{
+				//to access from the agent creation to setTextures()
+				GFX.environment = filename;
+				//set up the first blurred version to the skybox 
+				skybox.texture = "evening_road.hdre";
+				if(window.localStorage.getItem("medusa_recovery"))
+					setProjectData();
+			});
 		}
 
-		GL.Mesh.fromURL("assets/Jim.wbin", on_complete, gl);
+		GL.Mesh.fromURL("assets/meshes/Jim.wbin", on_complete, gl);
+		PBR.init();
 
         scenario = new RD.SceneNode();
 		scenario.mesh = "square.WBIN";
@@ -50,23 +65,19 @@ var GFX = {
 
         floor = new RD.SceneNode();
         floor.name = "floor";
-        floor.mesh = "planeXZ"
-        floor.texture = "floor6.jpg";
-        floor.shader = "phong_texture_shadow";
+		floor.mesh = "planeXZ";
+		floor.texture = "floor6.jpg";
+		floor.shader = "phong_texture_shadow";
         floor.position = [0, -1, 0];
         floor.scaling = 100000;
-        floor.uniforms.u_tiling = vec2.fromValues(600, 600);
-        this.scene.root.addChild(floor);
-
-		var tex = Texture.cubemapFromURL("assets/cubemap3.png", {is_cross: true});
-		gl.textures["skyboxTex"] = tex;
+		floor.uniforms.u_tiling = vec2.fromValues(600, 600);
+		this.scene.root.addChild(floor);
 
 		skybox = new RD.SceneNode();
 		skybox.mesh = "cube";
 		skybox.name = "skybox";
 		skybox.scaling = 100000;
 		skybox.flags.ignore_collisions = true;
-		skybox.texture = "skyboxTex";
 		skybox.position = [0, 100, 0];
 		skybox.shader = "skybox";
 		skybox.flags.depth_test = false;
@@ -76,48 +87,18 @@ var GFX = {
 
 		gl.canvas.ondragover = () => {return false};
 		gl.canvas.ondragend = () => {return false};
-		gl.canvas.ondrop = function(e)
-		{
-			e.preventDefault();
-			e.stopPropagation();
-			var file = e.dataTransfer.files[0];
-			var reader = new FileReader();
-
-			// Closure to capture the file information.
-			reader.onload = function(e) 
-			{
-//				debugger; 
-				if(file.name.split(".")[1] == "json")
-				{
-					var data = JSON.parse(e.target.result);
-					CORE.GUI.openImportDialog(data, file);
-				}
-				else if(file.name.split(".")[1] == "skanim")
-				{
-					// console.log(e.target.result);
-					debugger;
-					CORE.GUI.openImportAnimationDialog(e.target.result, file);
-					
-				}
-//				var data = JSON.parse(e.target.result);
-//				CORE.GUI.openImportDialog(data, file);				
-			}
-			reader.readAsText(file);
-		}
-
+		gl.canvas.ondrop = processDrop;
+		
         this.renderer = new RD.Renderer(this.context, {
             assets_folder: "assets/",
             shaders_file: "shaders.txt",
-            // autoload_assets: true //default
-
-        });
+		});
 
         // declare uniforms
-
         this.background_color = vec3.fromValues(0.7, 0.7, 0.7);
-        this.renderer._uniforms['u_ambient_light'] = vec3.fromValues(0.5, 0.5, 0.5),
+        this.renderer._uniforms['u_ambient_light'] = vec3.fromValues(1.0, 1.0, 1.0),
         this.renderer._uniforms['u_light_position'] = vec3.fromValues(10, 3000, 100);
-        this.renderer._uniforms['u_light_color'] = vec3.fromValues(0.9, 0.9, 0.9);
+        this.renderer._uniforms['u_light_color'] = vec3.fromValues(1.0, 1.0, 1.0);
         this.renderer._uniforms['u_specular'] = 0.1;
         this.renderer._uniforms['u_glossiness'] = 20;
         this.renderer._uniforms['u_fresnel'] = 0.1;
@@ -126,22 +107,19 @@ var GFX = {
 		this.renderer._uniforms['u_light_color'] = RD.WHITE;
 		this.renderer._uniforms['u_light_vector'] = vec3.fromValues(0.577, 0.577, 0.577);
 
+		//circle helper for selected agent
 		this.circle_vertices = this.generateCircleVertices(64, 60);
 		this.createSelectionCircles(this.circle_vertices);
 		this.helper_circle_vertices = this.generateCircleVertices(64, 60);
 		this.createAddHelperCircles(this.helper_circle_vertices);
 
-
-
-
         this.renderer.context.captureMouse(true);
         this.renderer.context.captureKeys(true);
 
+		//append the canvas to the DOM element
         CORE.Player.panel.content.appendChild(this.renderer.canvas);
 
-        var bg_color = vec4.fromValues(54 / 255, 75 / 255, 78 / 255, 0);
         var last = now = getTime();
-
         requestAnimationFrame(animate);
 
         function animate() {
@@ -152,52 +130,26 @@ var GFX = {
 			var time2 = getTime()*0.001;
             GFX.dt = (now - last) * 0.001;
             global_dt = GFX.dt;
-            time = (Date.now() - start_time) * 0.001;
-//			debugger;
-//			console.log(Math.sin(getTime()*0.005));
 			GFX.animateSelectionCircles( now );
-			
 			stats.begin();
 
-			if(GFX.camera.position[1] < 50)
-				GFX.camera.position[1] = 50;
+			if(GFX.camera.position[1] < 20)
+				GFX.camera.position[1] = 20;
 
             GFX.renderer.clear([0, 0, 0, 0.1]);
-            GFX.renderer.render(GFX.scene, GFX.camera);
+			GFX.renderer.render(GFX.scene, GFX.camera);
+			if(GFX.render_gizmo)
+				GFX.renderer.render(GFX.scene, GFX.camera, [GFX.gizmo]);
+			
             CORE.Labels.update();
-            
-
-
-
 
             GFX.scene.update(GFX.dt);
             update(GFX.dt);
-//			for(var i in people)
-//			for(var i in AgentManager.agents)
-//			{
-////				var person = people[i];
-//				var person = AgentManager.agents[i].man;
-////				if(!gl.meshes[ person.mesh ].bones) continue;
-////				if(!person.flags.was_rendered)
-////					continue;
-//				if(anim.duration)
-//					anim.assignTime( time2);
-//				if(anim2.duration)
-//					anim2.assignTime( time2);
-//				if(anim.duration && anim2.duration )
-////					Skeleton.blend( anim.skeleton, anim2.skeleton, Math.sin(time2 + person.phase*2*Math.PI)*0.5+0.5, anim.skeleton );
-//				person.bones = anim2.skeleton.computeFinalBoneMatrices( person.bones, gl.meshes[ person.mesh ] );
-//				if(person.bones && person.bones.length)
-//					person.uniforms.u_bones = person.bones;
-//			}
-
 			GFX.scene.update(GFX.dt);
 
 			stats.end();
-	
-            //GFX.draw_analysis(GFX.canvas2D, GFX.context2, dt);
-
-        }
+		}
+		
         this.renderer.setPointSize(4);
         this.renderer.context.captureKeys(true);
         this.renderer.context.captureMouse(true);
@@ -214,12 +166,12 @@ var GFX = {
         }
         this.renderer.context.onkeydown = function(e) {
         
-            if(e.shiftKey){
-                
+			if(e.shiftKey)
+			{
                 if(e.keyCode == 37) {
 
                     if(window.tmp_graph_container)
-                    return;
+                    	return;
 
                     window.tmp_graph_container = CORE.GraphManager.graphcanvas.canvas.parentNode;
                     $("#full").append( CORE.GraphManager.graphcanvas.canvas).show();
@@ -229,23 +181,22 @@ var GFX = {
                 if(e.keyCode == 39) {
 
                     if(!window.tmp_graph_container)
-                    return;
+                    	return;
 
                     $(window.tmp_graph_container).append( CORE.GraphManager.graphcanvas.canvas);
                     $("#full").hide();
                     window.tmp_graph_container = null;
                     hbt_editor.graph_canvas.resize();
 				}
+
 				if(e.keyCode == 67)
 				{
 					if(agent_selected)
-					{
 						agent_selected.scene_node.position = [0,0,0];
-					}
+					GFX.gizmo.updateGizmo();
 				}
-
-               
-            }
+			}
+			
 			if(e.keyCode === 116) // F5
 			{
 				e.preventDefault();
@@ -271,18 +222,20 @@ var GFX = {
         }
 
         this.renderer.context.onkeyup = function(e) {
-
+			//supr
             if(e.keyCode == 46){
                 for(var i in hbt_editor.graph_canvas.selected_nodes)
                 {
                     var node = hbt_editor.graph_canvas.selected_nodes[i];
                     hbt_editor.graph.remove(node);
                 }
-            }
+			}
+			//R (remove agent)
             if(e.keyCode == 8){
 				if(agent_selected)
 					AgentManager.deleteAgent(agent_selected.uid);
-            }
+			}
+			//Esc
 			if( e.keyCode == 27 ) 
 			{
 				disselectCharacter();
@@ -295,19 +248,19 @@ var GFX = {
 				
 				agent_selected = null;
 				agent_selected_name = null;
-//                        CORE.GraphManager.renderStats();
 				CORE.GraphManager.top_inspector.refresh();
 				CORE.Scene.agent_inspector.refresh();
 
 				var btn = document.getElementById("navigate-mode-btn");
 				if(!btn.classList.contains("active"))
-				{
 					btn.classList.add("active");
-				}
+				
 				document.getElementById("main_canvas").style.cursor = "default";
 				scene_mode = NAV_MODE;
 				CORE.Player.disableModeButtons(btn.id);
 			}
+			if(e.keyCode == 71)
+				GFX.render_gizmo = !GFX.render_gizmo;
 
         }
             
@@ -316,27 +269,29 @@ var GFX = {
     onmouse: function(e) 
 	{
         if (e.type == "mousemove" && e.dragging) {
-            if (e.leftButton) {
-
-//				GFX.orbitCamera(e.deltax  * 0.005, -e.deltay * 0.005 );
+			if(GFX.gizmo && GFX.gizmo.onMouse(e))
+				return;
+			if (e.leftButton) 
+			{
                 GFX.camera.orbit(e.deltax * GFX.dt *-0.15, [0, 1, 0]);
                 GFX.camera.orbit(e.deltay * GFX.dt * -0.15, [1, 0, 0], null, true);
             }
-            if (e.rightButton) {
-//                var vect = vec3.fromValues(e.deltax * -1, e.deltay * 1, 0);
-//                GFX.camera.moveLocal(vect)
-
+			if (e.rightButton) 
+			{
 				var coll = GFX.testRayWithFloor(e);
 				if(coll)
 				{
-					//debug_points.push( coll );
 					var delta = vec3.sub( vec3.create(), GFX.grab_point, coll );
 					GFX.camera.move( delta );
 				}
             }
-        } 
+		} 
+		
 		if(e.type == "mousemove")
 		{
+			if(GFX.gizmo && GFX.gizmo.onMouse(e))
+				return;
+			
 			if(scene_mode == PATH_CREATION_MODE && current_path && current_path.control_points.length)
 			{
 				var length = current_path.control_points.length;
@@ -349,27 +304,33 @@ var GFX = {
 					current_path.control_points[length-1].position,
 					mouse
 				];
-
 				GFX.setGuidePath(points);
-
 			}
 		}
-        else if (e.type == "wheel") 
+
+		else if (e.type == "wheel")
+		{
+			if(GFX.gizmo && GFX.gizmo.onMouse(e))
+            	return;
             GFX.camera.orbitDistanceFactor(1.0 + (e.wheel *-0.001));
+		}
         
         else if (e.type == "mousedown") 
         {
-            if (e.leftButton) {
+			if(GFX.gizmo && GFX.gizmo.onMouse(e))
+            	return;
+            if (e.button == GL.LEFT_MOUSE_BUTTON ) 
                 GFX.init_time_clicked = Date.now();
-            }
+            
             else
-            {
                 GFX.init_time_clicked = null;
-            }    
 
-        }
+		}
+		
         else if ( e.type == "mouseup")
         {
+			if(GFX.render_gizmo)
+				CORE.Scene.agent_inspector.refresh();
             if(scene_mode == NAV_MODE)
             {
                 if(!GFX.init_time_clicked) 
@@ -377,8 +338,7 @@ var GFX = {
     
                 var dif = Date.now() - GFX.init_time_clicked;
                 //check if the action is drag or a fast click
-								// console.log(dif);
-                if(dif < 100)
+                if(dif < 150)
                 {
                     var x = e.canvasx;
                     var y = e.canvasy;
@@ -386,6 +346,7 @@ var GFX = {
                     var agent = GFX.getElementFromTestCollision(x, y, 1);
                     if (!agent) 
                     {
+						GFX.gizmo.setTargets([]);
                         disselectCharacter();
 						if(agent_selected)
 						{
@@ -396,23 +357,21 @@ var GFX = {
 						
                         agent_selected = null;
                         agent_selected_name = null;
-//                        CORE.GraphManager.renderStats();
 						CORE.GraphManager.top_inspector.refresh();
 						CORE.Scene.agent_inspector.refresh();
 
                         //try with interest points
                         var ip_info = GFX.getElementFromTestCollision(x, y, 2);
                         if(ip_info)
-                            // console.log("meh");
                             CORE.Scene.showInterestPointInfo(ip_info, x, y);
                         return;
                     }
-    
 
 					if(agent_selected)
 					{
 						agent_selected.scene_node.removeChild(GFX.circle_node);
 						agent.scene_node.addChild(GFX.circle_node);
+						GFX.gizmo.setTargets([agent.scene_node]);
 						GFX.circle_node.position = [0,0,0];
 						CORE.GraphManager.putGraphOnEditor(agent.hbtgraph);
 					}
@@ -421,6 +380,7 @@ var GFX = {
 					{
 						GFX.scene.root.removeChild(GFX.circle_node);
 						agent.scene_node.addChild(GFX.circle_node);
+						GFX.gizmo.setTargets([agent.scene_node]);
 						GFX.circle_node.position = [0,0,0];
 //						console.log(agent.hbtgraph);
 						CORE.GraphManager.putGraphOnEditor(agent.hbtgraph);
@@ -441,7 +401,7 @@ var GFX = {
             else if(scene_mode == IP_CREATION_MODE)
             {
                 if(!GFX.init_time_clicked) 
-                return;
+                	return;
                 
                 var dif = Date.now() - GFX.init_time_clicked;
                 //check if the action is drag or a fast click    
@@ -457,12 +417,12 @@ var GFX = {
 			else if(scene_mode == AGENT_CREATION_MODE)
 			{
 				if(!GFX.init_time_clicked) 
-                return;
+                	return;
                 
                 var dif = Date.now() - GFX.init_time_clicked;
 				console.log(dif);
                 //check if the action is drag or a fast click    
-                if(dif < 100)
+                if(dif < 150)
                 {
                     var x = e.canvasx;
                     var y = e.canvasy;
@@ -475,22 +435,24 @@ var GFX = {
 						agent.properties.target = agent.path.control_points[0]; 
 						agent.last_controlpoint_index = 0;
 					}
+					if(GFX.gizmo)
+						GFX.gizmo.setTargets([agent.scene_node]);
                 }
 			}
 
 			else if(scene_mode == POPULATE_CREATION_MODE)
 			{
 				if(!GFX.init_time_clicked) 
-                return;
-//				debugger;
+                	return;
 				var dif = Date.now() - GFX.init_time_clicked;
                 //check if the action is drag or a fast click    
-                if(dif < 100)
+                if(dif < 150)
                 {
 					var x = e.canvasx;
 					var y = e.canvasy;
 					var position = GFX.testCollision(x, y);
-					if(position){
+					if(position)
+					{
 						position[1] = 0;
 						CORE.GUI.showPopulateDialog( position );
 					}
@@ -506,7 +468,7 @@ var GFX = {
                 
                 var dif = Date.now() - GFX.init_time_clicked;
                 //check if the action is drag or a fast click    
-                if(dif < 100)
+                if(dif < 150)
                 {
                     var x = e.canvasx;
                     var y = e.canvasy;
@@ -530,19 +492,17 @@ var GFX = {
                 
                 var dif = Date.now() - GFX.init_time_clicked;
                 //check if the action is drag or a fast click    
-                if(dif < 100)
+                if(dif < 150)
                 {
                     var x = e.canvasx;
                     var y = e.canvasy;
                     var position = GFX.testCollision(x, y);
 					if(position)
 					{
-//						debugger;
 						if(current_path.control_points.length > 0)
-						{
 							current_path.connectControlPoints(current_path.control_points[current_path.control_points.length-1].position, position);
-						}
-						current_path.addControlPoint(position);
+						
+							current_path.addControlPoint(position);
 					}
                 }
 			}
@@ -554,14 +514,13 @@ var GFX = {
                 
                 var dif = Date.now() - GFX.init_time_clicked;
                 //check if the action is drag or a fast click    
-                if(dif < 100)
+                if(dif < 150)
                 {
                     var x = e.canvasx;
                     var y = e.canvasy;
                     var position = GFX.testCollision(x, y);
 					if(position)
 					{
-//						debugger;
 						if(current_area)
 							current_area.addVertex(position);
 						else
@@ -572,7 +531,12 @@ var GFX = {
 					}
                 }
 			}
-        }
+		}
+		if(GFX.gizmo.targets && GFX.gizmo.targets.length > 0)
+		{
+			if(GFX.gizmo)
+			GFX.gizmo.onMouse(e);
+		}
     },
 
 	testRayWithFloor(e)
@@ -640,7 +604,6 @@ var GFX = {
 		vec3.transformQuat(dist, dist, R );
 
 		vec3.add(window.destination_eye, dist, center);
-		//window.destination_eye = eye;
 		camera._must_update_matrix = true;
 	},
 
@@ -675,18 +638,16 @@ var GFX = {
         if(type == 1)
         {
             var agents = CORE.AgentManager.agents;
-            // console.log(agents);
-            for (var i in agents) {
+			for (var i in agents) 
+			{
                 var agent = agents[i];
                 var center = agent.scene_node.getGlobalPosition();
                 center[1] = 112;
                 var collision = ray.testSphere(center, radius, 10000);
-                // console.log(collision);
     
-                if (collision) {
-                    // console.log(agent);
+                if (collision) 
                     return agent;
-                }
+
             }
         }
         else if(type == 2)
@@ -724,15 +685,6 @@ var GFX = {
 
 		for(var i = 0; i < num_vertices; ++i)
 		{
-//			init_pos = vec3.fromValues(x, y, z);
-
-//			if(i == 0)
-//			{
-//				init_pos = vec3.fromValues(x, y, z);
-//				points.push(init_pos);
-//			}
-//			points.push(init_pos);
-
 			x = Math.cos(angle)*radius;
 			z = Math.sin(angle)*radius;
 
@@ -748,24 +700,19 @@ var GFX = {
 			}
 		}
 
-		for(var j = 0; j < (points.length); ++j){
-
+		for(var j = 0; j < (points.length); ++j)
 			vertices.push(points[j][0], points[j][1], points[j][2]);
-//			vertices.push(points[j+1][0], points[j+1][1], points[j+1][2]);
-		}
-			
-		
-		return vertices;
 
+		return vertices;
 	}, 
 
 	createSelectionCircles:function(vertices_)
 	{
 		this.helper_mesh = GL.Mesh.load({ vertices: vertices_ });
-		GFX.renderer.meshes["circle"] = this.helper_mesh;
+		GFX.renderer.meshes["circle_"] = this.helper_mesh;
 
 		this.circle_node = new RD.SceneNode();
-		this.circle_node.mesh = "circle";
+		this.circle_node.mesh = "circle_";
 		this.circle_node.name = "circle";
 		this.circle_node.color = [255/255, 255/255, 255/255,0.9];
 		this.circle_node.primitive = GL.LINE_STRIP;
@@ -773,11 +720,10 @@ var GFX = {
 		this.scene.root.addChild(this.circle_node);
 
 		this.circle_node2 = new RD.SceneNode();
-		this.circle_node2.mesh = "circle";
+		this.circle_node2.mesh = "circle_";
 		this.circle_node2.name = "circle2";
 		this.circle_node2.color = [255/255, 255/255, 255/255,0.9];
 		this.circle_node2.primitive = GL.LINE_STRIP;
-//		this.circle_node2.position = [10,10,10];
 		this.circle_node.addChild(this.circle_node2);
 	}, 
 
@@ -794,14 +740,6 @@ var GFX = {
 		this.pointer_helper.visible = false;
 		this.pointer_helper.position = [0,0,0];
 		this.scene.root.addChild(this.pointer_helper);
-
-//		this.circle_node2 = new RD.SceneNode();
-//		this.circle_node2.mesh = "circle";
-//		this.circle_node2.name = "circle2";
-//		this.circle_node2.color = [255/255, 255/255, 255/255,0.9];
-//		this.circle_node2.primitive = GL.LINE_STRIP;
-////		this.circle_node2.position = [10,10,10];
-//		this.circle_node.addChild(this.circle_node2);
 	}, 
 	
 	animateSelectionCircles : function( now )
