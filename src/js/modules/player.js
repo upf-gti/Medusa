@@ -60,6 +60,7 @@ class Player{
             }
             scene_mode = AGENT_CREATION_MODE;
             CORE.Player.disableModeButtons(this.id);
+            CORE.Player.showPopUpMessage("Click the floor to add. Press Esc to come back to navigation controls", "rgba(220, 170, 0, 0.7)", "40%");
 			document.getElementById("main_canvas").style.cursor = "cell";
 
         });
@@ -78,7 +79,7 @@ class Player{
             if(!this.classList.contains("active"))
                 this.classList.add("active");
 
-            CORE.Player.showPopUpMessage("Click the floor to add control points");
+            CORE.Player.showPopUpMessage("Click the floor to add control points", "rgba(220, 170, 0, 0.7)", "50%");
 			scene_mode = PATH_CREATION_MODE;
 			var new_path = new Path();
 			path_manager.addPath(new_path);
@@ -124,6 +125,7 @@ class Player{
                 this.classList.add("active");
 				
             }
+            CORE.Player.showPopUpMessage("Click the floor to add. Press Esc to come back to navigation controls", "rgba(220, 170, 0, 0.7)", "40%");
             scene_mode = IP_CREATION_MODE;
             CORE.Player.disableModeButtons(this.id);
 			document.getElementById("main_canvas").style.cursor = "cell";
@@ -187,7 +189,8 @@ class Player{
                     window.state = STOP;
                     e.currentTarget.innerHTML = '<i id="play-btn" class="material-icons">play_arrow</i>';
                     e.currentTarget.children[0].classList.remove("play");
-					hbt_editor.graph.status = 1;
+                    hbt_editor.graph.status = 1;
+                    hbt_editor.graph.execution_timer_id = 0;
                     break;
                 case STOP: 
                     window.state = PLAYING;
@@ -217,11 +220,13 @@ class Player{
 //		var canvas = document.getElementById("main_canvas");
     }
 	
-	showPopUpMessage( message ){
+	showPopUpMessage( message, color, pos ){
 		var x = document.getElementById("snackbar");
 		x.className = "show";
-		x.innerHTML = message || "Click the floor";
-		setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+        x.innerHTML = message || "Click the floor";
+        x.style.backgroundColor = color;
+        x.style.left = pos;
+		setTimeout(function(){ x.className = x.className.replace("show", ""); }, 5000);
 	}
     init(){
 
@@ -296,7 +301,7 @@ class Player{
 
         var text = "";
         text += "Agents in the scene: " + Object.keys(CORE.AgentManager.agents).length;
-		text += "   |    Interest Points: "
+		text += "   |    Paths: " + Object.keys(path_manager._paths).length
 
         this.stats.innerText = text;
     }

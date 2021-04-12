@@ -4,10 +4,23 @@
 
 /*Structure used in the HBTNodes*/
 STATUS = {
-
 	success:0, 
 	running:1, 
 	fail:2
+}
+/*Just leaf nodes*/
+var B_TYPE = 
+{
+	moveToLocation:0, 
+	lookAt:1,
+	animateSimple:2, 
+	wait:3, 
+	nextTarget:4,
+	setMotion:5, 
+	setProperty:6, 
+	succeeder:7, 
+	action:8,
+	conditional:9
 }
 
 function onConfig(info, graph)
@@ -21,18 +34,17 @@ function onConfig(info, graph)
         for(let j in output.links)
         {   
             var link_id = output.links[j];
-            var link = getLinkById(link_id, graph);
-
-            var node = graph.getNodeById(link.origin_id);
+            var link    = getLinkById(link_id, graph);
+            var type    = link.type;
+            var node    = graph.getNodeById(link.origin_id);
             var origin_slot = link.origin_slot;
             var target_node = graph.getNodeById(link.target_id);
             var target_slot = link.target_slot;
-            var type = link.type;
         }
     }
 }  
 
-function getLinkById(id,graph)
+function getLinkById( id,graph )
 {
     for(var i in graph.links)
     {
@@ -43,7 +55,7 @@ function getLinkById(id,graph)
 }
 
 //to know if a node was executed the previous evaluation
-function nodePreviouslyEvaluated(agent, node_id)
+function nodePreviouslyEvaluated( agent, node_id )
 {
 	for(var i in agent.last_evaluation_trace)
 		if(agent.last_evaluation_trace[i] == node_id)
@@ -51,19 +63,15 @@ function nodePreviouslyEvaluated(agent, node_id)
 	return false;
 }
 
-function resetHBTreeProperties(agent)
+function resetHBTreeProperties( agent )
 {
-	//running nodes params
-	// agent.bt_info.running_node_id = null;
-	// agent.bt_info.running_node_index = null;
-	//random selector nodes params
 	agent.bt_info.random_index_data = null;
 	agent.bt_info.rand_selection_index = null;  
 	agent.bt_info.random_period = null;
 }
 
 //editor stuff: highlighst the connections
-function highlightLink(node, child)
+function highlightLink( node, child )
 {
 	if(child.inputs)
 	{
@@ -87,22 +95,21 @@ function Blackboard()
 
 Blackboard.prototype._ctor = function()
 {
-    this.stress = 0;
+    this.rain    = 50;
+    this.stress  = 0;
     this.avg_age = 20;
-    this.rain = 50;
+    this.light   = 80;
+    this.noise   = 35;
+	this.danger  = 0;
+    this.area    = [-2500,-2500,2500,2500];
     this.temperature = 20;
-    this.light = 80;
-    this.noise = 35;
-	this.danger = 0;
     this.bbvariables = ["stress", "rain", "temperature", "light", "noise", "danger"];
-    this.area = [-2500,-2500,2500,2500];
 }
 
-Blackboard.prototype.setArea = function(p1, p2, p3, p4)
+Blackboard.prototype.setArea = function( p1, p2, p3, p4 )
 {
     this.area = [p1, p2, p3, p4];
 }
-
 
 /******************************************** HBTContext ************************************************************/
 /* HBTContext will contain the graphs available in that context and the evaluate methods for an Agent A witha  Graph G 
@@ -117,25 +124,25 @@ function HBTContext ()
 
 HBTContext.prototype._ctor = function()
 {
+	this.id   = "@HBTContext";
 	this.name = "HBTContext";
-	this.id = "@HBTContext";
+	this.facade 	= new Facade();
 	this.blackboard = new Blackboard();
-	this.interest_points = {};
-	this.list_of_graphs = {};
-	this.facade = new Facade();
-	this.agent_evaluated = null;
 	this.tmp_result = null;  
+	this.interest_points = {};
+	this.list_of_graphs  = {};
+	this.agent_evaluated = null;
 }
 
 /*
 * Function to evaluate what to do
 * Returns an object with the status and info about the task to do
 */
-HBTContext.prototype.evaluate = function(character, dt)
+HBTContext.prototype.evaluate = function( character, dt )
 {
 	this.agent_evaluated = character;
-	var graph = this.getGraphByName(this.agent_evaluated.hbtgraph);
-	this.tmp_result = graph.runBehaviour(this.agent_evaluated, dt);
+	var graph            = this.getGraphByName(this.agent_evaluated.hbtgraph);
+	this.tmp_result      = graph.runBehaviour(this.agent_evaluated, dt);
 	return this.tmp_result;
 }
 
@@ -157,33 +164,27 @@ HBTContext.prototype.addHBTGraph = function( name )
 	new_graph.graph.context = this;
 	this.current_graph = new_graph;
 	this.list_of_graphs[new_graph.uid] = new_graph;
-
 	return new_graph;
 }
 
 HBTContext.prototype.getGraphByName = function( name )
 {
 	for (var i in this.list_of_graphs)
-	{
 		if(this.list_of_graphs[i].name == name)
 			return this.list_of_graphs[i];
-	}
 
 	return false;
 }
 
-HBTContext.prototype.getGraphNames = function(  )
+HBTContext.prototype.getGraphNames = function()
 {
 	var names = [];
 	for (var i in this.list_of_graphs)
-	{
 		names.push(this.list_of_graphs[i].name);
-	}
+	
 	return names;
 }
-
 /********************************************************************************************************************/
-
 
 /******************* Interest point class, just a JavaScript object with the info ***********************************/
 
@@ -198,12 +199,12 @@ InterestPoint.prototype._ctor = function( o )
 {	
 	if(o)
 	{
+		this.id   = o.id;
+		this.pos  = o.pos;
 		this.name = o.name;
-		this.pos = o.pos;
-		this.id = o.id;
-		this.a_properties = o.a_properties;
-        this.bb_properties = o.bb_properties;
 		this.type = o.type
+		this.a_properties  = o.a_properties;
+        this.bb_properties = o.bb_properties;
 	}
 	
 }
@@ -216,10 +217,10 @@ function addPropertyToAgents(type, name)
 		{
 			switch(type)
 			{
-				case "float":agent.properties[name] 	= 0; 				break;
-				case "bool":agent.properties[name] 		= false;			break;
-				case "vec3":agent.properties[name] 		= vec3.create();	break;
-				case "string":agent.properties[name] 	= "property_to_set"; 	break;
+				case "number":agent.properties[name]  = 0.0; break;
+				case "boolean":agent.properties[name] = false; break;
+				case "string":agent.properties[name]  = "property_to_set"; break;
+				default: agent.properties[name] 	  = vec3.create(); break;
 			}
 		}
 	}
@@ -237,13 +238,13 @@ function HBTGraph(name)
 
 HBTGraph.prototype._ctor = function( name )
 {
-	this.graph = new LGraph();
-	this.graph.evaluation_behaviours = [];
-	this.graph.current_behaviour = new Behaviour();
+	this.uid       = LS.generateUId('HBT'); 
+	this.graph     = new LGraph();
 	this.root_node = null;
-	this.graph.description_stack = [];
 	this.tmp_tick_result = null;
-	this.uid = LS.generateUId('HBT'); 
+	this.graph.evaluation_behaviours = [];
+	this.graph.description_stack 	 = [];
+	this.graph.current_behaviour     = new Behaviour();
 
 	if(name)
 		this.name = name;
@@ -253,30 +254,28 @@ HBTGraph.prototype._ctor = function( name )
 	var that = this;
 	this.graph.onNodeAdded = function(node)
     {
+		//at this point, the node is still not ocnfigured, so it does not have the properties saved from json, it is just on its base construction
 		if(node.type == "btree/Root")
 			that.root_node = node;
-
-		if(node.type == "btree/HBTproperty")
-			addPropertyToAgents(node.properties.type, node.title);
     }
 }
 
-HBTGraph.prototype.runBehaviour = function(character, ctx, dt, starting_node)
+HBTGraph.prototype.runBehaviour = function( character, ctx, dt, starting_node )
 {
-	this.graph.character_evaluated = character;
+	this.graph.character_evaluated   = character;
 	this.graph.evaluation_behaviours = [];
-	this.graph.context = ctx;
+	this.graph.context  = ctx;
 	ctx.agent_evaluated = character;
 	//to know the previous execution trace of the character
 	if(!character.evaluation_trace || character.evaluation_trace.length == 0 )
 	{
-		character.evaluation_trace = [];
+		character.evaluation_trace      = [];
 		character.last_evaluation_trace = [];
 	}
 	//put the previous evaluation to the last, and empty for the coming one
 	//the ... is to clone the array (just works with 1 dimension, if it was an array of objects, it won't work)
 	character.last_evaluation_trace = [...character.evaluation_trace];
-	character.evaluation_trace = [];
+	character.evaluation_trace      = [];
 
 	/* In case a starting node is passed (we just want to execute a portion of the graph) */
 	if(starting_node)
@@ -289,14 +288,10 @@ HBTGraph.prototype.runBehaviour = function(character, ctx, dt, starting_node)
 	else if(this.root_node)
 	{
 		this.graph.runStep( 1, false );
-		// console.log(character.evaluation_trace);
-		// console.log(character.last_evaluation_trace);
 		this.current_behaviour = this.root_node.tick(this.graph.character_evaluated, dt);
 		return this.graph.evaluation_behaviours;
 	}
 }
-
-
 
 /*******************************************************************************************************************/
 
@@ -308,25 +303,24 @@ HBTGraph.prototype.runBehaviour = function(character, ctx, dt, starting_node)
 */
 function HBTproperty()
 {
-    this.shape = 2;
-    this.color = "#907300";
-  	this.bgcolor = '#796B31';
+    this.shape    = 2;
+    this.color    = "#907300";
+  	this.bgcolor  = '#796B31';
     this.boxcolor = "#999";
   	var w = 210;
     var h = 55;
     this.addOutput("value","", {pos:[w,55], dir:LiteGraph.RIGHT});
 	this.addOutput("name","string", {pos:[w,35], dir:LiteGraph.RIGHT});
+	this.properties = {value:null, node_name: this.title, type:"number"};
     this.flags = {};
-  	this.properties = {value:null, node_name: this.title, type:"float"};
-    this.data = {};
-	this.size = [w, h];
-	var that = this;
-	this.combo = this.addWidget("combo","Type:", "float", function(v){that.properties.type = v;}, { values:function(widget, node)
+	this.size  = [w, h];
+	var that   = this;
+	this.combo = this.addWidget("combo","Type:", "number", function(v){that.properties.type = v;}, { values:function(widget, node)
 	{
-        return ["float","bool","vec3", "string"];
+        return ["number","boolean","vec3", "string"];
     }} ); 
+	this._node = null;
 	this.widgets_up = true;
-  	this._node = null;
 	this._component = null;
 	this.serialize_widgets = true;
 }
@@ -334,6 +328,7 @@ function HBTproperty()
 HBTproperty.prototype.onExecute = function()
 {	
 	//	Check if its Scene or Agent
+	if(!this.graph.context) return;
 	var value = this.graph.context.facade.getEntityPropertyValue( this.title, this.graph.character_evaluated); 
 	this.setOutputData(0,value);
 	this.setOutputData(1,this.title);
@@ -341,29 +336,34 @@ HBTproperty.prototype.onExecute = function()
 
 HBTproperty.prototype.onPropertyChanged = function(name, value)
 {
-    if(name == "type")
+	if(name == "type")
+	{
         this.combo.value = value;
+		this.properties.type = value;
+	}
 	if(name == "value")
 		this.properties.value = value;
     
 }
+HBTproperty.prototype.onConfigure = function(info)
+{
+    onConfig(info, this.graph);
+}
 
 LiteGraph.registerNodeType("btree/HBTproperty", HBTproperty);
-
 /*
 * This is the initial node ticked of the tree. Acts like a Selector
 */
 function RootNode()
 {
-    this.shape = 2;
-    this.color = "#1E1E1E"
+    this.shape    = 2;
+    this.color    = "#1E1E1E"
     this.boxcolor = "#999";
     this.addOutput("","path");
 	this.properties = {};
     this.horizontal = true;
 	this.widgets_up = true;
-
-	this.behaviour = new Behaviour();
+	this.behaviour  = new Behaviour();
 }
 
 RootNode.prototype.tick = function(agent, dt)
@@ -379,19 +379,9 @@ RootNode.prototype.tick = function(agent, dt)
 				highlightLink(this, child)
 			//push the node_id to the evaluation trace
 			agent.evaluation_trace.push(this.id);
-
-			//know if bt_info params must be reset
-			//if the node was not in the previous 
-			// if(!nodePreviouslyEvaluated(agent, this.id))
-			// 	resetHBTreeProperties(agent)
-
 			return value;
 		}
 	}
-
-	// if(this.running_node_in_banch)
-	// 	agent.bt_info.running_node_index = null;
-
 	this.behaviour.STATUS = STATUS.fail;
 	return this.behaviour;
 }
@@ -403,7 +393,7 @@ RootNode.prototype.onConfigure = function(info)
 }
 
 RootNode.title = "Root";
-RootNode.desc = "Start node of the Hybrid Behaviour Tree";
+RootNode.desc  = "Start node of the Hybrid Behaviour Tree";
 
 //reorder the links
 RootNode.prototype.onStart = RootNode.prototype.onDeselected = function()
@@ -417,9 +407,7 @@ RootNode.prototype.onStart = RootNode.prototype.onDeselected = function()
 		
 		if(a.pos[0] < b.pos[0])
 		  return -1;
-		
 	});
-
 	this.outputs[0].links = [];
 	for(var i in children)
 		this.outputs[0].links.push(children[i].inputs[0].link);
@@ -430,28 +418,24 @@ LiteGraph.registerNodeType("btree/Root", RootNode);
 /*******************************************************************************************************************/
 function Conditional()
 {
-    this.shape = 2;
-	this.color= "#233";
-	this.bgcolor = "#355",
+    this.shape    = 2;
+	this.color    = "#233";
+	this.bgcolor  = "#355",
     this.boxcolor = "#999";
-    this.data = {}
     var w = 200;
 	var h = 85;
-	//top input
 	this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
-	//left side input to receive data on the onExecute method
 	this.addInput("value","", {pos:[0,60], dir:LiteGraph.LEFT});
-	//bottom output
     this.addOutput("","path", {pos:[w*0.5,h+17], dir:LiteGraph.DOWN});
+    var that  = this;
     this.size = [w, h];    
-    var that = this;
     this.properties = {
         min: 0,
         max: 100,
         text: "threshold",
-				property_to_compare:"", 
-				limit_value: 50, 
-				value_to_compare:null,
+		property_to_compare:"", 
+		limit_value: 50, 
+		value_to_compare:null,
       	comparison_type : ">"
     };
   	this.combo = this.addWidget("combo","Type:", ">", function(v){that.properties.comparison_type = v;}, { values:function(widget, node){
@@ -459,29 +443,24 @@ function Conditional()
     }} ); 
     this.slider = this.addWidget("string","Threshold", this.properties.limit_value, function(v){ that.properties.limit_value = v; }, this.properties  );
 
-    this.editable = { property:"value", type:"number" };
+    this.editable   = { property:"value", type:"number" };
 	this.widgets_up = true;
+	this.behaviour  = new Behaviour();
 	this.serialize_widgets = true;
-	this.behaviour = new Behaviour();
-	
 }
-//reorder
+
 Conditional.prototype.onStart = Conditional.prototype.onDeselected = function()
 {
 	var children = this.getOutputNodes(0);
 	if(!children) return;
 	children.sort(function(a,b)
 	{
-		 if(a.pos[0] > b.pos[0])
-		{
+		if(a.pos[0] > b.pos[0])
 		  return 1;
-		}
+		
 		if(a.pos[0] < b.pos[0])
-		{
 		  return -1;
-		}
 	});
-
 	this.outputs[0].links = [];
 	for(var i in children)
 		this.outputs[0].links.push(children[i].inputs[0].link);
@@ -492,27 +471,24 @@ Conditional.prototype.onStart = Conditional.prototype.onDeselected = function()
 }
 
 Conditional.title = "Conditional"
-Conditional.desc = "Compares an input or a property value with a threshold";	
+Conditional.desc  = "Compares an input or a property value with a threshold";	
 
 Conditional.prototype.tick = function(agent, dt )
 {
 	//condition not passed
-	if(this.evaluateCondition && !this.evaluateCondition())
+	if( this.evaluateCondition && !this.evaluateCondition() )
 	{
-		//some of its children of the branch is still on execution, we break that execution (se weh we enter again, it starts form the beginning)
-		// if(this.running_node_in_banch)
-		// 	agent.bt_info.running_node_index = null;
-
 		this.behaviour.STATUS = STATUS.fail;
 		return this.behaviour;
 	}
-	else if(this.evaluateCondition && this.evaluateCondition())
+	else if( this.evaluateCondition && this.evaluateCondition() )
 	{               
 		//this.description = this.properties.property_to_compare + ' property passes the threshold';
 		var children = this.getOutputNodes(0);
 		//Just in case the conditional is used inside a sequencer to accomplish several conditions at the same time
-		if(children.length == 0){
-			this.behaviour.type = B_TYPE.conditional;
+		if(children.length == 0)
+		{
+			this.behaviour.type   = B_TYPE.conditional;
 			this.behaviour.STATUS = STATUS.success; 
 			return this.behaviour;
 		}
@@ -533,19 +509,13 @@ Conditional.prototype.tick = function(agent, dt )
 			else if(value && value.STATUS == STATUS.running)
 			{
 				agent.evaluation_trace.push(this.id);
-				/* MEDUSA Editor stuff, not part of the core */
 				if(agent.is_selected)
 					highlightLink(this, child)
 
 				return value;
 			}
 		}
-
 		//if this is reached, means that has failed
-		
-		if(this.running_node_in_banch)
-			agent.bt_info.running_node_index = null;
-
 		this.behaviour.STATUS = STATUS.fail;
 		return this.behaviour;
 	}
@@ -554,16 +524,18 @@ Conditional.prototype.tick = function(agent, dt )
 Conditional.prototype.evaluateCondition = function()
 {
 	if(this.properties.value_to_compare == "") return false;
-	var result = true;
-    var value = this.properties.limit_value;
+	var value = null;
+	//if the input is a number, the limit value must be converted to a number
+	if(typeof(this.properties.value_to_compare) == "number")
+		value = isNaN(parseInt(this.properties.limit_value)) ? this.properties.limit_valu :parseInt(this.properties.limit_value) ;
+	// if the input is a string, leave the limit value as a string
+	else 
+		value = this.properties.limit_value;
 
-    try{
-        value = JSON.parse( value );
-    }catch{
-       // value is a string (no true/false/number)
-       // i.e. a name "pepe"
-    }
-	switch (this.properties.comparison_type) {
+	var result = true;
+
+	switch (this.properties.comparison_type) 
+	{
 		case ">":
 			result = this.properties.value_to_compare > value;
 			break;
@@ -582,7 +554,7 @@ Conditional.prototype.evaluateCondition = function()
 		case ">=":
 			result = this.properties.value_to_compare >= value;
 			break;
-		}
+	}
 	return result;
 }
 
@@ -590,21 +562,18 @@ Conditional.prototype.onDrawBackground = function(ctx, canvas)
 {
     ctx.font = "12px Arial";
     ctx.fillStyle = "#AAA";
-    //ctx.fillText(`Property: ${this.data.property_to_compare}`,10,65);
 }
 
 Conditional.prototype.onPropertyChanged = function(name,value)
 {
-    if(name == "value"){
+    if(name == "value")
         this.slider.value = value;
-        // this.data.limit_value = value;
-    }
 }
+
 Conditional.prototype.onExecute = function()
 {
     var data = this.getInputData(1);
-    // console.log(data);
-    if(data!=undefined && data != null)
+    if(data != undefined && data != null)
 		this.properties.value_to_compare = data;
 	else
 		this.properties.value_to_compare = "";
@@ -614,34 +583,25 @@ Conditional.prototype.onExecute = function()
 Conditional.prototype.onConfigure = function(info)
 {
     onConfig(info, this.graph);
-    // this.data.g_node = this;
-
-}
-Conditional.prototype.onSerialize = function(info)
-{
-
 }
 
 LiteGraph.registerNodeType("btree/Conditional", Conditional);
 
-
 /*******************************************************************************************************************/
 function BoolConditional()
 {
-    this.shape = 2;
-	this.color= "#233";
-	this.bgcolor = "#355",
+    this.shape    = 2;
+	this.color    = "#233";
+	this.bgcolor  = "#355",
     this.boxcolor = "#999";
-    this.data = {title:"", property_to_compare:"", value_to_compare:null, bool_state:true}
     var w = 200;
     var h = 65;
     this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
     this.addInput("value","boolean", {pos:[0,40], dir:LiteGraph.LEFT});
     this.addOutput("","path", {pos:[w*0.5,h+15], dir:LiteGraph.DOWN});
+    var that  = this;
     this.size = [w, h];    
-    var that = this;
     this.properties = {
-        value: that.data.limit_value,
         min: 0,
         max: 100,
         title:"", 
@@ -649,16 +609,11 @@ function BoolConditional()
         value_to_compare:null, 
         bool_state:true
     };
-    // this.size = [80,60];
-    this.slider = this.addWidget("toggle","Success if value is:", this.properties.bool_state, function(v){ console.log(v);that.properties.bool_state = v; }, this.properties  );
-
-    this.editable = { property:"value", type:"number" };
-    // this.flags = { widgets_up: true };
+    this.slider     = this.addWidget("toggle","Success if value is:", this.properties.bool_state, function(v){ console.log(v);that.properties.bool_state = v; }, this.properties  );
+    this.editable   = { property:"value", type:"number" };
 	this.widgets_up = true;
-	this.behaviour = new Behaviour();
+	this.behaviour  = new Behaviour();
 	this.serialize_widgets = true;
-	
-
 }
 //reorder
 BoolConditional.prototype.onStart = BoolConditional.prototype.onDeselected =function()
@@ -668,13 +623,10 @@ BoolConditional.prototype.onStart = BoolConditional.prototype.onDeselected =func
 	children.sort(function(a,b)
 	{
 		if(a.pos[0] > b.pos[0])
-		{
 		  return 1;
-		}
+		
 		if(a.pos[0] < b.pos[0])
-		{
 		  return -1;
-		}
 	});
 
 	this.outputs[0].links = [];
@@ -687,23 +639,19 @@ BoolConditional.prototype.onStart = BoolConditional.prototype.onDeselected =func
 }
 
 BoolConditional.title = "BoolConditional"
-BoolConditional.desc = "Success if the boolean parameter is equal to the widget toggle";
+BoolConditional.desc  = "Success if the boolean parameter is equal to the widget toggle";
 
 BoolConditional.prototype.tick = function(agent, dt )
 {
 	if(this.evaluateCondition && !this.evaluateCondition())
 	{
-		if(this.running_node_in_banch)
-			agent.bt_info.running_node_index = null;
-
 		this.behaviour.STATUS = STATUS.fail;
 		return this.behaviour;
 	}
-
 	else if(this.evaluateCondition && this.evaluateCondition())
 	{   
 		this.description = this.properties.property_to_compare + ' property is true';
-		var children = this.getOutputNodes(0);
+		var children     = this.getOutputNodes(0);
 
 		if(children.length == 0)
 		{
@@ -714,11 +662,9 @@ BoolConditional.prototype.tick = function(agent, dt )
 		{
 			var child = children[n];
 			var value = child.tick(agent, dt);
-
 			if(value && value.STATUS == STATUS.success)
 			{
 				agent.evaluation_trace.push(this.id);
-
 				if(agent.is_selected)
 					highlightLink(this, child);
 
@@ -727,19 +673,12 @@ BoolConditional.prototype.tick = function(agent, dt )
 			else if(value && value.STATUS == STATUS.running)
 			{
 				agent.evaluation_trace.push(this.id);
-
 				if(agent.is_selected)
 					highlightLink(this, child);
 
 				return value;
 			}
 		}
-
-		//if this is reached, means that has failed
-		
-		if(this.running_node_in_banch)
-			agent.bt_info.running_node_index = null;
-
 		this.behaviour.STATUS = STATUS.fail;
 		return this.behaviour;
 	}
@@ -748,27 +687,27 @@ BoolConditional.prototype.tick = function(agent, dt )
 BoolConditional.prototype.evaluateCondition = function()
 {
 	if(this.properties.value_to_compare == this.properties.bool_state)
-    return true;
+    	return true;
  	return false;
 }
 
 BoolConditional.prototype.onDrawBackground = function(ctx, canvas)
 {
-    ctx.font = "12px Arial";
+    ctx.font      = "12px Arial";
     ctx.fillStyle = "#AAA";
 }
 
 BoolConditional.prototype.onPropertyChanged = function(name,value)
 {
-    if(name == "value"){
-        this.slider.value = value;
-        this.data.limit_value = value;
+    if(name == "value")
+	{
+        this.slider.value     = value;
     }
 }
+
 BoolConditional.prototype.onExecute = function()
 {
     var data = this.getInputData(1);
-    // console.log(data);
     if(data !== undefined)
         this.properties.value_to_compare = data;
 }
@@ -777,8 +716,6 @@ BoolConditional.prototype.onExecute = function()
 BoolConditional.prototype.onConfigure = function(info)
 {
     onConfig(info, this.graph);
-    // this.data.g_node = this;
-
 }
 
 LiteGraph.registerNodeType("btree/BoolConditional", BoolConditional);
@@ -789,32 +726,30 @@ LiteGraph.registerNodeType("btree/BoolConditional", BoolConditional);
 * Check if an object is in the line of sight of something */
 function LineOfSight()
 {
-    this.shape = 2;
-	this.color= "#233";
-	this.bgcolor = "#355",
+    this.shape    = 2;
+	this.color    = "#233";
+	this.bgcolor  = "#355",
     this.boxcolor = "#999";
-    this.data = {}
     var w = 200;
-    var h = 45;
+    var h = 50;
     this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
-    this.addInput("","vec3", {pos:[0,10], dir:LiteGraph.LEFT});
-    this.addOutput("","path", {pos:[w*0.5,h], dir:LiteGraph.DOWN});
+    this.addInput("target","vec3", {pos:[0,35], dir:LiteGraph.LEFT});
+    this.addOutput("","path", {pos:[w*0.5,h+28], dir:LiteGraph.DOWN});
     this.size = [w, h];    
-    var that = this;
+    var that  = this;
     this.properties = {
   		title:"", 
 		look_at:null, 
-		limit_angle:90
+		limit_angle:90, 
+		max_dist:1000
     };
-    this.slider = this.addWidget("slider","Angle of vision", this.properties.limit_angle, function(v){ that.properties.limit_angle = v;  }, this.properties  );
-
-    this.editable = { property:"value", type:"number" };
-    // this.flags = { widgets_up: true };
+	this.slider     = this.addWidget("number","Angle", this.properties.limit_angle, function(v){  that.properties.limit_angle = v; }, this.properties  );
+	this.slider     = this.addWidget("number","MaxDist", this.properties.max_dist, function(v){  that.properties.max_dist = v; }, this.properties  );
+    this.editable   = { property:"value", type:"number" };
 	this.widgets_up = true;
-	this.facade = null;
-	this.behaviour = new Behaviour();
+	this.facade     = null;
+	this.behaviour  = new Behaviour();
 	this.serialize_widgets = true;
-
 }
 //reorder
 LineOfSight.prototype.onStart = LineOfSight.prototype.onDeselected = function()
@@ -824,13 +759,10 @@ LineOfSight.prototype.onStart = LineOfSight.prototype.onDeselected = function()
 	children.sort(function(a,b)
 	{
 		if(a.pos[0] > b.pos[0])
-		{
 		  return 1;
-		}
+		
 		if(a.pos[0] < b.pos[0])
-		{
 		  return -1;
-		}
 	});
 
 	this.outputs[0].links = [];
@@ -850,22 +782,18 @@ LineOfSight.prototype.tick = function(agent, dt)
 		this.facade = this.graph.context.facade;
 		return;
 	}
-
 	var lookat = this.properties.look_at;
-	if(this.facade.canSeeElement(agent, lookat, this.properties.limit_angle))
+	if(this.facade.canSeeElement(agent, lookat, this.properties.limit_angle, this.properties.max_dist))
 	{
 		this.description = 'Agent can see the input';
-		var children = this.getOutputNodes(0);
+		var children     = this.getOutputNodes(0);
 		for(let n in children)
 		{
 			var child = children[n];
 			var value = child.tick(agent, dt);
-
-			//Value deber�a ser success, fail, o running
-			if(value.STATUS == STATUS.success)
+			if(value && value.STATUS == STATUS.success)
 			{
 				agent.evaluation_trace.push(this.id);
-
 				if(agent.is_selected)
 					highlightLink(this, child);
 
@@ -874,7 +802,6 @@ LineOfSight.prototype.tick = function(agent, dt)
 			else if(value && value.STATUS == STATUS.running)
 			{
 				agent.evaluation_trace.push(this.id);
-
 				this.running_node_in_banch = true;
 				if(agent.is_selected)
 					highlightLink(this, child);
@@ -882,14 +809,9 @@ LineOfSight.prototype.tick = function(agent, dt)
 				return value;
 			}
 		}		
-
 	}
 	else
 	{
-		if(this.running_node_in_banch)
-		{
-			agent.bt_info.running_node_index = null;
-		}
 		agent.properties.look_at_pos = null;
 		this.behaviour.STATUS = STATUS.fail;
 		return this.behaviour;
@@ -898,39 +820,34 @@ LineOfSight.prototype.tick = function(agent, dt)
 
 LineOfSight.prototype.onDrawBackground = function(ctx, canvas)
 {
-    ctx.font = "12px Arial";
+    ctx.font      = "12px Arial";
     ctx.fillStyle = "#AAA";
-    ctx.fillText(`Agent looks at the input position`,10,35);
 }
 
 LineOfSight.prototype.onPropertyChanged = function(name,value)
 {
-    if(name == "value"){
+    if(name == "value")
         this.slider.value = value;
-        // this.data.limit_value = value;
-    }
 }
+
 LineOfSight.prototype.onExecute = function()
 {
     var data = this.getInputData(1);
-    // console.log(data);
-    if(data)
-        // this.data.look_at = [0,0,500];
-        this.data.look_at = data;
+	if( data )
+	{
+		if(data.constructor === Float32Array || data.constructor === Array)
+			this.properties.look_at = data;
+		else
+			this.properties.look_at = data.position;
+	}
 }
 
 LineOfSight.title = "LineOfSight"
-LineOfSight.desc = "Decorator checking if can see something";
+LineOfSight.desc  = "Decorator checking if can see something";
 
 LineOfSight.prototype.onConfigure = function(info)
 {
     onConfig(info, this.graph);
-    // this.data.g_node = this;
-
-}
-LineOfSight.prototype.onSerialize = function(info)
-{
-
 }
 
 LiteGraph.registerNodeType("btree/LineOfSight", LineOfSight);
@@ -938,20 +855,18 @@ LiteGraph.registerNodeType("btree/LineOfSight", LineOfSight);
 /*******************************************************************************************************************/
 function Sequencer()
 {
-  
-    this.shape = 2;
-    this.color = "#6e1212";
-    this.bgcolor = "#702d2d";
+    this.shape    = 2;
+    this.color    = "#6e1212";
+    this.bgcolor  = "#702d2d";
     this.boxcolor = "#999";
     this.addInput("","path");
 	this.addOutput("","path");
 	this.addProperty( "value", 1.0 );
-    this.editable = { property:"value", type:"number" };
-    this.data = {}
-    this.flags = { horizontal: true };
+    this.editable   = { property:"value", type:"number" };
+    this.flags      = { horizontal: true };
  	this.horizontal = true;
 	this.widgets_up = true;
-	this.behaviour = new Behaviour();
+	this.behaviour  = new Behaviour();
 }
 
 Sequencer.prototype.onStart = Sequencer.prototype.onDeselected = function()
@@ -961,13 +876,10 @@ Sequencer.prototype.onStart = Sequencer.prototype.onDeselected = function()
 	children.sort(function(a,b)
 	{
 		if(a.pos[0] > b.pos[0])
-		{
 		  return 1;
-		}
+		
 		if(a.pos[0] < b.pos[0])
-		{
 		  return -1;
-		}
 	});
 
 	this.outputs[0].links = [];
@@ -982,27 +894,24 @@ Sequencer.prototype.onStart = Sequencer.prototype.onDeselected = function()
 }
 Sequencer.prototype.tick = function(agent, dt)
 {
-
 	//check if this node was executed the previous evaluation
 	if(!nodePreviouslyEvaluated(agent, this.id))
 	{
 		//clear this node, so it executes from the beginning
 		agent.bt_info.running_data[this.id] = null;
 	}
-
 	/* means that there is some node on running state */
 	if(agent.bt_info.running_data[this.id])
 	{
 		var children = this.getOutputNodes(0);
 		for(var i = 0; i < children.length; i++)
 		{
-			if(i != agent.bt_info.running_data[this.id]) continue;
+			if( i != agent.bt_info.running_data[this.id] ) continue;
 			var child = children[agent.bt_info.running_data[this.id]];
 			var value = child.tick(agent, dt);
 			if(value && value.STATUS == STATUS.running)
 			{
 				agent.evaluation_trace.push(this.id);
-
 				if(agent.is_selected)
 					highlightLink(this, child);
 
@@ -1011,13 +920,11 @@ Sequencer.prototype.tick = function(agent, dt)
 			if(agent.bt_info.running_data[this.id] == children.length-1 && value && value.STATUS == STATUS.success)
 			{
 				agent.bt_info.running_data[this.id] = null;
-				// value.STATUS = STATUS.success;
 				return value;
 			}
 			if( value && value.STATUS == STATUS.success )
 			{  
 				agent.evaluation_trace.push(this.id);
-
 				agent.bt_info.running_data[this.id] ++;
 				if(agent.is_selected)
 					highlightLink(this, child);
@@ -1025,8 +932,8 @@ Sequencer.prototype.tick = function(agent, dt)
 				value.STATUS = STATUS.success;
 				continue;
 			}
-			//Value deber�a ser success, fail, o running
-			if(value && value.STATUS == STATUS.fail){
+			if(value && value.STATUS == STATUS.fail)
+			{
 				agent.bt_info.running_data[this.id] = null;
 				return value;
 			}
@@ -1039,12 +946,10 @@ Sequencer.prototype.tick = function(agent, dt)
 		{
 			var child = children[n];
 			var value = child.tick(agent, dt);
-			// debugger;
 			if(value && value.STATUS == STATUS.running)
 			{
 				agent.evaluation_trace.push(this.id);
 				agent.bt_info.running_data[this.id] = parseInt(n);
-				
 				if(agent.is_selected)
 					highlightLink(this, child);
 
@@ -1053,13 +958,12 @@ Sequencer.prototype.tick = function(agent, dt)
 			if(value && value.STATUS == STATUS.success)
 			{
 				agent.evaluation_trace.push(this.id);
-
 				if(agent.is_selected)
 					highlightLink(this, child);
 			}
 			if(n == children.length-1 && value && value.STATUS == STATUS.success && agent.bt_info.running_data[this.id] == null)
 				return value;
-			//Value deber�a ser success, fail, o running
+
 			if(value && value.STATUS == STATUS.fail)
 			{
 				if(this.running_node_in_banch)
@@ -1074,25 +978,22 @@ Sequencer.prototype.tick = function(agent, dt)
 Sequencer.prototype.onConfigure = function(info)
 {
     onConfig(info, this.graph);
-    // this.data.g_node = this;
 }
 
-// Sequencer.prototype.onConfigure = bl();
 LiteGraph.registerNodeType("btree/Sequencer", Sequencer);
 
 /*******************************************************************************************************************/
 function Selector()
 {
-    this.shape = 2;
-    this.color = "#6e1212";
-    this.bgcolor = "#702d2d";
+    this.shape    = 2;
+    this.color    = "#6e1212";
+    this.bgcolor  = "#702d2d";
     this.boxcolor = "#999";
     this.addInput("","path");
 	this.addOutput("","path");
 	this.addProperty( "value", 1.0 );
-    this.editable = { property:"value", type:"number" };
-    this.data = {}
-    this.flags = { horizontal: true };
+    this.flags      = { horizontal: true };
+    this.editable   = { property:"value", type:"number" };
  	this.horizontal = true;
     this.widgets_up = true;
 }
@@ -1108,7 +1009,6 @@ Selector.prototype.onStart = Selector.prototype.onDeselected = function()
 
 		if(a.pos[0] < b.pos[0])
 		  return -1;
-		  
 	});
 
 	this.outputs[0].links = [];
@@ -1116,8 +1016,7 @@ Selector.prototype.onStart = Selector.prototype.onDeselected = function()
 		this.outputs[0].links.push(children[i].inputs[0].link);
 
 	this.ordered = true;
-
-	var parent = this.getInputNode(0);
+	var parent   = this.getInputNode(0);
 	if(parent)
 		parent.onDeselected();
 }
@@ -1128,13 +1027,11 @@ Selector.prototype.tick = function(agent, dt)
 	if(agent.bt_info.running_node_index != null && agent.bt_info.running_node_id == this.id)
 	{
 		var children = this.getOutputNodes(0);
-		var child = children[agent.bt_info.running_node_index];
-		var value = child.tick(agent, dt);
+		var child    = children[agent.bt_info.running_node_index];
+		var value    = child.tick(agent, dt);
 		if(value.STATUS == STATUS.running)
 		{
 			agent.evaluation_trace.push(this.id);
-
-			//Editor stuff [highlight trace]
 			if(agent.is_selected)
 				highlightLink(this, child);
 
@@ -1144,11 +1041,9 @@ Selector.prototype.tick = function(agent, dt)
 		if(value.STATUS == STATUS.success )
 		{
 			agent.evaluation_trace.push(this.id);
-
 			//reinitialize running 
+			agent.bt_info.running_node_id    = null;
 			agent.bt_info.running_node_index = null;
-			agent.bt_info.running_node_id = null;
-			//Editor stuff [highlight trace]
 			if(agent.is_selected)
 				highlightLink(this, child);
 			
@@ -1172,21 +1067,18 @@ Selector.prototype.tick = function(agent, dt)
 			if(value.STATUS == STATUS.running)
 			{
 				agent.evaluation_trace.push(this.id);
-
 				//first time receiving running state
 				if((agent.bt_info.running_node_index == undefined || agent.bt_info.running_node_index == null ) || agent.bt_info.running_node_id == null)
 				{
 					agent.bt_info.running_node_index = parseInt(n);
-					agent.bt_info.running_node_id = this.id;
+					agent.bt_info.running_node_id    = this.id;
 				}
-
 				//running node directly in the next child level, need to know which index to run
 				if(agent.bt_info.running_node_index != undefined && agent.bt_info.running_node_index != null && agent.bt_info.running_node_id == this.id)
 				{
 					agent.bt_info.running_node_index = parseInt(n);
-					agent.bt_info.running_node_id = this.id;
+					agent.bt_info.running_node_id    = this.id;
 				}
-				//Editor stuff [highlight trace]
 				if(agent.is_selected)
 					highlightLink(this, child);
 			
@@ -1195,8 +1087,6 @@ Selector.prototype.tick = function(agent, dt)
 			if(value.STATUS == STATUS.success)
 			{
 				agent.evaluation_trace.push(this.id);
-
-				//Editor stuff [highlight trace]
 				if(agent.is_selected)
 					highlightLink(this, child);
 			
@@ -1205,7 +1095,6 @@ Selector.prototype.tick = function(agent, dt)
 		}
 		return value; 
 	}
-    
 }
 
 Selector.prototype.onConfigure = function(info)
@@ -1213,7 +1102,6 @@ Selector.prototype.onConfigure = function(info)
     onConfig(info, this.graph);
 }
 
-// Selector.prototype.onConfigure = bl();
 LiteGraph.registerNodeType("btree/Selector", Selector);
 
 function RandomSelector()
@@ -1225,7 +1113,6 @@ function RandomSelector()
 	this.size 		= [100,35];
 	this.addInput("","path");
 	this.addOutput("","path");
-	// this.addProperty( "value", 1.0 );
 	this.editable 	= { property:"period", type:"number" };
 	this.flags 		= { horizontal: true };
 	this.horizontal = true;
@@ -1403,7 +1290,6 @@ function MoveToLocation()
     this.size = [w, h];    
     this.editable = { property:"value", type:"number" };
     this.flags = { resizable: false };
-    this.data = {target:null, motion:1}
 	this.widgets_up = true;
 	this.facade = null;
 	this.target_to_draw = null;
@@ -1472,7 +1358,6 @@ MoveToLocation.prototype.onDrawBackground = function(ctx, canvas)
 {
     ctx.font = "12px Arial";
     ctx.fillStyle = "#AAA";
-    // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
     if(this.properties.target)
 	{
 		// this.properties.target = Math.trunc(this.properties.target); 
@@ -1482,7 +1367,6 @@ MoveToLocation.prototype.onDrawBackground = function(ctx, canvas)
 
 	}
         
-    // ctx.fillText(`Motion speed: ${this.data.motion}`,10,55);
 }
 MoveToLocation.prototype.onExecute = function()
  {
@@ -1498,8 +1382,6 @@ MoveToLocation.prototype.onExecute = function()
 MoveToLocation.prototype.onConfigure = function(info)
 {
     onConfig(info, this.graph);
-    // this.data.g_node = this;
-
 }
 
 LiteGraph.registerNodeType("btree/MoveToLocation", MoveToLocation);
@@ -1510,18 +1392,14 @@ function FindNextTarget()
 	this.color    = "#2e542e"
 	this.bgcolor  = "#496b49";
 	this.boxcolor = "#999";
-	var w         = 200;
-	var h         = 35;
-	
+	var w = 200;
+	var h = 35;
     this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
     this.size       = [w, h];
     this.editable   = { property:"value", type:"number" };
     this.flags      = { resizable: false };
-    this.data       = {};
     this.horizontal = true;
     this.widgets_up = true;
-
-
 }
 
 FindNextTarget.title = "FindNextTarget ";
@@ -1535,12 +1413,8 @@ FindNextTarget.prototype.tick = function(agent, dt)
 	}
 	else
 	{   
-		this.description = ' Next waypoint of the path found';
-
-		// var g_child = child.g_node;
-		// var chlid_input_link_id = g_child.inputs[0].link;
-		// this.g_node.triggerSlot(0, null, chlid_input_link_id);
-		this.behaviour.type = B_TYPE.nextTarget;
+		this.description      = ' Next waypoint of the path found';
+		this.behaviour.type   = B_TYPE.nextTarget;
 		this.behaviour.STATUS = STATUS.success;
 		this.behaviour.setData({});
 		return this.behaviour;
@@ -1552,36 +1426,24 @@ FindNextTarget.prototype.findNextTarget = function(agent)
 	//find nearest agent
 	if(agent.checkNextTarget())
 	{
-//		agent.properties.target = agent.checkNextTarget();
 		agent.in_target = false;
 		return true;  
 	}
 	return false;
 }
 
-FindNextTarget.prototype.onDrawBackground = function(ctx, canvas)
-{
-    // ctx.font = "12px Arial";
-    // ctx.fillStyle = "#AAA";
-    // // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
-    // ctx.fillText(`move to: ${this.data.target}`,10,35);
-    // ctx.fillText(`Motion speed: ${this.data.motion}`,10,55);
-}
-
 FindNextTarget.prototype.onConfigure = function(info)
 {
     onConfig(info, this.graph);
-    // this.data.g_node = this;
-
 }
 
 LiteGraph.registerNodeType("btree/FindNextTarget", FindNextTarget);
 
 function Wait()
 {
-    this.shape = 2;
-	this.color = "#2e542e"
-    this.bgcolor = "#496b49";
+    this.shape    = 2;
+	this.color    = "#2e542e"
+    this.bgcolor  = "#496b49";
     this.boxcolor = "#999";
     this.addInput("","path");
 	this.addProperty( "value", 1.0 );
@@ -1598,14 +1460,11 @@ function Wait()
 	this.flags      = { horizontal: true };
 	this.horizontal = true;
 	this.widgets_up = true;
-	this.data       = {}
 	this.behaviour  = new Behaviour();
     var that        = this;
-
     this.properties = {
 		total_time:5, 
     };
-    // this.size = [80,60];
     this.slider = this.addWidget("number","Time to wait", this.properties.total_time, function(v){ that.properties.total_time = v; that.properties.total_time = v; }, this.properties  );
 	this.serialize_widgets = true;
 }
@@ -1622,7 +1481,6 @@ Wait.prototype.onDeselected = function()
 Wait.prototype.tick = function(agent, dt)
 {
 	this.description = 'Waiting ' + this.properties.total_time + ' seconds ';
-
 	//first time evaluating this node
 	if(!agent.waiting_time)
 	{
@@ -1663,10 +1521,7 @@ Wait.prototype.tick = function(agent, dt)
 
 Wait.prototype.onConfigure = function(info)
 {
-    // debugger;
     onConfig(info, this.graph);
-    // this.data.g_node = this;
-
 }
 LiteGraph.registerNodeType("btree/Wait", Wait);
 
@@ -1677,9 +1532,6 @@ function SimpleAnimate()
     this.bgcolor  = "#496b49";
     this.boxcolor = "#999";
 	this.addInput("","path");
-	
-    //this.addProperty( "value", 1.0 );
-    // this.size = [200,80];
 	this.editable   = { property:"value", type:"number" };
 	this.widgets_up = true;
 	this.horizontal = true;
@@ -1729,25 +1581,19 @@ SimpleAnimate.prototype.tick = function(agent, dt)
 SimpleAnimate.prototype.action = function(agent)
 {
 	var animation = this.facade.getAnimation(this.properties.filename);//animation_manager.animations[this.properties.filename.toLowerCase()];
-	// animation.weight = 1;
 	var behaviour = {
 		animation_to_merge: animation,
 		speed: this.properties.speed,
 		motion:this.properties.motion,
-//		weight:this.properties.weight
 		type: this.type,
 		type2: "mixing",
 		author: "DaVinci"
 	};
-	
-//	LEvent.trigger( agent, "applyBehaviour", behaviour);
 
-	this.behaviour.type = B_TYPE.animateSimple;
-	this.behaviour.STATUS = STATUS.success;
-	this.behaviour.setData(behaviour);
+	this.behaviour.type     = B_TYPE.animateSimple;
+	this.behaviour.STATUS   = STATUS.success;
 	this.behaviour.priority = this.properties.priority; 
-	//console.log(behaviour);
-	//agent.animationBlender.applyBehaviour(behaviour);
+	this.behaviour.setData(behaviour);
 	agent.evaluation_trace.push(this.id);
 	this.graph.evaluation_behaviours.push(this.behaviour);
 	return this.behaviour;
@@ -1755,41 +1601,33 @@ SimpleAnimate.prototype.action = function(agent)
 
 SimpleAnimate.prototype.onPropertyChanged = function(name,value)
 {
-    if(name == "filename"){
-        this.widget.value = value.toLowerCase();
-        // this.data.limit_value = value;
-    }
+    if(name == "filename")
+		if(this.widget != undefined && (this.widget.value != undefined && this.widget.value != null ))  
+			this.widget.value = value.toLowerCase();
 
-    if(name == "motion"){
+    if(name == "motion")
         this.number.value = value;
-        // this.data.limit_value = value;
-    }
 
-	if(name == "speed"){
+	if(name == "speed")
         this.number2.value = value;
-        // this.data.limit_value = value;
-    }
 }
-
 
 SimpleAnimate.prototype.onConfigure = function(info)
 {
     onConfig(info, this.graph);
-    // this.data.g_node = this;
 }
 
 LiteGraph.registerNodeType("btree/SimpleAnimate", SimpleAnimate);
 
 function ActionAnimate()
 {
-    this.shape = 2;
-	this.color = "#2e542e"
-    this.bgcolor = "#496b49";
+    this.shape    = 2;
+	this.color    = "#2e542e"
+    this.bgcolor  = "#496b49";
     this.boxcolor = "#999";
     this.addInput("","path");
-    //this.addProperty( "value", 1.0 );
     this.size = [160,55];
-    this.editable = { property:"value", type:"number" };
+    this.editable   = { property:"value", type:"number" };
   	this.widgets_up = true;
 	this.horizontal = true;
 	this.addProperty("intensity", 0.5, "number", {min:0, max:1} );
@@ -1801,14 +1639,12 @@ function ActionAnimate()
 			"skip"
 		]
 	});
-	this.properties = {anims:[{name:null, weight: 1}], translation_enabled:true, time:1, src:"david8more/projects/SAUCE/Animations/", filename:""};
-  	var that = this;
-    this.widget = this.addWidget("string","", this.properties.filename, function(v){ that.properties.filename = v.toLowerCase(); }, this.properties  );
-//  	this.number = this.addWidget("number","motion", this.properties.motion, function(v){ that.properties.motion = v; }, this.properties  );
-//	this.toggle = this.addWidget("toggle","Translation:", this.properties.translation_enabled, function(v){ console.log(v);that.properties.translation_enabled = v; }, this.properties  );
+	this.properties = {anims:[{name:null, weight: 1}], motion:0.0, translation_enabled:true, time:1, src:"david8more/projects/SAUCE/Animations/", filename:""};
+  	var that     = this;
+    this.widget  = this.addWidget("string","", this.properties.filename, function(v){ that.properties.filename = v.toLowerCase(); }, this.properties  );
+	this.number  = this.addWidget("number","motion", this.properties.motion, function(v){ that.properties.motion = v; }, this.properties  );
 	this.number2 = this.addWidget("number","time", this.properties.time, function(v){ that.properties.time = v; }, this.properties  );
-
-	this.facade = null;
+	this.facade  = null;
 	this.behaviour = new Behaviour();
 	this.serialize_widgets = true;
 }
@@ -1830,9 +1666,9 @@ ActionAnimate.prototype.tick = function(agent, dt)
 	if(!agent.action_time)
 	{
 		agent.evaluation_trace.push(this.id);
-		agent.action_time = this.properties.time;
+		agent.action_time         = this.properties.time;
 		agent.current_action_time = 0;
-		this.behaviour.STATUS = STATUS.running;
+		this.behaviour.STATUS     = STATUS.running;
 		if(this.action)
 		{
 			this.description = 'Action: ' + this.properties.anims[0].anim;
@@ -1840,23 +1676,20 @@ ActionAnimate.prototype.tick = function(agent, dt)
 		}
 		this.graph.evaluation_behaviours.push(this.behaviour);
 		return this.behaviour;
-
 	}
-
 	else
 	{
 		if(agent.current_action_time > agent.action_time)
 		{
 			agent.evaluation_trace.push(this.id);
-			agent.action_time = null;
+			agent.action_time         = null;
 			agent.current_action_time = 0;
-			this.behaviour.STATUS = STATUS.success;
+			this.behaviour.STATUS     = STATUS.success;
 			if(this.action)
 			{
 				this.description = 'Action: ' + this.properties.anims[0].anim;
 				this.action(agent);
 			}
-//			this.behaviour.setData(behaviour);
 			this.graph.evaluation_behaviours.push(this.behaviour);
 			return this.behaviour;
 		}
@@ -1864,14 +1697,12 @@ ActionAnimate.prototype.tick = function(agent, dt)
 		{
 			agent.evaluation_trace.push(this.id);
 			agent.current_action_time += dt;
-
 			this.behaviour.STATUS = STATUS.running;
 			if(this.action)
 			{
 				this.description = 'Action: ' + this.properties.anims[0].anim;
 				this.action(agent);
 			}
-			// this.behaviour.setData(behaviour);
 			this.graph.evaluation_behaviours.push(this.behaviour);
 			return this.behaviour;
 		}
@@ -1880,57 +1711,51 @@ ActionAnimate.prototype.tick = function(agent, dt)
 
 ActionAnimate.prototype.action = function(agent)
 {
-	var animation = this.facade.getAnimation(this.properties.filename);//animation_manager.animations[this.properties.filename.toLowerCase()];
+	var animation    = this.facade.getAnimation(this.properties.filename);//animation_manager.animations[this.properties.filename.toLowerCase()];
 	animation.weight = 1;
-	var behaviour = {
+	var behaviour    = {
 		animation_to_merge: animation,
 		speed: this.properties.speed,
 		type: this.type,
+		motion:this.properties.motion,
 		author: "DaVinci"
 	};
 	
-
-	this.behaviour.type = B_TYPE.action;
+	this.behaviour.type     = B_TYPE.action;
 	this.behaviour.priority = this.properties.priority; 
 	this.behaviour.setData(behaviour);
-	//agent.animationBlender.applyBehaviour(behaviour);
 }
 
 ActionAnimate.prototype.onPropertyChanged = function(name,value)
 {
-    if(name == "filename"){
+    if(name == "filename")
         this.widget.value = value.toLowerCase();
-        // this.data.limit_value = value;
-    }
 
-	if(name == "speed"){
+	if(name == "speed")
         this.number2.value = value;
-        // this.data.limit_value = value;
-    }
 }
-
 
 ActionAnimate.prototype.onConfigure = function(info)
 {
     onConfig(info, this.graph);
-    // this.data.g_node = this;
 }
 
 LiteGraph.registerNodeType("btree/ActionAnimate", ActionAnimate);
 
 function Patrol()
 {
-	this.shape = 2;
-	this.color = "#2e542e"
-    this.bgcolor = "#496b49";
+	this.shape    = 2;
+	this.color    = "#2e542e"
+    this.bgcolor  = "#496b49";
     this.boxcolor = "#999";
     this.addInput("","path");
     this.size = [100,25];
-    this.editable = { property:"value", type:"number" };
+    this.editable   = { property:"value", type:"number" };
   	this.widgets_up = true;
 	this.horizontal = true;
 	this.properties = { filename:"" };
 	this.addProperty("intensity", 0.5, "number", {min:0, max:1} );
+	this.addProperty("motion_speed", 2.5, "number", {min:0, max:10} );
 	this.addProperty("priority", "append", "enum", {
 		values: [
 			"append",
@@ -1939,17 +1764,13 @@ function Patrol()
 			"skip"
 		]
 	});
-	this.addProperty("motion_speed", 2.5, "number", {min:0, max:10} );
-	var that = this;
-	//this.widget = this.addWidget("string","", this.properties.filename, function(v){ that.properties.filename = v.toLowerCase(); }, this.properties  );
+	var that    = this;
 	this.widget = this.addWidget("combo","anim", this.properties.filename, "filename", { values:function(widget, node){
         return Object.keys(animation_manager.animations);
     }} );
 	this.motion_slider = this.addWidget("number","motion", this.properties.motion_speed, function(v){ that.properties.motion_speed = v; }, this.properties  );
-
-	
-	this.facade = null;
-	this.behaviour = new Behaviour();
+	this.facade        = null;
+	this.behaviour     = new Behaviour();
 	this.serialize_widgets = true;
 }
 
@@ -1979,9 +1800,9 @@ Patrol.prototype.tick = function( agent )
 			animation_to_merge: animation,
 			motion: this.properties.motion_speed
 		};
-		this.description = 'Agent patroling';
-		this.behaviour.type = B_TYPE.nextTarget;
-		this.behaviour.STATUS = STATUS.success;
+		this.description        = 'Agent patroling';
+		this.behaviour.type     = B_TYPE.nextTarget;
+		this.behaviour.STATUS   = STATUS.success;
 		this.behaviour.priority = this.properties.priority; 
 		this.behaviour.setData(behaviour);
 		this.graph.evaluation_behaviours.push(this.behaviour);
@@ -2007,7 +1828,6 @@ Patrol.prototype.findNextTarget = function(agent)
 	//find nearest agent
 	if(this.graph.context.facade.checkNextTarget( agent ))
 	{
-//		agent.properties.target = agent.checkNextTarget();
 		agent.in_target = false;
 		return true;  
 	}
@@ -2015,32 +1835,29 @@ Patrol.prototype.findNextTarget = function(agent)
 }
 Patrol.prototype.onPropertyChanged = function(name,value)
 {
-    if(name == "filename"){
+    if(name == "filename")
         this.widget.value = value.toLowerCase();
-        // this.data.limit_value = value;
-    }
 }
+
 Patrol.prototype.onConfigure = function(info)
 {
 	onConfig(info, this.graph);
-
 }
 LiteGraph.registerNodeType("btree/Patrol", Patrol);
 
 function EQSNearestInterestPoint()
 {
-	this.shape = 2;
-    this.color = "#323";
-    this.bgcolor = "#543754";
+	this.shape    = 2;
+    this.color    = "#323";
+    this.bgcolor  = "#543754";
     this.boxcolor = "#999";
-    this.title = "EQS-NIP"
-    this.data = {}
-    this.ip_type = null;
+    this.title    = "EQS-NIP"
+    this.ip_type  = null;
     var w = 200;
     var h = 55;
     this.addOutput("value","vec3", {pos:[w,35], dir:LiteGraph.RIGHT});
     this.size = [w, h]; 
-    var that = this;
+    var that  = this;
     this.properties = {
         list: [],
         min: 0,
@@ -2048,52 +1865,47 @@ function EQSNearestInterestPoint()
         text: "threshold", 
 		ip_type: null
     };
-    // this.size = [80,60];
     this.slider = this.addWidget("combo","List", this.properties.ip_type, "ip_type", { values:function(widget, node){
         return Object.keys(CORE.Scene.properties.interest_points);
     }} );
-
-    this.editable = { property:"value", type:"number" };
-    this.flags = { resizable: false };
+    this.editable   = { property:"value", type:"number" };
+    this.flags      = { resizable: false };
     this.widgets_up = true;
-	this.facade = null;
+	this.facade     = null;
 	this.serialize_widgets = true;
 
 }
 
 EQSNearestInterestPoint.prototype.onDrawBackground = function(ctx, canvas)
 {
-    // ctx.font = "12px Arial";
-    // ctx.fillStyle = "#AAA";
-    // ctx.fillText(`List evaluated`,10,15);
+
 }
 
 EQSNearestInterestPoint.prototype.onExecute = function()
 {
-    // debugger;
-	if(this.facade == null)
+	if(this.facade == null && this.graph.context)
 		this.facade = this.graph.context.facade;
 	
     var nearest = [0,0,-1000];
-    var min = 999999999;
-    var types = this.facade.getInterestPoints();
+    var min     = 999999999;
+    var types   = this.facade.getInterestPoints();
     if(!this.properties.ip_type)
         if(types[0])
             this.properties.ip_type = types[0];
+
     for(var i in types)	
     {
         var type = types[i];
         if(this.properties.ip_type != i)
             continue;
+
         for(var j in types[i])
         {
             var type_ip = types[i][j];
             var ip = type_ip.position;
 			if(!this.graph.character_evaluated) return;
-//			if(!this.graph.character_evaluated.scene_node) return;
             var agent_pos = this.facade.getEntityPosition(this.graph.character_evaluated);
             var dist = vec3.dist(ip, agent_pos);
-    
             if(dist < min)
 			{
                 min = dist;
@@ -2107,53 +1919,45 @@ EQSNearestInterestPoint.prototype.onExecute = function()
 EQSNearestInterestPoint.prototype.onConfigure = function(info)
 {
     onConfig(info, this.graph);
-    // this.data.g_node = this;
-
 }
 
 LiteGraph.registerNodeType("btree/EQSNearestInterestPoint", EQSNearestInterestPoint);
 
 function EQSDistanceTo()
 {
-    this.shape = 2;
-    this.color = "#323";
-    this.bgcolor = "#543754";
+    this.shape    = 2;
+    this.color    = "#323";
+    this.bgcolor  = "#543754";
     this.boxcolor = "#999";
     var w = 150;
     var h = 45;
-    // this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
     this.addInput("pos1","vec3", {pos:[0,10], dir:LiteGraph.LEFT});
     this.addInput("pos2","vec3", {pos:[0,30], dir:LiteGraph.LEFT});
     this.addOutput("dist","number", {pos:[w,10], dir:LiteGraph.LEFT});
-    // this.addOutput("","path", {pos:[w*0.5,h], dir:LiteGraph.DOWN});
-    this.size = [w, h]; 
-    this.editable = { property:"value", type:"number" };
-    this.flags = { resizable: false };
+    this.size       = [w, h]; 
+    this.editable   = { property:"value", type:"number" };
+    this.flags      = { resizable: false };
     this.properties = {pos:[0, 0, 0]}
 	this.widgets_up = true;
-
 }
 
 EQSDistanceTo.prototype.onDrawBackground = function(ctx, canvas)
 {
-    ctx.font = "12px Arial";
-    ctx.fillStyle = "#AAA";
-    // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
-//    ctx.fillText(`Point evaluated`,10,35);
+    // ctx.font = "12px Arial";
+    // ctx.fillStyle = "#AAA";
+    // ctx.fillText(" Limit value ",10,15);
 }
+
 EQSDistanceTo.prototype.onExecute = function()
 {
 	if(! this.getInputData(0) ||  !this.getInputData(1))
 		return;
 	var point1 = this.getInputData(0).constructor == Float32Array ? this.getInputData(0) : this.getInputData(0).position;
-	var point2 =this.getInputData(1).constructor == Float32Array ? this.getInputData(1) : this.getInputData(1).position;
+	var point2 = this.getInputData(1).constructor == Float32Array ? this.getInputData(1) : this.getInputData(1).position;
 	if(point1 && point2)
 		var dist = vec3.dist(point1, point2);
 	else
 		var dist = 0;
-    // console.log("Agent pos: ", agent_pos);
-    // console.log("Point: ", point);
-    // console.log(dist);  
     this.setOutputData(0,dist);
 }
 
@@ -2161,32 +1965,31 @@ EQSDistanceTo.prototype.onConfigure = function(info)
 {
     onConfig(info, this.graph);
 }
+
 LiteGraph.registerNodeType("btree/EQSDistanceTo", EQSDistanceTo);
 
 function EQSNearestAgent()
 {
-    this.shape = 2;
-    this.color = "#323";
-    this.bgcolor = "#543754";
+    this.shape    = 2;
+    this.color    = "#323";
+    this.bgcolor  = "#543754";
     this.boxcolor = "#999";
     var w = 200;
     var h = 80;
-
     this.addOutput("","", {pos:[w,10], dir:LiteGraph.LEFT});
-    this.size = [w, h]; 
-    this.editable = { property:"value", type:"number" };
-    this.properties = {comparison_type:"<", value:50, prop:""}
-	var that = this;
+    this.size        = [w, h]; 
+    this.editable    = { property:"value", type:"number" };
+    this.properties  = {comparison_type:"<", value:50, prop:""}
+	var that         = this;
 	this.prop_widget = this.addWidget("string","Property", this.properties.prop, function(v){ that.properties.prop = v.toLowerCase(); }, this.properties  );
-	this.combo = this.addWidget("combo","Type:", ">", function(v){that.properties.comparison_type = v;}, { values:function(widget, node){
+	this.combo       = this.addWidget("combo","Type:", ">", function(v){that.properties.comparison_type = v;}, { values:function(widget, node){
         return [">","<","==", "!=", "<=", ">="];
     }} ); 
 	this.value_widget = this.addWidget("string","Value", this.properties.value, function(v){ that.properties.value = v.toLowerCase(); }, this.properties  );    
-	this.flags = { resizable: false };
-    this.widgets_up = true;
-	this.facade = null;
+	this.flags        = { resizable: false };
+	this.facade       = null;
+    this.widgets_up   = true;
 	this.serialize_widgets = true;
-
 }
 
 EQSNearestAgent.prototype.onExecute = function()
@@ -2197,21 +2000,49 @@ EQSNearestAgent.prototype.onExecute = function()
 	var agents = this.facade.getListOfAgents();
 	if(agents)
 	{
-		var nearest = [999999, 999999, 999999];
+		var nearest   = [999999, 0, 999999];
 		var last_dist = 99999999;
-		for(var i in agents)
+		if(this.properties.prop == "" )
 		{
-			var ag = agents[i];
-			if(this.facade.entityHasProperty(ag, this.properties.prop) && this.evaluateCondition(ag))
+			for(var j in agents)
 			{
-				var evaluated_pos = this.facade.getEntityPosition(this.graph.character_evaluated);
+				var ag     = agents[j];
 				var ag_pos = this.facade.getEntityPosition(ag);
-				if(!evaluated_pos || ! ag_pos) continue;
+				var evaluated_pos = this.facade.getEntityPosition(this.graph.character_evaluated);
+
+				if(!evaluated_pos || ! ag_pos) 
+					continue;
+
+				if(ag.uid == this.graph.character_evaluated.uid) 
+					continue;
+
 				var dist = vec3.dist( ag_pos, evaluated_pos );
 				if(dist < last_dist)
 				{
-					nearest = ag_pos;
+					nearest   = ag_pos;
 					last_dist = dist;	
+				}
+			}
+		}
+		else
+		{
+			for(var i in agents)
+			{
+				var ag = agents[i];
+				if(this.facade.entityHasProperty(ag, this.properties.prop) && this.evaluateCondition(ag))
+				{
+					var ag_pos        = this.facade.getEntityPosition(ag);
+					var evaluated_pos = this.facade.getEntityPosition(this.graph.character_evaluated);
+
+					if(!evaluated_pos || ! ag_pos) 
+						continue;
+
+					var dist = vec3.dist( ag_pos, evaluated_pos );
+					if(dist < last_dist)
+					{
+						nearest   = ag_pos;
+						last_dist = dist;	
+					}
 				}
 			}
 		}
@@ -2222,7 +2053,7 @@ EQSNearestAgent.prototype.onExecute = function()
 EQSNearestAgent.prototype.evaluateCondition = function(entity)
 {
 	var result = true;
-    var value = this.properties.value;
+    var value  = this.properties.value;
 
     try{
         value = JSON.parse( value );
@@ -2231,7 +2062,8 @@ EQSNearestAgent.prototype.evaluateCondition = function(entity)
        // i.e. a name "pepe"
     }
 
-    switch (this.properties.comparison_type) {
+    switch (this.properties.comparison_type) 
+	{
         case ">":
             result = entity.properties[this.properties.prop] > value;
             break;
@@ -2250,17 +2082,16 @@ EQSNearestAgent.prototype.evaluateCondition = function(entity)
         case ">=":
             result = entity.properties[this.properties.prop] >= value;
             break;
-        }
+    }
     return result;
 }
 
 EQSNearestAgent.prototype.onPropertyChanged = function(name,value)
 {
     if(name == "prop")
-        this.prop_widget.value = value;
+        this.prop_widget.value  = value;
 	if(name == "value")
 		this.value_widget.value = value;
-    
 }
 EQSNearestAgent.prototype.onConfigure = function(info)
 {
@@ -2271,20 +2102,18 @@ LiteGraph.registerNodeType("btree/EQSNearestAgent", EQSNearestAgent);
 
 function EQSNearestCollidable()
 {
-    this.shape = 2;
-    this.color = "#323";
-    this.bgcolor = "#543754";
+    this.shape    = 2;
+    this.color    = "#323";
+    this.bgcolor  = "#543754";
     this.boxcolor = "#999";
     var w = 150;
     var h = 45;
-    // this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
     this.addInput("pos1","vec3", {pos:[0,10], dir:LiteGraph.LEFT});
     this.addInput("pos2","vec3", {pos:[0,30], dir:LiteGraph.LEFT});
     this.addOutput("dist","number", {pos:[w,10], dir:LiteGraph.LEFT});
-    // this.addOutput("","path", {pos:[w*0.5,h], dir:LiteGraph.DOWN});
-    this.size = [w, h]; 
-    this.editable = { property:"value", type:"number" };
-    this.flags = { resizable: false };
+    this.size       = [w, h]; 
+    this.editable   = { property:"value", type:"number" };
+    this.flags      = { resizable: false };
     this.properties = {pos:[0, 0, 0], rad:200, orientation:null}
     this.widgets_up = true;
 }
@@ -2296,8 +2125,10 @@ EQSNearestCollidable.prototype.getCollisionData = function(agent_evaluated, near
 		var p = vec3.fromValues(0,0,1); 
 		var agent_front = mat4.multiplyVec3(vec3.create(), agent_evaluated.scene_node.getGlobalMatrix(), p);
 		var agent_to_nearest = this.facade.getEntityPosition(nearest_agent) - this.facade.getEntityPosition(agent_evaluated);
+
 		vec3.normalize(agent_front, agent_front);
 		vec3.normalize( agent_to_nearest,  agent_to_nearest);
+
 		var v_agent_front = vec2.fromValues(agent_front[0],agent_front[2]);
 		var v_agent_to_nearest = vec2.fromValues(agent_to_nearest[0],agent_to_nearest[2]);
 
@@ -2309,9 +2140,7 @@ EQSNearestCollidable.prototype.getCollisionData = function(agent_evaluated, near
 			var res = -Math.abs(Math.PI/2-deg)*sign;
 			this.properties.orientation = res/10;
 			return res;
-			// agent_evaluated.scene_node.rotate();
 		}
-		//
 	}
 }
 
@@ -2323,8 +2152,8 @@ EQSNearestCollidable.prototype.onExecute = function ()
 	var agents = this.facade.getListOfAgents();
 	if(agents)
 	{
-		var nearest = [999999, 999999, 999999];
 		var nearest_agent; 
+		var nearest   = [999999, 999999, 999999];
 		var last_dist = 99999999;
 		for(var i in agents)
 		{
@@ -2335,38 +2164,39 @@ EQSNearestCollidable.prototype.onExecute = function ()
 				var evaluated_pos = this.facade.getEntityPosition(this.graph.character_evaluated);
 				//position of other agent
 				var ag_pos = this.facade.getEntityPosition(ag);
-				if(!evaluated_pos || ! ag_pos) continue;
+				
+				if(!evaluated_pos || ! ag_pos) 
+					continue;
+				
 				var dist = vec3.dist( ag_pos, evaluated_pos );
 				if(dist < last_dist)
 				{
-					nearest = ag_pos;
+					nearest       = ag_pos;
 					nearest_agent = ag;
-					last_dist = dist;	
+					last_dist     = dist;	
 				}
 			}
 		}
-		debugger;
 		var data = this.getCollisionData( this.graph.character_evaluated, nearest_agent, last_dist  );
-
 	}
     this.setOutputData(0,nearest);
 }
-
+// NOT WORKING
 // LiteGraph.registerNodeType("btree/EQSNearestCollidablev", EQSNearestCollidable);
 
 function LookAt()
 {
-    this.shape = 2;
-    this.color = "#2e542e"
-    this.bgcolor = "#496b49";
+    this.shape    = 2;
+    this.color    = "#2e542e"
+    this.bgcolor  = "#496b49";
     this.boxcolor = "#999";
     var w = 200;
     var h = 55;
     this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
-    this.addInput("target","vec3", {pos:[0,35], dir:LiteGraph.LEFT});
-    this.size = [w, h];    
-    this.editable = { property:"value", type:"number" };
-    this.flags = { resizable: false };
+    this.addInput("target","", {pos:[0,35], dir:LiteGraph.LEFT});
+    this.size       = [w, h];    
+    this.editable   = { property:"value", type:"number" };
+    this.flags      = { resizable: false };
 	this.properties = {look_at:[0,100,100]}
 	this.addProperty("smoothness", 0.5, "number", {min:0, max:1} );
 	this.addProperty("intensity", 0.5, "number", {min:0, max:1} );
@@ -2378,14 +2208,13 @@ function LookAt()
 			"skip"
 		]
 	});
-	var that = this;
-	this.widget = this.addWidget("slider","Smoothness", this.properties.smoothness, function(v){ that.properties.smoothnessv = v; that.properties.smoothness = v; },{min:0, max:1, step:0.1} );
+	var that        = this;
+	this.widget     = this.addWidget("slider","Smoothness", this.properties.smoothness, function(v){ that.properties.smoothnessv = v; that.properties.smoothness = v; },{min:0, max:1, step:0.1} );
 	this.widgets_up = true;
-	this.facade = null;
-	this.behaviour = new Behaviour();
-	this.current_look_at = vec3.create();
+	this.facade     = null;
+	this.behaviour  = new Behaviour();
 	this.serialize_widgets = true;
-
+	this.current_look_at   = vec3.create();
 }
 
 LookAt.prototype.tick = function(agent, dt)
@@ -2397,19 +2226,17 @@ LookAt.prototype.tick = function(agent, dt)
 	vec3.copy(this.current_look_at, this.properties.look_at);
 	this.behaviour.type = B_TYPE.lookAt;
 	this.behaviour.setData({lookat:this.current_look_at, smoothness:this.properties.smoothness});
-	this.behaviour.STATUS = STATUS.success; 
+	this.description        = 'Look At updated: New look at position set to the input';
+	this.behaviour.STATUS   = STATUS.success; 
 	this.behaviour.priority = this.properties.priority; 
-
-	// this.facade.setEntityProperty(agent, "look_at_pos", this.properties.look_at );
-	this.description = 'Look At updated: New look at position set to the input';
 	this.graph.evaluation_behaviours.push(this.behaviour);
 	return this.behaviour;
-}
+} 
+
 LookAt.prototype.onDrawBackground = function(ctx, canvas)
 {
     ctx.font = "12px Arial";
     ctx.fillStyle = "#AAA";
-    // ctx.fillText(`Look at Node`,10,40);
 }
 
 LookAt.prototype.onExecute = function(ctx, canvas)
@@ -2433,18 +2260,18 @@ LiteGraph.registerNodeType("btree/LookAt", LookAt);
 
 function SetMotionVelocity()
 {
-	this.shape = 2;
-    this.color = "#2e542e"
-    this.bgcolor = "#496b49";
+	this.shape    = 2;
+    this.color    = "#2e542e"
+    this.bgcolor  = "#496b49";
     this.boxcolor = "#999";
 	var w = 200;
     var h = 60;
     this.addInput("","path", {pos:[w*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
 	this.addInput("","number", {pos:[0,35], dir:LiteGraph.LEFT});
-    this.size = [w,h];
-    this.editable = { property:"value", type:"number" };
-  
+    this.size       = [w,h];
+    this.editable   = { property:"value", type:"number" };
 	this.properties = {motion:1.0};
+	var that        = this;
 	this.addProperty("priority", "append", "enum", {
 		values: [
 			"append",
@@ -2453,35 +2280,30 @@ function SetMotionVelocity()
 			"skip"
 		]
 	});
-  	var that = this;
   	this.motion_slider = this.addWidget("number","velocity", this.properties.motion, function(v){ that.properties.motion = v; }, this.properties  );
-	this.widgets_up = true;
-//	this.horizontal = true;
-	this.flags = { resizable: false };
-	this.serialize_widgets = true;
-	this.behaviour = new Behaviour();
+	this.widgets_up    = true;
+	this.flags		   = { resizable: false };
+	this.behaviour     = new Behaviour();
+	this.serialize_widgets  = true;
 	this.behaviour.priority = this.properties.priority; 
-
-
 }
 
 SetMotionVelocity.title = "SetMotionVelocity ";
 
 SetMotionVelocity.prototype.onDrawBackground = function(ctx, canvas)
 {
-    ctx.font = "12px Arial";
-    ctx.fillStyle = "#AAA";
-    // ctx.fillText(this.data.property_to_compare + " - Limit value" + this.data.limit_value,10,15);
-    ctx.fillText(`External motion velocity`,10,40);
+    // ctx.font = "12px Arial";
+    // ctx.fillStyle = "#AAA";
+    // ctx.fillText(`External motion velocity`,10,40);
 }
 
 SetMotionVelocity.prototype.tick = function(agent, dt)
 {
 	agent.evaluation_trace.push(this.id);
-	this.behaviour.type = B_TYPE.setMotion;
-	this.behaviour.setData(this.properties.motion);
-	this.behaviour.STATUS = STATUS.success; 
+	this.behaviour.type     = B_TYPE.setMotion;
+	this.behaviour.STATUS   = STATUS.success; 
 	this.behaviour.priority = this.properties.priority; 
+	this.behaviour.setData(this.properties.motion);
 	this.graph.evaluation_behaviours.push(this.behaviour);
 	return this.behaviour;
 }
@@ -2490,25 +2312,22 @@ SetMotionVelocity.prototype.onPropertyChanged = function(name,value)
 {
     if(name == "motion")
         this.motion_slider.value = value;
-    
 }
 
 SetMotionVelocity.prototype.onConfigure = function(info)
 {
     onConfig(info, this.graph);
-    // this.data.g_node = this;
 }
 
 LiteGraph.registerNodeType("btree/SetMotionVelocity", SetMotionVelocity);
 
-//lack of type choice --> on progress
 function SetProperty()
 {
-	this.shape = 2;
-    this.color = "#2e542e"
-    this.bgcolor = "#496b49";
+	this.shape    = 2;
+    this.color    = "#2e542e"
+    this.bgcolor  = "#496b49";
     this.boxcolor = "#999";
-    this.size = [200,65];
+    this.size     = [200,65];
 	this.addInput("","path", {pos:[200*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});	
 	this.addInput("name","", {pos:[0,15], dir:LiteGraph.LEFT});
 	this.addInput("value","", {pos:[0,40], dir:LiteGraph.LEFT});
@@ -2520,19 +2339,17 @@ function SetProperty()
 			"skip"
 		]
 	});    
-	this.editable = { property:"value", type:"number" };
-  	this.properties = {value:1.0};
-  	var that = this;
-	this.dynamic = null;
+	var that         = this;
+	this.dynamic     = null;
+	this.editable    = { property:"value", type:"number" };
+  	this.properties  = {value:1.0};
 	this.widget_type = "number";
 	this.target_type = "agent";
-	this.dynamic = this.addWidget("string","value", 5, function(v){ that.properties.value = v; }, this.properties );
-	this.tmp_data = {};
-	// this.widgets_up = true;
-	this.facade = null;
-	this.behaviour = new Behaviour();
+	this.dynamic     = this.addWidget("string","value", 5, function(v){ that.properties.value = v; }, this.properties );
+	this.facade      = null;
+	this.tmp_data    = {};
+	this.behaviour   = new Behaviour();
 	this.serialize_widgets = true;
-
 }
 
 SetProperty.prototype.onExecute = function()
@@ -2541,15 +2358,14 @@ SetProperty.prototype.onExecute = function()
     if(name)
         this.properties.property_to_compare = name;
 	
-	if(!this.graph.character_evaluated) return;
+	if(!this.graph.character_evaluated) 
+		return;
+
 	if(this.graph.character_evaluated.properties[name])
-	{	
 		this.target_type = "agent";
-	}
+	
 	else if(blackboard[name])
-	{
 		this.target_type = "global";
-	}
 
 	var value = this.getInputData(2);
 	if(value)
@@ -2568,8 +2384,8 @@ SetProperty.prototype.tick = function(agent, dt)
 	{
 		if(this.target_type == "agent")
 		{
-			var f_value = this.facade.getEntityPropertyValue(this.properties.property_to_compare, agent);
-			f_value += parseFloat(this.properties.value);
+			var f_value   = this.facade.getEntityPropertyValue(this.properties.property_to_compare, agent);
+			f_value      += parseFloat(this.properties.value);
 			this.tmp_data = {type:"setProperty", name: this.properties.property_to_compare, value:f_value}
 		}
 		else
@@ -2578,46 +2394,36 @@ SetProperty.prototype.tick = function(agent, dt)
 	//just set the property to the value
 	else{
 		var final_value = this.properties.value;
-		if(!isNaN(parseFloat(this.properties.value)))
+
+		if(this.properties.value == "true" || this.properties.value == "false")
+			final_value = this.properties.value == "true" ? true : false;
+		
+		else if(!isNaN(parseFloat(this.properties.value)))
 			final_value = parseFloat(this.properties.value);
 
 		if(this.target_type == "agent")
-		{
 			this.tmp_data = {type:"setProperty", name: this.properties.property_to_compare, value:final_value}
-		}
+		
 		else
 			this.tmp_data = {type:"setProperty", name: this.properties.property_to_compare, value:final_value}
 	}
 
-	this.behaviour.type = B_TYPE.setProperty;
-	this.behaviour.setData(this.tmp_data);
-	this.behaviour.STATUS = STATUS.success; 
+	this.behaviour.type     = B_TYPE.setProperty;
+	this.behaviour.STATUS   = STATUS.success; 
 	this.behaviour.priority = this.properties.priority; 
+	this.behaviour.setData(this.tmp_data);
 	this.graph.evaluation_behaviours.push(this.behaviour);
 	return this.behaviour;
 }
-//
-//SetProperty.prototype.onPropertyChanged = function(name,value)
-//{
-//    if(name == "motion")
-//        this.motion_slider.value = value;
-//    
-//}
-//
-//SetProperty.prototype.onConfigure = function(info)
-//{
-//    onConfig(info, this.graph);
-//    // this.data.g_node = this;
-//}
 
 LiteGraph.registerNodeType("btree/SetProperty", SetProperty);
 
 /* It just succeeds */
 function Succeeder()
 {
-	this.shape = 2;
-    this.color = "#2e542e"
-    this.bgcolor = "#496b49";
+	this.shape    = 2;
+    this.color    = "#2e542e"
+    this.bgcolor  = "#496b49";
 	this.boxcolor = "#999";
 	this.addInput("","path", {pos:[120*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});	
 	this.addProperty("priority", "append", "enum", {
@@ -2628,23 +2434,22 @@ function Succeeder()
 			"skip"
 		]
 	});
-    this.size = [120,20];
-    this.editable = { property:"value", type:"number" };
+    this.size       = [120,20];
+    this.editable   = { property:"value", type:"number" };
   	this.widgets_up = true;
 	this.horizontal = true;
 	this.properties = {};
-	this.behaviour = new Behaviour();
+	this.behaviour  = new Behaviour();
 	this.behaviour.priority = this.properties.priority;
-
 }
 
 Succeeder.prototype.tick = function(agent, dt)
 {
 	agent.evaluation_trace.push(this.id);
-	this.behaviour.type = B_TYPE.succeeder;
-	this.behaviour.setData({});
-	this.behaviour.STATUS = STATUS.success; 
+	this.behaviour.type     = B_TYPE.succeeder;
+	this.behaviour.STATUS   = STATUS.success; 
 	this.behaviour.priority = this.properties.priority; 
+	this.behaviour.setData({});
 	this.graph.evaluation_behaviours.push(this.behaviour);
 	return this.behaviour;
 }
@@ -2655,9 +2460,9 @@ LiteGraph.registerNodeType("btree/Succeeder", Succeeder);
 
 function PoseWeighter()
 {
-	this.shape = 2;
-    this.color = "#727272"
-    this.bgcolor = "#8d8d8d";
+	this.shape    = 2;
+    this.color    = "#727272"
+    this.bgcolor  = "#8d8d8d";
     this.boxcolor = "#999";
     this.addInput("","path", {pos:[150*0.5,-LiteGraph.NODE_TITLE_HEIGHT], dir:LiteGraph.UP});
 	this.addOutput("dist","number", {pos:[150,15], dir:LiteGraph.LEFT});
@@ -2670,13 +2475,12 @@ function PoseWeighter()
 			"skip"
 		]
 	});
-	this.size = [150,30];
-    this.editable = { property:"value", type:"number" };
+	this.size       = [150,30];
+    this.editable   = { property:"value", type:"number" };
   	this.widgets_up = true;
-	// this.horizontal = true;
 	this.properties = { target_weight:1, time_at_max:0.5};
-	this.flags = { resizable: false };
-	this.behaviour = new Behaviour();
+	this.flags      = { resizable: false };
+	this.behaviour  = new Behaviour();
 	this.behaviour.priority = this.properties.priority;
 }
 
@@ -2685,13 +2489,12 @@ PoseWeighter.prototype.tick = function(agent, dt)
 	agent.evaluation_trace.push(this.id);
 	if(agent.pose_weighter == null || agent.pose_weighter == undefined)
 	{
-		agent.pose_weighter = 0;
 		agent.target_pose_weighter = this.properties.target_weight;
+		agent.pose_weighter     = 0;
 		this.setOutputData(0,agent.pose_weighter);
-		this.behaviour.type = B_TYPE.animateSimple;
-		this.behaviour.STATUS = STATUS.running;
+		this.behaviour.type     = B_TYPE.animateSimple;
+		this.behaviour.STATUS   = STATUS.running;
 		this.behaviour.priority = this.properties.priority; 
-
 		return this.behaviour;
 	}
 
@@ -2701,18 +2504,18 @@ PoseWeighter.prototype.tick = function(agent, dt)
 		{
 			//future, go back to 0
 			agent.target_pose_weighter = null;
-			agent.pose_weighter = null;
-			this.behaviour.type = B_TYPE.animateSimple;
-			this.behaviour.STATUS = STATUS.success;
+			agent.pose_weighter     = null;
+			this.behaviour.type     = B_TYPE.animateSimple;
+			this.behaviour.STATUS   = STATUS.success;
 			this.behaviour.priority = this.properties.priority; 
 			return this.behaviour;
 		}
 		else
 		{
-			agent.pose_weighter += dt;
+			agent.pose_weighter    += dt;
 			this.setOutputData(0,agent.pose_weighter);
-			this.behaviour.type = B_TYPE.animateSimple;
-			this.behaviour.STATUS = STATUS.running;
+			this.behaviour.type     = B_TYPE.animateSimple;
+			this.behaviour.STATUS   = STATUS.running;
 			this.behaviour.priority = this.properties.priority; 
 			return this.behaviour;
 		}
@@ -2726,17 +2529,17 @@ LiteGraph.registerNodeType("btree/PoseWeighter", PoseWeighter);
 /* On Progress */
 function UtilitySelector()
 {
-	this.shape = 2;
-    this.color = "#1B662D"
-    this.bgcolor = "#384837";
+	this.shape    = 2;
+    this.color    = "#1B662D"
+    this.bgcolor  = "#384837";
     this.boxcolor = "#999";
     this.addInput("","path");
-    this.size = [120,20];
-    this.editable = { property:"value", type:"number" };
+    this.size       = [120,20];
+    this.editable   = { property:"value", type:"number" };
   	this.widgets_up = true;
 	this.horizontal = true;
   	this.properties = {};
-	this.scores = {};
+	this.scores     = {};
 }
 
 UtilitySelector.prototype.onStart = function()
@@ -2746,13 +2549,11 @@ UtilitySelector.prototype.onStart = function()
 	children.sort(function(a,b)
 	{
 		if(a.pos[0] > b.pos[0])
-		{
 		  return 1;
-		}
+		
 		if(a.pos[0] < b.pos[0])
-		{
 		  return -1;
-		}
+		
 	});
 
 	this.outputs[0].links = [];
@@ -2765,13 +2566,13 @@ UtilitySelector.prototype.tick = function(agent, dt)
 	var children = this.getOutputNodes(0);
 	for(let n in children)
 	{
-		var child = children[n];
+		var child       = children[n];
 		var child_score = child.score();
-		this.scores[n] = child_score;
+		this.scores[n]  = child_score;
 	}
 	var high_scored_index = this.getHighestScoredChild();
 	var f_child = chilren[high_scored_index];
-	var value = f_child.tick(agent, dt);
+	var value   = f_child.tick(agent, dt);
 	if(value.STATUS == STATUS.success)
 	{
 		if(agent.is_selected)
@@ -2794,24 +2595,23 @@ UtilitySelector.prototype.tick = function(agent, dt)
 
 UtilitySelector.prototype.getHighestScoredChild = function(agent, dt)
 {
-	var max = -999999;
+	var max       = -999999;
 	var max_index = 0;
 	for(var i in this.scores)
 	{
 		if(this.scores[i] > max)
 		{
-			max = this.scores[i];
+			max       = this.scores[i];
 			max_index = i;
 		}
 	}
-    
 }
 
 function MultiBehaviour()
 {
-	this.shape = 2;
-    this.color = "#1B662D"
-    this.bgcolor = "#384837";
+	this.shape    = 2;
+    this.color    = "#1B662D"
+    this.bgcolor  = "#384837";
 	this.boxcolor = "#999";
 	var w = 200;
 	var h = 100;
@@ -2820,8 +2620,8 @@ function MultiBehaviour()
 	this.addInput("face_expression","string", {pos:[0,40], dir:LiteGraph.LEFT});
 	this.addInput("lookat","vec3", {pos:[0,60], dir:LiteGraph.LEFT});
 	this.addInput("time","number", {pos:[0,80], dir:LiteGraph.LEFT});
-	this.size = [w,h];
-    this.editable = { property:"value", type:"number" };
+	this.size       = [w,h];
+    this.editable   = { property:"value", type:"number" };
 	this.widgets_up = true;
   	this.properties = {};
 }
@@ -2832,19 +2632,18 @@ LiteGraph.registerNodeType("btree/MultiBehaviour", MultiBehaviour);
 function Parallel()
 {
   
-    this.shape = 2;
-    this.color = "#6e1212";
-    this.bgcolor = "#702d2d";
+    this.shape    = 2;
+    this.color    = "#6e1212";
+    this.bgcolor  = "#702d2d";
     this.boxcolor = "#999";
     this.addInput("","path");
 	this.addOutput("","path");
 	this.addProperty( "value", 1.0 );
-    this.editable = { property:"value", type:"number" };
-    this.data = {}
-    this.flags = { horizontal: true };
+    this.editable   = { property:"value", type:"number" };
+    this.flags      = { horizontal: true };
  	this.horizontal = true;
 	this.widgets_up = true;
-	this.behaviour = new Behaviour();
+	this.behaviour  = new Behaviour();
 }
 
 Parallel.prototype.onStart = Parallel.prototype.onDeselected = function()
@@ -2854,13 +2653,11 @@ Parallel.prototype.onStart = Parallel.prototype.onDeselected = function()
 	children.sort(function(a,b)
 	{
 		if(a.pos[0] > b.pos[0])
-		{
 		  return 1;
-		}
+		
 		if(a.pos[0] < b.pos[0])
-		{
 		  return -1;
-		}
+		
 	});
 
 	this.outputs[0].links = [];
@@ -2873,6 +2670,7 @@ Parallel.prototype.onStart = Parallel.prototype.onDeselected = function()
 		parent.onDeselected();
 	
 }
+//update if a child fails
 Parallel.prototype.tick = function(agent, dt)
 {
 	this.behaviour.STATUS = STATUS.fail;
@@ -2886,7 +2684,6 @@ Parallel.prototype.tick = function(agent, dt)
 		{
 			agent.evaluation_trace.push(this.id);
 			this.behaviour.STATUS = STATUS.success;
-			//Editor stuff [highlight trace]
 			if(agent.is_selected)
 				highlightLink(this, child);
 			
@@ -2895,26 +2692,23 @@ Parallel.prototype.tick = function(agent, dt)
 			
 			continue;
 		}
-		if(n == children.length-1 && this.behaviour.STATUS == STATUS.fail)
+
+		else if( value && (value.STATUS == STATUS.fail) )
+		{
+			if(n < children.length-1)
+				continue;
+
+			else
+			{
+				value.STATUS = this.behaviour.STATUS; 
+				return value;
+			}
+		}
+		else if(n == children.length-1 && this.behaviour.STATUS == STATUS.fail)
 			return value;
 	}
 }
 LiteGraph.registerNodeType("btree/Parallel", Parallel);
-
-//just leaf nodes
-var B_TYPE = 
-{
-	moveToLocation:0, 
-	lookAt:1,
-	animateSimple:2, 
-	wait:3, 
-	nextTarget:4,
-	setMotion:5, 
-	setProperty:6, 
-	succeeder:7, 
-	action:8,
-	conditional:9
-}
 
 /*To encapsulate the result somewhere*/
 function Behaviour()
@@ -2926,12 +2720,10 @@ function Behaviour()
 
 Behaviour.prototype._ctor = function()
 {
-	// type can be moveTo, LookAt, setProperty, AnimateSimple...
-	this.type = B_TYPE.moveTo;
-	this.STATUS = STATUS.success;
-	this.data = {};
+	this.type     = B_TYPE.moveTo;
+	this.STATUS   = STATUS.success;
+	this.data     = {};
 	this.priority = "append";
-	
 }
 
 Behaviour.prototype.setData = function( data )
@@ -2939,16 +2731,39 @@ Behaviour.prototype.setData = function( data )
 	this.data = data;
 }
 
+LiteGraph.Subgraph.prototype.tick = function(agent, dt)
+{
+	var child = this.subgraph.findNodeByTitle("HBTreeInput");
+	if(!child) return;
+	child.graph.character_evaluated = this.graph.character_evaluated;
+	child.graph.context = this.graph.context;
+	child.graph.current_behaviour   = this.graph.current_behaviour;
+	child.graph.character_evaluated = this.graph.character_evaluated;
+	child.graph.root_node = this.graph.root_node;
+	child.graph.evaluation_behaviours = this.graph.evaluation_behaviours;
+	var value = child.tick(agent, dt);
+	if(value && value.STATUS == STATUS.success || value.STATUS == STATUS.running)
+	{
+		if(agent.is_selected)
+		{
+			subgraph_child = this.getOutputNodes(0)
+			if(subgraph_child && subgraph_child[0])
+				highlightLink(this, subgraph_child[0]);
+		}
+		return value;
+	}
+	else
+		return value;
+}
+
 /*******************************************************************************************************************/
 /*
 * David Moreno - UPF
 */
-
 function Facade ()
 {
 	
 }
-
 /* 
 * Receives as a parmaeter a game/system entity, a scene node which is being evaluated
 * Returns a vec3 with the position
@@ -3013,7 +2828,7 @@ Facade.prototype.checkNextTarget = function( enitity )
 /*
 * Return the existing types of interest points
 */
-Facade.prototype.entityHasProperty = function(  )
+Facade.prototype.entityHasProperty = function() 
 {
 	console.warn("entityInTarget() Must be implemented to use HBTree system");
 }
@@ -3031,7 +2846,7 @@ Facade.prototype.getInterestPoints = function(  )
 * @look_at_pos: vec3 with the target position to check if it's seen or not 
 * @limit_angle: a number in degrees (field of view)
 */
-Facade.prototype.canSeeElement = function( entity, look_at_pos, limit_angle)
+Facade.prototype.canSeeElement = function( entity, look_at_pos, limit_angle, max_dist)
 {
 	console.warn("entityInTarget() Must be implemented to use HBTree system");
 }
@@ -3041,6 +2856,3 @@ Facade.prototype.getAnimation = function( filename)
 {
 	console.warn("entityInTarget() Must be implemented to use HBTree system");
 }
-
-
-

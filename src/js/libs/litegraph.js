@@ -5874,6 +5874,25 @@ LGraphNode.prototype.executeAction = function(action)
                 this.dragging_canvas = false;
             }
 
+            //select all Control A
+            if (e.keyCode == 65 && e.ctrlKey) {
+                this.selectNodes();
+                block_default = true;
+            }
+
+            if (e.code == "KeyC" && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
+                //copy
+                if (this.selected_nodes) {
+                    this.copyToClipboard();
+                    block_default = true;
+                }
+            }
+
+            if (e.code == "KeyV" && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
+                //paste
+                this.pasteFromClipboard();
+            }
+
             if (this.selected_nodes) {
                 for (var i in this.selected_nodes) {
                     if (this.selected_nodes[i].onKeyUp) {
@@ -9122,7 +9141,7 @@ LGraphNode.prototype.executeAction = function(action)
             //dialog.close();
             timeout_close = setTimeout(function() {
                 dialog.close();
-            }, 500);
+            }, 850);
         });
 
         if (that.search_box) {

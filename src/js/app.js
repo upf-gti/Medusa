@@ -43,7 +43,7 @@ var tmp = {
 	agent_anim : null, 
 	behaviour : null
 }
-
+var slerp_q = 0.95;
 /*SETTINGS*/
 var RENDER_PATHS 	= true;
 var RENDER_SCENARIO = false;
@@ -83,6 +83,8 @@ function appinit()
 	//This animation manager will manage the gets and new Animations, not Skeletal Animations
 	animation_manager = new AnimationManager(); 
 	loadInitialAnims(animation_manager);
+	// loadTestAnim(animation_manager);
+	
 	
 	hbt_context 	= new HBTContext();
 	current_graph 	= new HBTGraph("by_default");
@@ -99,7 +101,6 @@ function appinit()
 	CORE.Player.renderStats();
 	CORE.Scene.visualizeInterestPoints();
 
-	// testAreas();
 }
 /******************************************************************************** */
 function resize()
@@ -170,6 +171,8 @@ function update(dt)
 		if(state == STOP)
 			return;
 
+		//reset look at, so if the behaviour does not return a look at position, set it up to look front
+		character_.properties.look_at_pos = null;
 		var agent_graph = hbt_graphs[character_.hbtgraph];
 		tmp.behaviour = agent_graph.runBehaviour(character_, hbt_context, dt); //agent_graph -> HBTGraph, character puede ser var a = {prop1:2, prop2:43...}
 		
@@ -206,18 +209,13 @@ function streamCharacter(character_)
 	character_.num_id = 5;
 	if(streamer && streamer.websocket.readyState == WebSocket.OPEN)
 	{
-		debugger;
+		// debugger;
 		aux_bones = character_.animationBlender.main_skeletal_animation.skeleton.bones;
 		//scale -1 in z
 		//remap
 		// aux_bones = remapBones(aux_bones);
 		bones_quaternions = getQuatFromBoneArray(aux_bones, character_.scene_node.rotation);
 		var leg_quat = bones_quaternions[1];
-		
-		// for(var i in bones_quaternions)
-		// {
-		// 	bones_quaternions[i] = quat.fromValues(0,0,0,1);
-		// }
 
 		// bones_quaternions[1] = leg_quat;
 		// bones_quaternions[1][0] = 0;
@@ -225,7 +223,7 @@ function streamCharacter(character_)
 		// bones_quaternions[1][2] = 0.2;
 		// bones_quaternions[1][3] = 0.3;
 
-		debugger;
+		// debugger;
 		// bones_models = getModelsFromBoneArray(aux_bones, character_.scene_node.rotation)
 //		streamer.sendCharacterData(character_.num_id, character_.scene_node.position, bones_quaternions);
 		streamer.sendCharacterData(character_.num_id, character_.scene_node.getGlobalMatrix(), bones_quaternions);
@@ -337,12 +335,13 @@ if(!String.prototype.hasOwnProperty("replaceAll"))
    return this.charAt(0).toUpperCase() + this.substr(1);
   },
   enumerable: false
- });
+});
 
- function loadInitialAnims (animation_manager)
- {
+function loadInitialAnims (animation_manager)
+{
 	animation_manager.loadAnimation("assets/skanims/animations_ybot.skanim");
 	animation_manager.loadAnimation("assets/skanims/idle.skanim");
+	animation_manager.loadAnimation("assets/skanims/talking.skanim");
 	animation_manager.loadAnimation("assets/skanims/walking.skanim");
 	animation_manager.loadAnimation("assets/skanims/walking_texting.skanim");
 	animation_manager.loadAnimation("assets/skanims/running.skanim");
@@ -354,7 +353,7 @@ if(!String.prototype.hasOwnProperty("replaceAll"))
 	animation_manager.loadAnimation("assets/skanims/idle_around.skanim");
 	animation_manager.loadAnimation("assets/skanims/guitar_playing.skanim");
 	animation_manager.loadAnimation("assets/skanims/clapping.skanim");
- }
+}
 
 
 

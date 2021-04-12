@@ -63,7 +63,16 @@ PoseStylizer.prototype._ctor = function()
     this.relax_effectors = null;
     
     this.tmp_mat = mat4.create();
+
+    this.t_pose_arm_quat = quat.create();
 }
+
+PoseStylizer.prototype.setTPoseQuat = function( X, Y, Z )
+{
+    this.t_pose_arm_quat = quat.create();
+    return quat.fromEuler(this.t_pose_arm_quat, vec3.fromValues(X, Y, Z)); 
+}
+
 /*
 * Interpret what an emotion represent to specific parts of the body
 * parameters are the values of happiness, energy and relaz [-1,1]
@@ -231,7 +240,7 @@ PoseStylizer.prototype.stylizeSpine = function(array_of_bones, bones_by_name, f)
     this.rotateBoneByAngle(array_of_bones, bones_by_name, "mixamorig_Head", f/75);
 }
 
-PoseStylizer.prototype.slerpBone = function(array_of_bones, bones_by_name, name, f, bool)
+PoseStylizer.prototype.slerpBone = function(array_of_bones, bones_by_name, name, f, use_tpose_quat)
 {
     var index_rshoulder = bones_by_name.get(name);
     var r_shoulder = array_of_bones[index_rshoulder];
@@ -251,7 +260,8 @@ PoseStylizer.prototype.slerpBone = function(array_of_bones, bones_by_name, name,
     quat.fromMat3AndQuat( r_shoulder_quat, M3, 2 );
     // quat.fromMat4(r_shoulder_quat, r_shoulder.model);
     // quat.conjugate(r_shoulder_quat,r_shoulder_quat );
-    quat.slerp(aux_q1, quat.create(), r_shoulder_quat, f/100);
+    //**************HERE I SHOULD REPLACE  quat.create() BY THE T-POSE QUAT ***********************/
+    quat.slerp(aux_q1, this.t_pose_arm_quat, r_shoulder_quat, f/100);
     // quat.slerp(aux_q1, quat.create(), quat.create(), f/100);
     quat.multiply(aux_q2, r_shoulder_quat, aux_q1);
     //reconstruct the matrix

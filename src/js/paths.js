@@ -51,9 +51,19 @@ PathManager.prototype.exportPaths = function()
 	return final_paths;
 }
 
+PathManager.prototype.deleteAllPaths = function()
+{
+	for(var i = GFX.scene._nodes.length-1; i>0 ;i--)
+	{
+		var node = GFX.scene._nodes[i] 
+		if(node.name == 'path_ball' || node.name == 'path_line' )
+			GFX.scene.root.removeChild(node);
+			
+	}
+}
+
 PathManager.prototype.pathsFromJSON = function(data)
 {
-	debugger;
 	for(var i = 0; i < data.length; i++)
 	{
 		var current_path = data[i];
@@ -101,12 +111,14 @@ Path.prototype._ctor = function()
 
 Path.prototype.addControlPoint = function( position )
 {
+	if(!position) return;
 	var color = [255/255, 170/255, 40/255, 0.75]
 	var node = new RD.SceneNode();
 	node.id = 200 + Math.floor(Math.random()*100);
 	node.color = color;
 	node.shader = "phong_shadow";
 	node.mesh = "sphere";
+	node.name = "path_ball" + node.id.toString()
 	node.blend_mode = RD.BLEND_ALPHA;
 	node.position = [position[0],0,position[2]];
 	node.scale(20,20,20);
@@ -174,7 +186,7 @@ Path.prototype.connectControlPoints = function( control_p1, control_p2 )
 
     GFX.renderer.meshes[mesh_name] = line_mesh;
     var line_node = new RD.SceneNode();
-    line_node.name = "Control point line";
+    line_node.name = "path_line";
     line_node.flags.ignore_collisions = true;
     line_node.primitive = gl.LINES;
     line_node.mesh = mesh_name;
@@ -301,7 +313,7 @@ RespawningPath.prototype.connectControlPoints = function( control_p1, control_p2
 
     GFX.renderer.meshes[mesh_name] = line_mesh;
     var line_node = new RD.SceneNode();
-    line_node.name = "Control point line";
+    line_node.name = "path_line";
     line_node.flags.ignore_collisions = true;
     line_node.primitive = gl.LINES;
     line_node.mesh = mesh_name;

@@ -45,10 +45,16 @@ var GraphManager = {
 			else 
 				current = "by_default";
 
-			top_inspector.addCombo("Current", current, {name_width:"25%", width:"35%",values:test_array, callback:function(v){
+			top_inspector.addCombo("Current", current, {name_width:"25%", width:"25%",values:test_array, callback:function(v){
 				console.log("Graph name: " + v);
 				// debugger;
 				that.putGraphOnEditor( v );
+			}});
+			top_inspector.addButton(null, "Run step", {name_width:"0%", width:"10%", callback:function(v){
+
+				state = PLAYING;
+				update(GFX.dt);
+				state = STOP;
 			}});
 			top_inspector.addButton(null, "New", {name_width:"0%", width:"10%", callback:function(v)
 			{
@@ -124,6 +130,8 @@ var GraphManager = {
 //		console.log(name);
 		// var HBT_graph = hbt_context.getGraphByName(name);
 		// hbt_context.current_graph = HBT_graph;
+		if(!current_graph)
+			return;	
 		hbt_editor.graph_canvas.setGraph(current_graph.graph);
 		hbt_editor.graph = current_graph.graph;
 	},
@@ -175,6 +183,10 @@ var GraphManager = {
 				new_hbtgraph.graph.context = hbt_context;
 				hbt_graphs[name] = new_hbtgraph;
 				current_graph = hbt_graphs[name];
+				var root = LiteGraph.createNode('btree/Root')
+				root.pos = [280, 70]
+				new_hbtgraph.graph.add(root);		
+				// debugger;
 				hbt_editor.graph_canvas.setGraph(current_graph.graph);
 				hbt_editor.graph = current_graph.graph;
 				CORE.Scene.agent_inspector.refresh();

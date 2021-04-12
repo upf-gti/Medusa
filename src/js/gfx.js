@@ -12,6 +12,7 @@ var GFX = {
 	grab_point: vec3.create(),
 	gizmo:null,
 	render_gizmo:false, 
+	move_camera_vector : vec3.create(),
 
     init_time_clicked: 0,
 
@@ -31,7 +32,7 @@ var GFX = {
 		
         this.camera = new RD.Camera();
         //Eye, Center, Up
-		this.camera.lookAt([-1500, 250, 3000], [0, 7, 0], [0, 1, 0]);
+		this.camera.lookAt([-1500, 250, 3000], [0, 80, 0], [0, 1, 0]);
 		//Fov, Aspect, Near, Far
         this.camera.perspective(45, this.context.canvas.width / this.context.canvas.height, 50, 200000);
 		
@@ -53,15 +54,15 @@ var GFX = {
 		GL.Mesh.fromURL("assets/meshes/Jim.wbin", on_complete, gl);
 		PBR.init();
 
-        scenario = new RD.SceneNode();
-		scenario.mesh = "square.WBIN";
-		scenario.name = "scenario";
-		scenario.shader = "phong_shadow";
-		scenario.flags.ignore_collisions = true;
-		scenario.color = [1.0,1.0,1.0,1.0];
-		scenario.position = [0,0,0];
-		scenario.visible = false;
-		this.scene.root.addChild(scenario);
+        // scenario = new RD.SceneNode();
+		// scenario.mesh = "square.WBIN";
+		// scenario.name = "scenario";
+		// scenario.shader = "phong_shadow";
+		// scenario.flags.ignore_collisions = true;
+		// scenario.color = [1.0,1.0,1.0,1.0];
+		// scenario.position = [0,0,0];
+		// scenario.visible = false;
+		// this.scene.root.addChild(scenario);
 
         floor = new RD.SceneNode();
         floor.name = "floor";
@@ -132,6 +133,7 @@ var GFX = {
             global_dt = GFX.dt;
 			GFX.animateSelectionCircles( now );
 			stats.begin();
+			GFX.camera.move(GFX.move_camera_vector);
 
 			if(GFX.camera.position[1] < 20)
 				GFX.camera.position[1] = 20;
@@ -164,8 +166,24 @@ var GFX = {
 					GFX.grab_point.set( coll );
 			}
         }
-        this.renderer.context.onkeydown = function(e) {
-        
+		this.renderer.context.onkeydown = function(e) 
+		{
+			if(e.keyCode == 37)
+			{
+				GFX.move_camera_vector[0] = -10;
+			}
+			if(e.keyCode == 38)
+			{
+				GFX.move_camera_vector[2] = -10;
+			}
+			if(e.keyCode == 39)
+			{
+				GFX.move_camera_vector[0] = 10;
+			}
+			if(e.keyCode == 40)
+			{
+				GFX.move_camera_vector[2] = 10;
+			}
 			if(e.shiftKey)
 			{
                 if(e.keyCode == 37) {
@@ -193,11 +211,35 @@ var GFX = {
 				{
 					if(agent_selected)
 						agent_selected.scene_node.position = [0,0,0];
+					
+					else
+					{
+							GFX.camera.target = [0,100,0];
+					}
 					GFX.gizmo.updateGizmo();
+				}
+				//Reset scene
+				if(e.keyCode == 78)
+				{
+					CORE.GUI.openNewSceneDialog()
+				}
+				//Restart simulation
+				if(e.keyCode == 73)
+				{
+					CORE.Scene.restartSimulation()
+				}
+				//Shift + Backspace
+				if(e.keyCode == 8)
+				{		
+					if(agent_selected)
+					{
+						AgentManager.deleteAgent(agent_selected.uid);
+						GFX.gizmo.setTargets([]);
+					}
 				}
 			}
 			
-			if(e.keyCode === 116) // F5
+			if(e.keyCode === 116) // F5 
 			{
 				e.preventDefault();
 				e.stopPropagation();
@@ -212,7 +254,6 @@ var GFX = {
 			{
 				e.preventDefault();
 				e.stopPropagation();
-				debugger;
 				var data = getProjectData();
 				window.localStorage.setItem("medusa_recovery", data);
 
@@ -222,6 +263,14 @@ var GFX = {
         }
 
         this.renderer.context.onkeyup = function(e) {
+			if(e.keyCode == 37 || e.keyCode == 39)
+			{
+				GFX.move_camera_vector[0] = 0;
+			}
+			if(e.keyCode == 38 || e.keyCode == 40)
+			{
+				GFX.move_camera_vector[2] = 0;
+			}
 			//supr
             if(e.keyCode == 46){
                 for(var i in hbt_editor.graph_canvas.selected_nodes)
@@ -229,11 +278,6 @@ var GFX = {
                     var node = hbt_editor.graph_canvas.selected_nodes[i];
                     hbt_editor.graph.remove(node);
                 }
-			}
-			//R (remove agent)
-            if(e.keyCode == 8){
-				if(agent_selected)
-					AgentManager.deleteAgent(agent_selected.uid);
 			}
 			//Esc
 			if( e.keyCode == 27 ) 
@@ -273,8 +317,8 @@ var GFX = {
 				return;
 			if (e.leftButton) 
 			{
-                GFX.camera.orbit(e.deltax * GFX.dt *-0.15, [0, 1, 0]);
-                GFX.camera.orbit(e.deltay * GFX.dt * -0.15, [1, 0, 0], null, true);
+                GFX.camera.orbit(e.deltax * GFX.dt *-0.1, [0, 1, 0]);
+                GFX.camera.orbit(e.deltay * GFX.dt * -0.1, [1, 0, 0], null, true);
             }
 			if (e.rightButton) 
 			{
@@ -282,6 +326,16 @@ var GFX = {
 				if(coll)
 				{
 					var delta = vec3.sub( vec3.create(), GFX.grab_point, coll );
+					if(delta[0] > 800 )
+						delta[0] = 800;
+					if(delta[0] < -800 )
+						delta[0] = -800;
+					if(delta[2] > 800)
+						delta[2] = 800;
+					if(delta[2] < -800)
+						delta[2] = -800;
+					console.log(delta)
+					vec3.scale(delta, delta, 0.06)
 					GFX.camera.move( delta );
 				}
             }
@@ -312,7 +366,7 @@ var GFX = {
 		{
 			if(GFX.gizmo && GFX.gizmo.onMouse(e))
             	return;
-            GFX.camera.orbitDistanceFactor(1.0 + (e.wheel *-0.001));
+            GFX.camera.orbitDistanceFactor(1.0 + (e.wheel *-0.001*GFX.getCameraDistanceToTarget()));
 		}
         
         else if (e.type == "mousedown") 
@@ -538,7 +592,18 @@ var GFX = {
 			GFX.gizmo.onMouse(e);
 		}
     },
+	getCameraDistanceToTarget()
+	{
+		var c = 350;
+		var dist = vec3.dist( GFX.camera.position, GFX.camera.target)
+		var factor = dist/2000;
+		if(factor > 1)
+			factor = 1;
+		if(factor < 0.3)
+			factor = 0.3;
+		return factor;
 
+	},
 	testRayWithFloor(e)
 	{
 		var ray = GFX.camera.getRay( e.canvasx, e.canvasy );
@@ -574,7 +639,7 @@ var GFX = {
     updateCamera: function(skeleton) {
 
 		var pos = skeleton.getGlobalPosition();
-		pos[1] += 50;
+		pos[1] += 100;
 		
 		var last = GFX.camera.target;  
 		vec3.lerp(pos, pos, last, 0.9);

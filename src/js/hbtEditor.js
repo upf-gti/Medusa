@@ -138,7 +138,18 @@ HBTEditor.prototype.addNodeByType = function(type, properties, pos)
 //            node_leaf.properties = props;
             node_leaf.pos = pos;
             // node_leaf.data.g_node = node_leaf;
-            hbt_editor.graph.add(node_leaf);
+            var graphcanvas = LGraphCanvas.active_canvas;
+            graphcanvas.graph.add(node_leaf);
+            
+            if(graphcanvas.graph._is_subgraph)
+            {
+                node_leaf.graph.character_evaluated = this.graph.character_evaluated;
+                node_leaf.graph.context = this.graph.context;
+                node_leaf.graph.current_behaviour = this.graph.current_behaviour;
+                node_leaf.graph.character_evaluated = this.graph.character_evaluated;
+                node_leaf.graph.root_node = this.graph.root_node;
+                node_leaf.graph.evaluation_behaviours = this.graph.evaluation_behaviours;
+            }
             if(hbt_editor.current_graph_node && hbt_editor.current_graph_node.outputs && hbt_editor.current_graph_node.outputs[0].type == "path")
             {
 
@@ -163,7 +174,23 @@ HBTEditor.prototype.addNodeByType = function(type, properties, pos)
             node_cond.properties = properties;
             node_cond.pos = pos;
             // node_cond.data.g_node = node_cond;
-            hbt_editor.graph.add(node_cond);
+            var graphcanvas = LGraphCanvas.active_canvas;
+            graphcanvas.graph.add(node_leaf);
+            
+            if(graphcanvas.graph._is_subgraph)
+            {
+                node_leaf.graph.character_evaluated = this.graph.character_evaluated;
+                node_leaf.graph.context = this.graph.context;
+                node_leaf.graph.current_behaviour = this.graph.current_behaviour;
+                node_leaf.graph.character_evaluated = this.graph.character_evaluated;
+                node_leaf.graph.root_node = this.graph.root_node;
+                node_leaf.graph.evaluation_behaviours = this.graph.evaluation_behaviours;
+            }
+            if(hbt_editor.current_graph_node && hbt_editor.current_graph_node.outputs && hbt_editor.current_graph_node.outputs[0].type == "path")
+            {
+
+                hbt_editor.current_graph_node.connect(0, node_leaf, 0 );
+            }
         } break;
     }
 }

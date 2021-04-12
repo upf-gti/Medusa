@@ -79,7 +79,7 @@ function setProjectData()
 	CORE.AgentManager.agentsFromJSON(project.agents);
 	path_manager.pathsFromJSON(project.paths);
 	importBehaviours(project.behaviours);
-
+	//Metodo para propagar propiedades de HBTproperty a agents
 	CORE.GraphManager.top_inspector.refresh();
 }
 
@@ -103,7 +103,6 @@ function importBehaviours(data)
 		var behaviour = data[i];
 		if(i == "by_default")
 		{
-			//get and configure
 			var hbt_graph = hbt_graphs[i];
 			hbt_graph.graph.configure(behaviour.behaviour);
 		}
@@ -112,7 +111,19 @@ function importBehaviours(data)
 			var new_hbt_graph = new HBTGraph(i);
 			new_hbt_graph.graph.configure(behaviour.behaviour);
 			hbt_graphs[i] = new_hbt_graph;
-			//create and configure
+		}
+		updateAgentPropertiesFromGraph(hbt_graph.graph);  
+	}
+}
+
+function updateAgentPropertiesFromGraph(graph)
+{
+	for(var i in graph._nodes)
+	{
+		var node = graph._nodes[i];
+		if(node.constructor.name == "HBTproperty")
+		{
+			addPropertyToAgents(node.combo.value, node.title);
 		}
 	}
 }
@@ -228,9 +239,9 @@ function overrideFacade( facade )
 		return CORE.Scene.properties.interest_points;
 	}
 
-	facade.canSeeElement = function( entity , lookat, degrees)
+	facade.canSeeElement = function( entity , lookat, degrees, max_dist)
 	{
-		if(entity.canSeeElement(lookat, degrees))
+		if(entity.canSeeElement(lookat, degrees, max_dist))
 			return true;
 		return false;
 	}
@@ -688,6 +699,9 @@ Patrol.prototype.tick = function( agent )
 		motion: this.properties.motion_speed
 	};
 
+	if(!agent.properties.target.is_path)
+		agent.checkNextTarget();
+
 	if(this.isInTarget && this.isInTarget( agent ))
 	{
 		if(this.findNextTarget && this.findNextTarget(agent))
@@ -714,4 +728,24 @@ Patrol.prototype.tick = function( agent )
 		return this.behaviour;
 	
 	}
+}
+
+quat.getAngle = function( a,b ){
+	let dotproduct = vec4.dot(quat.normalize(a,a), quat.normalize(b,b));
+	return Math.acos(2 * dotproduct * dotproduct - 1);
+}
+
+
+function hbtgraph_exists(name)
+{
+	if(hbt_graphs[name] != undefined) return true
+	return false;
+}
+function propagateProperty(agent, property_name, property_type)
+{
+	if(agent.properties[property_name] == undefined || agent.properties[property_name] == null)
+		if(property_type == "boolean")
+			agent.properties[property_name] = false;
+		else if(property_type == "number")
+			agent.properties[property_name] = 0;
 }

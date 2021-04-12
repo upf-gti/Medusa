@@ -11,8 +11,11 @@ AnimationBlender.prototype._ctor = function()
 	this.layers                  = [];                       //array of skeletal animations and weights
 	this.current_time            = 0;
 	this.playback_speed          = 2.0;
-	this.motion_speed            = 2.7*this.playback_speed;
-	this.target_motion_speed     = 2.7;
+	this.motion_speed            = 0.0*this.playback_speed;
+	this.target_motion_speed     = 0.0;
+	this.look_at_factor 		 = 0.0;
+	this.previous_neck_quat 	 = null;
+	this.initial_neck_quat 		 = null;
 }
 
 AnimationBlender.prototype.animateSimple = function( agent, dt)
@@ -73,25 +76,81 @@ AnimationBlender.prototype.animateMerging = function( agent, dt, options )
 	this.smoothMotion( this.target_motion_speed );
 	// this.smoothPlaybackSpeed( this.target_playback_speed );
 
-	//stylization layer modifying the agent.scene_node.bones, to be passed later to the shader
+	//Stylization layer modifying the agent.scene_node.bones, to be passed later to the shader
 	//here we have the bones models local (as we want in the stylizer)
 	//we modify the agent.scene_node.bones by getting the index (inside the functions of stylize) 
-	/******* Stylization here  */
-	//debugger;
 	if(stylize)
 	{
 		agent.stylizer.stylizeSpine(this.main_skeletal_animation.skeleton.bones, this.main_skeletal_animation.skeleton.bones_by_name, agent.properties.valence);
 		agent.stylizer.stylizeShoulders(this.main_skeletal_animation.skeleton.bones, this.main_skeletal_animation.skeleton.bones_by_name, agent.properties.arousal);
 	}
+	//Look At
+	this.lookAt(this.main_skeletal_animation.skeleton.bones, this.main_skeletal_animation.skeleton.bones_by_name, "mixamorig_Neck", agent.properties.look_at_pos, agent)
+	
 	this.playback_speed = 1 + (agent.properties.valence/100)*0.2
 	node.bones = this.main_skeletal_animation.skeleton.computeFinalBoneMatrices( node.bones, gl.meshes[ node.mesh ] );
-
-	//aqui agent.animationBlender.main_skeletal_animation.skeleton.bones == node.bones
-	//Por tanto, podemos estilizar con el primero?? 
+	
 	if(node.bones && node.bones.length)
 		node.uniforms.u_bones = node.bones;
 
 	this.current_time += dt*this.playback_speed;
+}
+
+AnimationBlender.prototype.lookAt = function ( bones, bones_by_name, name, target, agent)
+{
+	var i_neck = bones_by_name.get(name);
+	var neck = bones[i_neck];
+	
+	var trans = vec3.create();
+    var scale = vec3.create();
+	var neck_quat = quat.create();
+    var temp_mat3 = mat3.create();
+    var M = mat4.clone(neck.model);
+	var direction = vec3.create();
+	var rotation = quat.create();
+	var tmp_mat = mat4.create();
+	var aux_quat = quat.create();
+	
+    mat4.getScaling(scale, neck.model);
+    mat4.getTranslation(trans, neck.model);
+    var M3 = mat3.fromMat4( temp_mat3, M );
+    quat.fromMat3AndQuat( neck_quat, M3, 2 );
+	
+	if(!target )
+	{
+		rotation = neck_quat;
+	} 
+	else{
+
+		vec3.subtract(direction, target, agent.scene_node.getGlobalPosition());
+		quat.lookRotation(rotation, direction, vec3.fromValues(0,1,0));
+	}
+	
+
+	if(this.previous_neck_quat == null)
+	{
+		quat.slerp(aux_quat, rotation, neck_quat, slerp_q );  
+		this.previous_neck_quat = aux_quat;
+	}
+	
+	else
+	{
+		var angle =  quat.getAngle(this.previous_neck_quat, rotation);
+		angle = angle*RAD2DEG;
+		if(angle < 5)
+		{
+			aux_quat = this.previous_neck_quat;
+		}
+		else
+		{
+			quat.slerp(aux_quat, rotation, this.previous_neck_quat, slerp_q );  
+			this.previous_neck_quat = aux_quat;
+
+		}
+	}
+	
+	mat4.fromRotationTranslationScale(tmp_mat, aux_quat, trans, scale);
+    mat4.copy(neck.model, tmp_mat);
 }
 
 AnimationBlender.prototype.applyBehaviour = function( behaviour )
@@ -172,7 +231,6 @@ AnimationBlender.prototype.addLayer = function( anim, weight )
 	{
 		var mod = this.current_time % this.main_skeletal_animation.duration;
 		var layer_current_time = (mod/this.main_skeletal_animation.duration)*anim.duration;
-
 	}
 	else
 		layer_current_time = Math.random()*anim.duration;

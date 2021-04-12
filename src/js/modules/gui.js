@@ -35,7 +35,13 @@ class GUI{
         this.node_info_dlg = null;
         this.node_info_insp= null;
 
-
+        
+		CORE.GUI.menu.add("Scene/· New empty", { 
+            callback:( ()=>{ 
+               this.openNewSceneDialog();
+            }).bind(this) 
+        });
+        
 		CORE.GUI.menu.add("Scene/· Load Project", { 
             callback:( ()=>{ 
 //                CORE.Scene.loadProject();
@@ -92,9 +98,9 @@ class GUI{
                 this.showCreatePathDialog();            
 			}).bind(this) 
         });
-        CORE.GUI.menu.add("Tools/· Populate/· Pseudorandom population", { 
+        CORE.GUI.menu.add("Tools/· Populate/· Add Group", { 
             callback:( ()=>{ 
-				CORE.Player.showPopUpMessage();
+				CORE.Player.showPopUpMessage("Click the floor to set the center of the group", "rgba(220, 170, 0, 0.5)", "50%");
 				document.getElementById("main_canvas").style.cursor = "cell";
 				scene_mode = POPULATE_CREATION_MODE;
 //                this.showPopulateDialog();
@@ -103,16 +109,7 @@ class GUI{
 
 		CORE.GUI.menu.add("Tools/· Restart simulation", { 
             callback:( ()=>{ 
-                for (var i in AgentManager.agents)
-                {
-					var agent = AgentManager.agents[i];
-					if(agent.last_controlpoint_index)
-					{
-						agent.last_controlpoint_index = -1;
-						agent.checkNextTarget();
-					}
-					agent.scene_node.position = agent.initial_pos;
-                }
+                CORE.Scene.restartSimulation()
             }).bind(this) 
         });
 
@@ -151,11 +148,61 @@ class GUI{
 //            LiteGUI.alert("<a href='https://github.com/upf-gti/Sauce'>SAUCE PROJECT Github</a>", {title: "About"});
 			LiteGUI.alert("Working on tutorials and guides", {title: "About"})
         }});
-    }
 
+		CORE.GUI.menu.add("Help/· Keyboard shortcurts", { 
+            callback:( ()=>{ 
+                this.showShortcuts();
+            }).bind(this) 
+        });
+    }
+    showShortcuts()
+    {
+        if(!this.shortcut_dialog){
+            var shortcut_dialog = this.shortcut_dialog = new LiteGUI.Dialog( { id:"shortcut_dialog", title:'Medusa Keyboard Shortcuts', close: true, minimize: false, width: 400, height: 300, scroll: false, resizable: false, draggable: true, parent:"body"});
+            this.shortcut_dialog.setPosition(document.body.clientWidth/2 - 150,200);
+
+        }
+        var dlg = this.shortcut_dialog;
+
+        if(!this.shortcut_inspector){
+            var shortcut_inspector = this.shortcut_inspector = new LiteGUI.Inspector(),
+                shortcut_dialog = this.shortcut_dialog;
+
+            shortcut_inspector.on_refresh = function()
+            {
+                shortcut_inspector.clear();
+                // shortcut_inspector.addTitle("Medusa");
+                shortcut_inspector.addInfo("KEYBOARD", "ACTION",{name_width:"40%"})
+                shortcut_inspector.addSeparator()
+                shortcut_inspector.addInfo("Arrows", "Camera move on plane XZ",{name_width:"40%"})
+                shortcut_inspector.addInfo("Double click on graph", "Search node by name",{name_width:"40%"})
+                shortcut_inspector.addInfo("Esc", "Set Navigation camera mode",{name_width:"40%"})
+                shortcut_inspector.addInfo("F6", "Reload the project",{name_width:"40%"})
+                shortcut_inspector.addInfo("G", "Show Gizmo",{name_width:"40%"})
+                shortcut_inspector.addInfo("Shift+Backspace", "Delete selected agent",{name_width:"40%"})
+                shortcut_inspector.addInfo("Shift+C (No agent selected)", "Center the camera target",{name_width:"40%"})
+                shortcut_inspector.addInfo("Shift+C", "Center agent on the origin",{name_width:"40%"})
+                shortcut_inspector.addInfo("Shift+N", "Clean scene / New scene",{name_width:"40%"})
+                shortcut_inspector.addInfo("Shift+R", "Reset scenario",{name_width:"40%"})
+                shortcut_inspector.addInfo("Supr", "Remove selected graph node",{name_width:"40%"})
+                shortcut_inspector.addSeparator()
+                shortcut_inspector.addInfo("MOUSE", "ACTION",{name_width:"40%"})
+                shortcut_inspector.addSeparator()
+                shortcut_inspector.addInfo("Left click drag", "Camera Orbit",{name_width:"40%"})
+                shortcut_inspector.addInfo("Right click drag", "Camera move on plane XZ",{name_width:"40%"})
+                dlg.adjustSize();
+            }
+
+            this.shortcut_dialog.add(shortcut_inspector);
+            shortcut_inspector.refresh();
+        }
+
+        this.shortcut_dialog.show('fade');
+        this.shortcut_dialog.setPosition(document.body.clientWidth/2 - 150,200);
+    }
 	showCreatePathDialog()
 	{
-		 if(!this.create_path_dialog){
+		if(!this.create_path_dialog){
             var create_path_dialog = this.create_path_dialog = new LiteGUI.Dialog( { id:"populate_scenario", title:'Create Path',  close: true, minimize: false, width: 150, height: 100, scroll: false, resizable: false, draggable: true, parent:"body"});
             this.create_path_dialog.setPosition(5,260);
 
@@ -173,12 +220,12 @@ class GUI{
                 create_path_inspector.addButton(null, "End path creation", {callback:function(){
 					
 					scene_mode = NAV_MODE;
-					document.getElementById("main_canvas").style.cursor = "default";
+                    document.getElementById("main_canvas").style.cursor = "default";
 					if(current_path.guide_line)
 						current_path.guide_line.destroy(true);
 					delete current_path.guide_line;
 					CORE.Player.disableModeButtons(this.id);
-					var btn = document.getElementById("navigate-mode-btn");
+                    var btn = document.getElementById("navigate-mode-btn");                    
 					if(!btn.classList.contains("active"))
 					{
 						btn.classList.add("active");
@@ -192,7 +239,15 @@ class GUI{
 					scene_mode = NAV_MODE;
 					document.getElementById("main_canvas").style.cursor = "default";
 					if(current_path.guide_line)
-						current_path.guide_line.destroy(true);
+                        current_path.guide_line.destroy(true);
+                    
+                    if( current_path.control_points.length < 2 )
+                    {
+                        if( current_path.control_points.length == 1 )
+                            GFX.scene.root.removeChild(current_path.control_points[0]);
+                        delete(path_manager._paths[current_path.id])
+                        CORE.Player.showPopUpMessage("Path not added. Path must have a minimum of 2 control points", "rgba(255,0,0,0.5)", "40%");
+                    }
 
 					CORE.Player.disableModeButtons(this.id);
 					var btn = document.getElementById("navigate-mode-btn");
@@ -334,13 +389,14 @@ class GUI{
 	showPopulateDialog( position )
 	{
 		if(!this.populate_static_dialog){
-            var populate_static_dialog = this.populate_static_dialog = new LiteGUI.Dialog( { id:"populate_scenario", title:'Add Static Group', close: true, minimize: false, width: 300, height: 300, scroll: false, resizable: false, draggable: true, parent:"body"});
+            var populate_static_dialog = this.populate_static_dialog = new LiteGUI.Dialog( { id:"populate_scenario", title:'Add Group', close: true, minimize: false, width: 300, height: 300, scroll: false, resizable: false, draggable: true, parent:"body"});
             this.populate_static_dialog.setPosition(document.body.clientWidth/2 - 150,200);
 
         }
         var dlg = this.populate_static_dialog;
 		var shapes = ["Circle", "Scattered"];
-		var orientations = ["Random", "Center", "+Z", "-Z", "+X", "-X"];
+        var orientations = ["+Z", "-Z", "+X", "-X", "Center", "Random"];
+        var extra_properties = [];
         window.g_pos = position;
         
         if(!this.populate_static_inspector){
@@ -360,13 +416,15 @@ class GUI{
                 var arousal = 0;
                 var behaviour = "by_default";
                 var behaviours = Object.keys(hbt_graphs);
+                
+                var data_types = ["boolean", "number", "string"];
 
 
-                populate_static_inspector.addSlider("Number of agents",10, {name_width:"40%", step:1, min:1, max:70, precision:0, callback:function(v)
+                populate_static_inspector.addSlider("Number of agents",Math.floor(num_agents), {name_width:"40%", step:1, min:1, max:70, precision:0, integer:true, callback:function(v)
                 {
-                    num_agents = v;
+                    num_agents = Math.floor(v);
                 }});
-                populate_static_inspector.addSlider("Size",1500, {name_width:"40%", width:"100%", step:10 ,min:500, max:3000, precision:0, callback:function(v)
+                populate_static_inspector.addSlider("Size",1500, {name_width:"40%", width:"100%", step:10 ,min:500, max:3000, precision:0, integer:true, callback:function(v)
                 {
                     size = v;
                 }}); 
@@ -376,11 +434,11 @@ class GUI{
                 }}); 
 
 
-				populate_static_inspector.addSlider("Min age",5, {name_width:"40%", step:1 ,min:5, max:99, precision:0, callback:function(v)
+				populate_static_inspector.addSlider("Min age",5, {name_width:"40%", step:1 ,min:5, max:99, precision:0, integer:true, callback:function(v)
                 {
                     min_age = v;
                 }}); 
-                populate_static_inspector.addSlider("Max age",5, {name_width:"40%", step:1, min:5, max:100, precision:0, callback:function(v)
+                populate_static_inspector.addSlider("Max age",5, {name_width:"40%", step:1, min:5, max:100, precision:0, integer:true, callback:function(v)
                 {
                     max_age = v;
                 }}); 
@@ -396,18 +454,49 @@ class GUI{
                 {
                     behaviour = v;
                 }}); 
+                //for extra custom properties
+                populate_static_inspector.addInfo("Extra properties", null );
+                populate_static_inspector.addSeparator();	
+                populate_static_inspector.widgets_per_row = 2;
+                
+
+                for(var i = 0; i<extra_properties.length; i++)
+                    populate_static_inspector.addInfo(extra_properties[i].name, extra_properties[i].type );
+                populate_static_inspector.addButton(null,"Clear", {callback:function(){extra_properties = []; populate_static_inspector.refresh()}})
+                populate_static_inspector.addSeparator();	
+
+                populate_static_inspector.widgets_per_row = 3;
+
+				var _k,_v;
+				populate_static_inspector.addString(null, "",  { width:"50%", placeHolder:"param name",  callback: v => _k = v });
+                populate_static_inspector.addCombo(null,data_types[0], {values: data_types, width:"30%", name_width:"1%", callback:function(v)
+                {
+                    _v = v;
+                }}); 				
+                populate_static_inspector.addButton(null, "+", { width:40, callback: e => {
+					if(!_k || !_v) 
+						return;
+					try{ 
+						_v = JSON.parse('{ "v":'+_v+'}').v;
+					}catch(e){
+						//if fails it was a string, so leave it as the string it was.
+                    }
+					extra_properties.push({name:_k, type:_v}); 
+					populate_static_inspector.refresh(); 
+                }});
+                populate_static_inspector.widgets_per_row = 1;
+
                 populate_static_inspector.addButton(null, "Add static group", {callback:function()
 				{
                     console.log(shape);
                     console.log(size);
                     console.log(orientation);
-                    var data = {min_age_:min_age, max_age_:max_age, valence_:valence, arousal_:arousal, behaviour_:behaviour};
+                    var data = {min_age_:min_age, max_age_:max_age, valence_:valence, arousal_:arousal, behaviour_:behaviour, extra:extra_properties};
                     console.log(data);
                     CORE.Scene.populateStaticGroup(window.g_pos, num_agents, shape, orientation, size, data); //dentro de la función rellenar los parametros de las propiedades, elegir paths, etc
                     dlg.close();
                 }});
-								
-                
+
                 dlg.adjustSize();
             }
 
@@ -479,11 +568,21 @@ class GUI{
                         if(e_data.behaviour)
                         {
                             // current_graph.graph.configure(e_data.behaviour);
-                            debugger;
                             var file_name = filename.split(".")[0]; 
                             var new_hbtgraph = new HBTGraph(file_name);
                             new_hbtgraph.graph.context = hbt_context;
                             new_hbtgraph.graph.configure(e_data.behaviour);
+
+                            for(var n in new_hbtgraph.graph._nodes)
+                            {
+                                var node = new_hbtgraph.graph._nodes[n]
+                                if(node.type == "btree/HBTproperty")
+                                {
+                                    var name = node.title;
+                                    var type = node.combo.value;
+                                    addPropertyToAgents(type, name)
+                                }
+                            }
                             hbt_graphs[file_name] = new_hbtgraph;
                         }
                             
@@ -519,6 +618,20 @@ class GUI{
         
 		choice.content.prepend(import_inspector.root);
 	
+    }
+    
+	openNewSceneDialog()
+	{
+		var choice = LiteGUI.choice("", [ "Accept", "Cancel"], function(v){
+			if(v.includes("Accept"))
+			{
+                CORE.Scene.cleanScene();
+                CORE.Scene.cleanScene();
+                CORE.Scene.cleanScene();
+                CORE.GraphManager.top_inspector.refresh();
+			}
+			
+		}, { title: 'Delete current scene?'});	
     }
     
     openImportAnimationDialog(data, file)
@@ -721,7 +834,7 @@ class GUI{
                 {
                     if(name)
                     {
-                        scenario = {};
+                        var scenario = {};
                         scenario["scene"] = CORE.Scene.exportScenario(name);
                         scenario["agents"] = CORE.AgentManager.exportAgents();
                         scenario["paths"] = path_manager.exportPaths();
@@ -857,7 +970,7 @@ class GUI{
                         metadata["tags"] = tags;
                         metadata["description"] = description;
 
-                        var data = CORE.GraphManager.exportBehaviour(hbt_context.current_graph.graph);
+                        var data = CORE.GraphManager.exportBehaviour(current_graph.graph);
                         var blob = new Blob([JSON.stringify(data)],{type:'application/json'} );
                         CORE.FS.uploadFile( "behaviors", new File([blob], name), metadata );
                         dlg.close();

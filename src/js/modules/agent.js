@@ -196,7 +196,8 @@ var AgentManager = {
 			var agent = this.agents[i];
             var agent_ = {}; 
 			agent_.uid = agent.uid;
-			agent_.position = agent.initial_pos;
+			agent_.position = agent.properties.initial_pos;
+            agent_.rotation = agent.scene_node.rotation;
 			agent_.num_id = agent.num_id;
 			agent_.hbtgraph = agent.hbtgraph;
 			agent_.properties = agent.properties;
@@ -232,7 +233,14 @@ var AgentManager = {
 		CORE.Scene.agent_inspector.refresh();
 
         delete AgentManager.agents[uid];
-    }, 
+        CORE.Player.renderStats();
+    },
+
+    deleteAgents()
+    {
+        for(var i in this.agents)
+            this.deleteAgent(this.agents[i].uid);
+    },
 		
 	deleteProperty(property_name)
 	{
@@ -241,7 +249,14 @@ var AgentManager = {
 			delete this.agents[i].properties[property_name];
 			CORE.Scene.agent_inspector.refresh();
 		}
-	}
+    }, 
+    propagateProperties(prop_name, prop_type)
+    {
+        for(var i in this.agents)
+        {
+            propagateProperty( this.agents[i],prop_name, prop_type )
+        }
+    }
 }
 
 CORE.registerModule( AgentManager );
@@ -262,7 +277,8 @@ class Agent{
 
         this.btree = null;
         this.blackboard = blackboard;
-		this.hbtgraph = "by_default";
+        this.hbtgraph = "by_default";
+        this.t_pose_config = vec3.create(0,0,0);
 
         this.path = null; 
 		this.r_path = null;
@@ -285,13 +301,13 @@ class Agent{
 			gun:false,
 			health:100,
             target: null, // this.path[0], 
-            look_at_pos: [0,0,10000], 
+            look_at_pos: null, 
             position: pos, 
             orientation: [0,0,0,1]
         };
-	
+        this.updateLogProperties()
 		var sk_pos = pos || [0,0,-1600];
-		this.initial_pos = pos;
+		this.properties.initial_pos = pos;
 		this.scene_node = new RD.SceneNode();
         this.scene_node.uniforms["u_selected"] = false;
         this.scene_node.uniforms["u_Skinning"] = true;
@@ -324,12 +340,18 @@ class Agent{
        
         this.stylizer = new PoseStylizer();
         //Store agents 
-        this.bt_info = {};
-        this.bt_info.running_data = {};
+        this.bt_info = { running_data: {} };
         AgentManager.agents[this.uid] = this;
 		AgentManager.addPropertiesToLog(this.properties);
     }
-    
+    updateLogProperties()
+    {
+        for(var i in AgentManager.properties_log)
+        {
+            if(this.properties[i] == undefined)
+                this.properties[i] = AgentManager.properties_log[i]
+        }
+    }
     configure( o, agent )
     {
         // console.log(o);
@@ -337,16 +359,22 @@ class Agent{
         this.num_id = o.num_id;
         this.btree = null;
         this.blackboard = blackboard;
-		this.hbtgraph = o.hbtgraph || "by_default";
+        if(hbtgraph_exists(o.hbtgraph))
+            this.hbtgraph = o.hbtgraph || "by_default";
+        else
+            this.hbtgraph = "by_default";   
 
+        this.t_pose_config = o.t_pose_config || vec3.create(0,0,0);
         this.path = null;//[{id:1,pos:[2800,0,-2500],visited:false},{id:2,pos: [1900,0,1000],visited:false} ,{id:3,pos: [1300,0,1800],visited:false}, {id:4,pos: [-1500,0,1800],visited:false}, {id:5,pos: [-1300,0,0],visited:false}, {id:6,pos: [0,0,-750],visited:false}, {id:7,pos: [1500,0,-1050],visited:false}, {id:8,pos: [2500,0,-2500],visited:false}];
 //        this.current_waypoint = this.path[0];
         this.properties = o.properties;
         this.properties.target = null; //this.path[0];
+        this.updateLogProperties()
         this.skeletal_animations = {};
 
         var sk_pos = o.position || [0,0,-1600];
-		this.initial_pos = sk_pos;
+        var rot = o.rotation || [0,0,0,1];
+		this.properties.initial_pos = sk_pos;
 
 		this.scene_node = new RD.SceneNode();
         this.scene_node.uniforms["u_selected"] = false;
@@ -359,6 +387,7 @@ class Agent{
 		this.scene_node.phase = Math.random();
 		this.scene_node.scaling = 1 + Math.random()*0.2;
 		this.scene_node.position = sk_pos;
+        this.scene_node.rotation = rot;
 		// this.scene_node.rotate(Math.random() * 360 * DEG2RAD,RD.UP);
 		this.scene_node.color = o.material_uniforms.color || [0.5 + Math.random()*0.5,0.5 + Math.random()*0.5,0.5 + Math.random()*0.5,1];
         GFX.scene.root.addChild(this.scene_node);
@@ -382,7 +411,8 @@ class Agent{
         this.stylizer = new PoseStylizer();
 
         //Store thiss 
-        this.bt_info = {};
+        this.bt_info = { running_data: {} };
+
         AgentManager.agents[agent.uid] = agent;
         AgentManager.addPropertiesToLog(agent.properties);
 
@@ -555,27 +585,38 @@ class Agent{
         } 
         return false;
 	}
-
-
-    canSeeElement( target, limit_angle )
+    
+    getYawRotation(pos)
     {
-        var target_pos = target.pos;
-        var direction = GFX.rotateVector(this.skeleton.skeleton_container.getGlobalMatrix(), [0,0,1]);
-        var target_v = vec3.create();
-        vec3.subtract(target_v, target_pos, this.skeleton.skeleton_container.getGlobalPosition());
+        var Dir = vec3.create();
+        vec3.subtract(Dir, pos, this.scene_node.getGlobalPosition());
 
-        vec3.normalize(direction, direction);
-        vec3.normalize(target_v, target_v);
-        var dot = vec3.dot(direction, target_v);
-        var angle = Math.acos(dot)*RAD2DEG;
+        var Fwd = GFX.rotateVector(this.scene_node.getGlobalMatrix(), [0,0,1]);
+        var Left = GFX.rotateVector(this.scene_node.getGlobalMatrix(), [1,0,0]);
 
+        var dx = vec3.dot(Fwd, Dir); //getForward().Dot(dir);
+        var dy = vec3.dot(Left, Dir); //-getRight().Dot(dir);
+        var angle = Math.atan2(dy, dx);
+        return angle;
+    }
 
-        if(Math.abs(angle) > limit_angle)   return false;
+    canSeeElement( target_pos, limit_angle, max_dist ) // isInsideCone
+    {
+        var agent_dist = this.scene_node.getGlobalPosition();
+        if(vec3.dist(agent_dist, target_pos)>max_dist)
+            return false;
 
-        // console.log("Angulo", Math.abs(angle))
+        var limit_angle_rad = limit_angle * DEG2RAD;
+
+        var angle_rad = this.getYawRotation( target_pos );
+        // console.log("angle deg", angle_rad * RAD2DEG);
+
+        if(Math.abs(angle_rad) > (limit_angle_rad * 0.5))
+            return false;
         return true;
 
     }
+
     getNextWaypoint()
     {
         for(var i in this.path)
@@ -650,7 +691,7 @@ class Agent{
 				// this.properties.target = behaviour.data;
 				break;
 			case B_TYPE.lookAt:
-				this.properties.look_at = behaviour.data;
+				this.properties.look_at_pos = behaviour.data.lookat;
 				break;
 			case B_TYPE.animateSimple: 
 				this.animationBlender.applyBehaviour(behaviour.data);
