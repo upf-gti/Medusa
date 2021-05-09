@@ -33,7 +33,7 @@ PathManager.prototype.getNearestPath = function( position )
 			nearest = path;
 		}
 	}
-	console.log(nearest);
+	// console.log(nearest);
 	return nearest;
 }
 

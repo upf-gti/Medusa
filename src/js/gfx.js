@@ -334,7 +334,7 @@ var GFX = {
 						delta[2] = 800;
 					if(delta[2] < -800)
 						delta[2] = -800;
-					console.log(delta)
+					// console.log(delta)
 					vec3.scale(delta, delta, 0.06)
 					GFX.camera.move( delta );
 				}
